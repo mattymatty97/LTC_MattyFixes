@@ -3,7 +3,7 @@ using HarmonyLib;
 using TMPro;
 using UnityEngine;
 
-namespace LobbyControl.PopUp
+namespace MattyFixes.PopUp
 {
     [HarmonyPatch]
     internal class OnDisablePatch

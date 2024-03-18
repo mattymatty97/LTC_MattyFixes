@@ -6,7 +6,7 @@
 
 ### Matty's fixes, version reset
 ## **FORK POINT**
-- separated non-host features from [Lobby Control](https://github.com/mattymatty97/LTC_LobbyControl)
+- separated non-host features from [Lobby Control](https://github.com/mattymatty97/LTC_MattyFixes)
 
 ## v2.2.6
 - fix crash with InvisibleManFix ( rpc handlers are static! )

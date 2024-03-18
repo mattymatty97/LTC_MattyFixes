@@ -7,10 +7,10 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using LobbyControl.PopUp;
+using MattyFixes.PopUp;
 using PluginInfo = BepInEx.PluginInfo;
 
-namespace LobbyControl
+namespace MattyFixes
 {
     [BepInPlugin(GUID, NAME, VERSION)]
     internal class MattyFixes : BaseUnityPlugin

@@ -1,11 +1,11 @@
 ﻿using System;
 using HarmonyLib;
-using LobbyControl.Patches.Utility;
+using MattyFixes.Patches.Utility;
 using Unity.Netcode;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace LobbyControl.Patches
+namespace MattyFixes.Patches
 {
     [HarmonyPatch]
     internal class CupBoardFix

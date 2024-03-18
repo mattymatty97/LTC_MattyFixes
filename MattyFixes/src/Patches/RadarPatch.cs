@@ -5,7 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace LobbyControl.Patches
+namespace MattyFixes.Patches
 {
     [HarmonyPatch]
     internal class RadarPatch

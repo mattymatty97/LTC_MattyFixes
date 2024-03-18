@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
-namespace LobbyControl.Patches
+namespace MattyFixes.Patches
 {
     [HarmonyPatch]
     internal class ItemPatches

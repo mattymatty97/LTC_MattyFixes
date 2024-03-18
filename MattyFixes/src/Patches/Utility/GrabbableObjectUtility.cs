@@ -6,7 +6,7 @@ using GameNetcodeStuff;
 using HarmonyLib;
 using UnityEngine;
 
-namespace LobbyControl.Patches.Utility
+namespace MattyFixes.Patches.Utility
 {
     [HarmonyPatch]
     internal class GrabbableObjectUtility

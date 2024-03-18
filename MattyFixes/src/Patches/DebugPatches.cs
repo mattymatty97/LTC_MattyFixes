@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 
-namespace LobbyControl.Patches
+namespace MattyFixes.Patches
 {
     [HarmonyPatch]
     internal class DebugPatches

@@ -4,10 +4,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle(LobbyControl.MattyFixes.NAME)]
+[assembly: AssemblyTitle(MattyFixes.MattyFixes.NAME)]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct(LobbyControl.MattyFixes.NAME)]
+[assembly: AssemblyProduct(MattyFixes.MattyFixes.NAME)]
 [assembly: AssemblyCopyright("Copyright © tinyhoot 2023")]
 [assembly: AssemblyCulture("")]
 
@@ -26,5 +26,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion(LobbyControl.MattyFixes.VERSION)]
-[assembly: AssemblyFileVersion(LobbyControl.MattyFixes.VERSION)]
+[assembly: AssemblyVersion(MattyFixes.MattyFixes.VERSION)]
+[assembly: AssemblyFileVersion(MattyFixes.MattyFixes.VERSION)]
