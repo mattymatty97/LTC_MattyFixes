@@ -1,3 +1,8 @@
+ALPHA VERSION
+=============
+this mod is not yet fully released and is waiting for the last tests before release
+
+
 Matty's Fixes
 ============
 [![GitHub Release](https://img.shields.io/github/v/release/mattymatty97/LTC_MattyFixes?display_name=release&logo=github&logoColor=white)](https://github.com/mattymatty97/LTC_MattyFixes/releases/latest)
