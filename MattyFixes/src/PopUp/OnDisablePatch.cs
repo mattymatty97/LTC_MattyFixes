@@ -10,10 +10,29 @@ namespace MattyFixes.PopUp
     {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(MenuManager), nameof(MenuManager.Awake))]
-        private static void AddPopup(MenuManager __instance)
+        private static void AddPopups(MenuManager __instance)
         {
-            if (MattyFixes.FoundIncompatibilities.Count <= 0) 
-                return;
+            
+            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.PopUp.Value)
+            {
+                StringBuilder sb = new StringBuilder($"WARNING!\n{MattyFixes.NAME}\nReadable meshes are enabled\nthis might increase RAM usage!");
+                AppendPopup("MF_MeshPopup", sb.ToString());
+            }
+            
+            if (MattyFixes.FoundIncompatibilities.Count > 0)
+            {
+                StringBuilder sb = new StringBuilder($"{MattyFixes.NAME} was DISABLED!\nIncompatible:");
+                foreach (var plugin in MattyFixes.FoundIncompatibilities)
+                {
+                    sb.Append("\n").Append(plugin.Metadata.Name);
+                }
+                AppendPopup("MF_Incompatibility", sb.ToString());
+            }
+        }
+        
+        
+        private static void AppendPopup(string name, string text)
+        {
             
             var menuContainer = GameObject.Find("/Canvas/MenuContainer/");
             var lanPopup = GameObject.Find("Canvas/MenuContainer/LANWarning/");
@@ -22,19 +41,14 @@ namespace MattyFixes.PopUp
             
             MattyFixes.Log.LogWarning("Cloning!");
             var newPopup = UnityEngine.Object.Instantiate(lanPopup, menuContainer.transform);
-            newPopup.name = "LC_Incompatibility";
+            newPopup.name = name;
             newPopup.SetActive(true);
             MattyFixes.Log.LogWarning("Finding text!");
-            var textHolder = GameObject.Find("Canvas/MenuContainer/LC_Incompatibility/Panel/NotificationText");
+            var textHolder = GameObject.Find($"Canvas/MenuContainer/{name}/Panel/NotificationText");
             MattyFixes.Log.LogWarning("Finding TextMeshPro!");
-            var text = textHolder.GetComponent<TextMeshProUGUI>();
+            var textMesh = textHolder.GetComponent<TextMeshProUGUI>();
             MattyFixes.Log.LogWarning("Changing text!");
-            StringBuilder sb = new StringBuilder("LOBBY CONTROL was DISABLED!\nIncompatible:");
-            foreach (var plugin in MattyFixes.FoundIncompatibilities)
-            {
-                sb.Append("\n").Append(plugin.Metadata.Name);
-            }
-            text.text = sb.ToString();
+            textMesh.text = text;
         }
     }
 }

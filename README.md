@@ -30,6 +30,13 @@ Patches:
   - **fix items from a newly created lobby being visible on the radar**
 - ### OutOfBounds Patch
   - prevent items from falling **below of the ship**
+- ### Alternate Lightning Particles
+  - show particles around items in a sphere
+- ### Readable Meshes
+  - mark all meshes as readable to fix various vanilla bugs:
+    - Stormy weather spamming zero_surface_area warnings
+    - Lightning particle showing as a point instead of on the item model
+    - align items to the floor instead of clipping/floating
 
 Differences to [ItemClippingFix](https://thunderstore.io/c/lethal-company/p/ViViKo/ItemClippingFix/)
 ------------------------

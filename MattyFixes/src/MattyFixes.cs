@@ -70,6 +70,11 @@ namespace MattyFixes
             {
                 var config = plugin.Config;
                 //Initialize Configs
+                //ReadableMeshes
+                ReadableMeshes.Enabled = config.Bind("ReadableMeshes","enabled",true
+                    ,"convert all meshes to readable at runtime ( will increase RAM usage )");
+                ReadableMeshes.PopUp = config.Bind("ReadableMeshes","pupup",true
+                    ,"show up warning popup after boot");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
@@ -109,6 +114,12 @@ namespace MattyFixes
 
                 orphanedEntries.Clear(); // Clear orphaned entries (Unbinded/Abandoned entries)
                 config.Save(); // Save the config file
+            }
+            
+            internal static class ReadableMeshes
+            {
+                internal static ConfigEntry<bool> Enabled;
+                internal static ConfigEntry<bool> PopUp;
             }
             
             internal static class CupBoard

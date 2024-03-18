@@ -2,7 +2,6 @@
 - improved handling of Cupboard and OutOfBound checks
 - mark all meshes as readable
 - add alternate lightning particle system
-- 
 
 ### Matty's fixes, version reset
 ## **FORK POINT**

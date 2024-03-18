@@ -255,14 +255,17 @@ namespace MattyFixes.Patches
         {
             try
             {
-                foreach (var itemType in __instance.allItemsList.itemsList)
+                if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
                 {
-                    if (itemType.spawnPrefab is null)
-                        continue;
+                    foreach (var itemType in __instance.allItemsList.itemsList)
+                    {
+                        if (itemType.spawnPrefab is null)
+                            continue;
 
-                    itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
+                        itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
 
-                    MakeMeshReadable(itemType.spawnPrefab);
+                        MakeMeshReadable(itemType.spawnPrefab);
+                    }
                 }
             }
             catch (Exception ex)
@@ -373,7 +376,9 @@ namespace MattyFixes.Patches
                 if (!manualOffsets.TryGetValue(
                         itemType.itemName, out var offset))
                 {
-                    Bounds? bounds = CalculateColliderBounds(go);
+                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                        ? CalculateColliderBounds(go)
+                        : CalculateRendererBounds(go);
 
                     if (bounds.HasValue)
                     {
@@ -441,6 +446,31 @@ namespace MattyFixes.Patches
             return bounds;
         }
 
+        internal static Bounds? CalculateRendererBounds(GameObject go)
+        {
+            Renderer[] renderers;
+            var filter = go.GetComponent<Renderer>();
+            if (filter != null)
+                renderers = new[] { filter };
+            else
+            {
+                renderers = go.GetComponentsInChildren<Renderer>();
+            }
+
+            Bounds? bounds = null;
+
+            foreach (var renderer in renderers)
+            {
+                var rbounds = renderer.bounds;
+                if (bounds.HasValue)
+                    bounds.Value.Encapsulate(rbounds);
+                else
+                    bounds = rbounds;
+            }
+
+            return bounds;
+        }
+
         internal static void MakeMeshReadable(GameObject go)
         {
             MeshFilter[] renderers;
@@ -502,35 +532,57 @@ namespace MattyFixes.Patches
 
             return meshCopy;
         }
-        
-        [HarmonyPatch(typeof(StormyWeather))]
+
+        [HarmonyPatch]
         internal class StormyWeatherPatch
         {
             [HarmonyPrefix]
-            [HarmonyPatch(nameof(StormyWeather.SetStaticElectricityWarning))]
+            [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
             private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
             {
-                var shapeModule = __instance.staticElectricityParticle.shape;
-                if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
+                try
                 {
-                    Bounds? bounds = CalculateColliderBounds(warningObject.gameObject);
+                    var shapeModule = __instance.staticElectricityParticle.shape;
+                    if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value || !MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    {
+                        Bounds? bounds = CalculateRendererBounds(warningObject.gameObject);
 
-                    shapeModule.shapeType = ParticleSystemShapeType.Sphere;
-                    shapeModule.radiusThickness = 0.01f;
-                    if (!bounds.HasValue)
-                        return;
-                    var diagonal = Vector3.Distance(bounds.Value.min, bounds.Value.max);
-                    shapeModule.radius = diagonal / 2f;
-                    shapeModule.position = bounds.Value.center - warningObject.gameObject.transform.position +
-                                           Vector3.up * 0.5f;
+                        shapeModule.shapeType = ParticleSystemShapeType.Sphere;
+                        shapeModule.radiusThickness = 0.01f;
+                        if (!bounds.HasValue)
+                            return;
+                        var extents = bounds.Value.extents;
+                        shapeModule.radius = Math.Max(extents.x, Math.Max(extents.y, extents.z));
+                    }
+                    else
+                    {
+                        MakeMeshReadable(warningObject.gameObject);
+                        shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
+                        shapeModule.radiusThickness = 0f;
+                        shapeModule.radius = 0f;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
-                    shapeModule.radiusThickness = 0f;
-                    shapeModule.radius = 0f;
-                    shapeModule.position = Vector3.zero;
+                    MattyFixes.Log.LogError(ex);
                 }
+            }
+            
+            [HarmonyPostfix]
+            [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.Update))]
+            private static void SetCorrectParticlePosition(StormyWeather __instance)
+            {
+                if (!MattyFixes.PluginConfig.LightingParticle.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    return;
+                
+                if (__instance.setStaticToObject==null)
+                    return;
+
+                var bounds = CalculateRendererBounds(__instance.setStaticToObject);
+                if(!bounds.HasValue)
+                    return;
+                
+                __instance.staticElectricityParticle.transform.position = bounds.Value.center + Vector3.up * 0.5f;
             }
         }
     }
