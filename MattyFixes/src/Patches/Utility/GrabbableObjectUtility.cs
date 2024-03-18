@@ -82,7 +82,7 @@ namespace LobbyControl.Patches.Utility
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError(ex);
+                MattyFixes.Log.LogError(ex);
             } 
         }
         
@@ -110,7 +110,7 @@ namespace LobbyControl.Patches.Utility
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError(ex);
+                MattyFixes.Log.LogError(ex);
             } 
         }
         
@@ -141,7 +141,7 @@ namespace LobbyControl.Patches.Utility
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError(ex);
+                MattyFixes.Log.LogError(ex);
             } 
         }
     }

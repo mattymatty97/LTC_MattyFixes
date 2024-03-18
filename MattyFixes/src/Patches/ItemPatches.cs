@@ -209,7 +209,7 @@ namespace LobbyControl.Patches
         {
             hitPoint.y = shelfTransform.position.y + shelfTransform.localScale.z / 2f;
             return hitPoint + Vector3.up * (heldObject.itemProperties.verticalOffset -
-                                            LobbyControl.PluginConfig.ItemClipping.VerticalOffset.Value);
+                                            MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value);
         }
 
 
@@ -218,7 +218,7 @@ namespace LobbyControl.Patches
         private static bool ItemPlacementPositionPatch(PlaceableObjectsSurface __instance, ref Vector3 __result,
             Transform gameplayCamera, GrabbableObject heldObject)
         {
-            if (!LobbyControl.PluginConfig.ItemClipping.Enabled.Value)
+            if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return true;
 
             try
@@ -244,7 +244,7 @@ namespace LobbyControl.Patches
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"Exception while finding the Cupboard Placement {ex}");
+                MattyFixes.Log.LogError($"Exception while finding the Cupboard Placement {ex}");
                 return true;
             }
         }
@@ -267,10 +267,10 @@ namespace LobbyControl.Patches
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"Crash while setting meshes to Readable! {ex}");
+                MattyFixes.Log.LogError($"Crash while setting meshes to Readable! {ex}");
             }
 
-            if (!LobbyControl.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
+            if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
                 return;
 
             try
@@ -286,19 +286,19 @@ namespace LobbyControl.Patches
                     if (value.Count > 1)
                     {
                         itemType.restingRotation.Set(value[0], value[1], value[2]);
-                        LobbyControl.Log.LogInfo(
+                        MattyFixes.Log.LogInfo(
                             $"{itemType.itemName} modified rotation is now {itemType.restingRotation}");
                     }
                     else
                     {
-                        LobbyControl.Log.LogInfo(
+                        MattyFixes.Log.LogInfo(
                             $"{itemType.itemName} original rotation is now {itemType.restingRotation}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"An Object crashed badly! {ex}");
+                MattyFixes.Log.LogError($"An Object crashed badly! {ex}");
             }
         }
 
@@ -310,7 +310,7 @@ namespace LobbyControl.Patches
             if (!(__instance is GrabbableObject grabbable))
                 return;
 
-            if (!LobbyControl.PluginConfig.ItemClipping.RotateOnSpawn.Value)
+            if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                 return;
 
             if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
@@ -330,7 +330,7 @@ namespace LobbyControl.Patches
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"Exception while setting rotation :{ex}");
+                MattyFixes.Log.LogError($"Exception while setting rotation :{ex}");
             }
         }
 
@@ -339,7 +339,7 @@ namespace LobbyControl.Patches
         [HarmonyPriority(20)]
         private static void StartPrefix(GrabbableObject __instance)
         {
-            if (!LobbyControl.PluginConfig.ItemClipping.Enabled.Value)
+            if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
 
             if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
@@ -349,7 +349,7 @@ namespace LobbyControl.Patches
                 return;
 
             Dictionary<string, float> manualOffsets = new Dictionary<string, float>();
-            var offsetString = LobbyControl.PluginConfig.ItemClipping.ManualOffsets.Value;
+            var offsetString = MattyFixes.PluginConfig.ItemClipping.ManualOffsets.Value;
             foreach (var entry in offsetString.Split(','))
             {
                 var parts = entry.Split(':');
@@ -378,31 +378,31 @@ namespace LobbyControl.Patches
                     if (bounds.HasValue)
                     {
                         itemType.verticalOffset = (pos.y - bounds.Value.min.y) +
-                                                  LobbyControl.PluginConfig.ItemClipping.VerticalOffset
+                                                  MattyFixes.PluginConfig.ItemClipping.VerticalOffset
                                                       .Value;
 
-                        LobbyControl.Log.LogInfo(
+                        MattyFixes.Log.LogInfo(
                             $"{itemType.itemName} computed vertical offset is now {itemType.verticalOffset}");
                     }
                     else
                     {
-                        LobbyControl.Log.LogInfo(
+                        MattyFixes.Log.LogInfo(
                             $"{itemType.itemName} original vertical offset is {itemType.verticalOffset}");
                     }
                 }
                 else
                 {
                     itemType.verticalOffset = offset +
-                                              LobbyControl.PluginConfig.ItemClipping.VerticalOffset
+                                              MattyFixes.PluginConfig.ItemClipping.VerticalOffset
                                                   .Value;
 
-                    LobbyControl.Log.LogInfo(
+                    MattyFixes.Log.LogInfo(
                         $"{itemType.itemName} manual vertical offset is now {itemType.verticalOffset}");
                 }
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"{itemType.itemName} crashed! {ex}");
+                MattyFixes.Log.LogError($"{itemType.itemName} crashed! {ex}");
             }
 
             go.transform.rotation = oldRot;
@@ -511,7 +511,7 @@ namespace LobbyControl.Patches
             private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
             {
                 var shapeModule = __instance.staticElectricityParticle.shape;
-                if (LobbyControl.PluginConfig.LightingParticle.Enabled.Value)
+                if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                 {
                     Bounds? bounds = CalculateColliderBounds(warningObject.gameObject);
 

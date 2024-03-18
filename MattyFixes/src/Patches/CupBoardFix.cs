@@ -17,7 +17,7 @@ namespace LobbyControl.Patches
         {
             if (__instance is GrabbableObject grabbable)
             {
-                if (!LobbyControl.PluginConfig.CupBoard.Enabled.Value)
+                if (!MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                     return;
 
                 if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
@@ -37,13 +37,13 @@ namespace LobbyControl.Patches
 
         private static void UpdateCallback(GrabbableObject grabbable, GrabbableObjectUtility.UpdateHolder updateHolder)
         {
-            LobbyControl.Log.LogDebug(
+            MattyFixes.Log.LogDebug(
                 $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard Triggered!");
-            var tolerance = LobbyControl.PluginConfig.CupBoard.Tolerance.Value;
+            var tolerance = MattyFixes.PluginConfig.CupBoard.Tolerance.Value;
             try
             {
                 var pos = updateHolder.OriginalPos;
-                LobbyControl.Log.LogDebug(
+                MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 
                 var closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
@@ -54,7 +54,7 @@ namespace LobbyControl.Patches
                 PlaceableObjectsSurface found = null;
                 Vector3? closest = null;
                 
-               LobbyControl.Log.LogDebug(
+               MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {collider.bounds.min}!");
                 
                 if (collider.bounds.Contains(pos))
@@ -63,7 +63,7 @@ namespace LobbyControl.Patches
                     {
                         var hitPoint = shelf.GetComponent<Collider>().ClosestPoint(pos);
                         var tmp = pos.y - hitPoint.y;
-                        LobbyControl.Log.LogDebug(
+                        MattyFixes.Log.LogDebug(
                             $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
                         if (tmp >= 0 && tmp < distance)
                         {
@@ -73,9 +73,9 @@ namespace LobbyControl.Patches
                         }
                     }
 
-                    LobbyControl.Log.LogDebug(
+                    MattyFixes.Log.LogDebug(
                         $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
-                    LobbyControl.Log.LogDebug(
+                    MattyFixes.Log.LogDebug(
                         $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
                 }
                 
@@ -83,16 +83,16 @@ namespace LobbyControl.Patches
                 if (found != null && closest.HasValue)
                 {
                     Vector3 newPos;
-                    if (LobbyControl.PluginConfig.ItemClipping.Enabled.Value)
+                    if (MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                     {
                         newPos = ItemPatches.FixPlacement(closest.Value, found.transform, grabbable);
                     }
                     else
                     {
-                        newPos = closest.Value + Vector3.up * LobbyControl.PluginConfig.CupBoard.Shift.Value;
+                        newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
                     }
 
-                    LobbyControl.Log.LogDebug(
+                    MattyFixes.Log.LogDebug(
                         $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
                     transform.parent = closet.transform;
                     transform.position = newPos;
@@ -107,7 +107,7 @@ namespace LobbyControl.Patches
                     var yDelta = pos.y - hitPoint.y;
                     if (Math.Abs(xDelta) < tolerance && Math.Abs(zDelta) < tolerance && yDelta > 0)
                     {
-                        LobbyControl.Log.LogDebug(
+                        MattyFixes.Log.LogDebug(
                             $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Was above the Cupboard!");
 
                         transform.position = pos;
@@ -122,7 +122,7 @@ namespace LobbyControl.Patches
             }
             catch (Exception ex)
             {
-                LobbyControl.Log.LogError($"Exception while checking for Cupboard {ex}");
+                MattyFixes.Log.LogError($"Exception while checking for Cupboard {ex}");
             }
         }
         

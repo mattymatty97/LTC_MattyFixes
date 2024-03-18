@@ -1,11 +1,12 @@
-## v2.3.0
-- added LogSpam fixes (CalculatePolygonPath/ZeroSurfaceArea)
-- renamed GhostItems to ItemSync
-  - added patch to fix shotguns disappearing if client has de-synced inventory
-  - added patch to allow clients to pick up items that already belong to them
-- added patch to prevent "Man In The Wall" bug
-- fix scrap not having value/wrong state after hotload
-- Yeet dependencies :D
+## v1.0.0
+- improved handling of Cupboard and OutOfBound checks
+- mark all meshes as readable
+- add alternate lightning particle system
+- 
+
+### Matty's fixes, version reset
+## **FORK POINT**
+- separated non-host features from [Lobby Control](https://github.com/mattymatty97/LTC_LobbyControl)
 
 ## v2.2.6
 - fix crash with InvisibleManFix ( rpc handlers are static! )

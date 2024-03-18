@@ -14,7 +14,7 @@ namespace LobbyControl.Patches
         [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
         private static void ObjectCreation(NetworkBehaviour __instance)
         {
-            if (!LobbyControl.PluginConfig.OutOfBounds.Enabled.Value)
+            if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
             
             if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
@@ -45,7 +45,7 @@ namespace LobbyControl.Patches
             if (transform.parent == hangarShip.transform)
             {
                 var position = updateHolder.OriginalPos;
-                position += Vector3.up * LobbyControl.PluginConfig.OutOfBounds.VerticalOffset.Value;
+                position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
                 position = collider.ClosestPoint(position);
                 transform.position = position;
                                 
@@ -57,7 +57,7 @@ namespace LobbyControl.Patches
         [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
         private static void ShipLeave(RoundManager __instance, bool despawnAllItems)
         {
-            if (!LobbyControl.PluginConfig.OutOfBounds.Enabled.Value)
+            if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
 
             GrabbableObject[] objectsOfType = Object.FindObjectsOfType<GrabbableObject>();
@@ -77,7 +77,7 @@ namespace LobbyControl.Patches
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.OnHitGround))]
         private static void AfterFall(GrabbableObject __instance)
         {
-            if (!LobbyControl.PluginConfig.OutOfBounds.Enabled.Value)
+            if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
 
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
