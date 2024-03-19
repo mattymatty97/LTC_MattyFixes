@@ -144,5 +144,20 @@ namespace MattyFixes.Patches.Utility
                 MattyFixes.Log.LogError(ex);
             } 
         }
+        
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnLocalDisconnect))]
+        private static void onDisconnect(PlayerControllerB __instance)
+        {
+            try
+            {
+                UpdateHolders.Clear();
+                UpdateCallbacks.Clear();
+            }
+            catch (Exception ex)
+            {
+                MattyFixes.Log.LogError(ex);
+            } 
+        }
     }
 }

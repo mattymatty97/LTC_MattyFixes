@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using HarmonyLib;
 using Unity.Netcode;
 using UnityEngine;
@@ -249,15 +250,17 @@ namespace MattyFixes.Patches
             }
         }
 
+        private static readonly HashSet<Item> BrokenMeshItems = new HashSet<Item>();
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
         private static void AwakePatch(StartOfRound __instance, bool __runOriginal)
         {
-            try
+            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
             {
-                if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                foreach (var itemType in __instance.allItemsList.itemsList)
                 {
-                    foreach (var itemType in __instance.allItemsList.itemsList)
+                    try
                     {
                         if (itemType.spawnPrefab is null)
                             continue;
@@ -266,11 +269,12 @@ namespace MattyFixes.Patches
 
                         MakeMeshReadable(itemType.spawnPrefab);
                     }
+                    catch (Exception ex)
+                    {
+                        MattyFixes.Log.LogError($"Crash while setting meshes to Readable! {ex}");
+                        BrokenMeshItems.Add(itemType);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"Crash while setting meshes to Readable! {ex}");
             }
 
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
@@ -376,7 +380,7 @@ namespace MattyFixes.Patches
                 if (!manualOffsets.TryGetValue(
                         itemType.itemName, out var offset))
                 {
-                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && !BrokenMeshItems.Contains(itemType))
                         ? CalculateColliderBounds(go)
                         : CalculateRendererBounds(go);
 
@@ -430,11 +434,15 @@ namespace MattyFixes.Patches
 
             foreach (var meshFilter in meshFilters)
             {
+                var renderer = meshFilter.GetComponent<Renderer>();
+                if (!meshFilter.gameObject.activeSelf || renderer == null || !renderer.enabled || !renderer.isVisible)
+                    continue;
+                
                 var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
                 Physics.SyncTransforms();
                 collider.convex = true;
                 collider.sharedMesh = null;
-                collider.sharedMesh = meshFilter.mesh;
+                collider.sharedMesh = meshFilter.sharedMesh;
                 var cbounds = collider.bounds;
                 if (bounds.HasValue)
                     bounds.Value.Encapsulate(cbounds);
@@ -459,7 +467,7 @@ namespace MattyFixes.Patches
 
             Bounds? bounds = null;
 
-            foreach (var renderer in renderers)
+            foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled && r.isVisible))
             {
                 var rbounds = renderer.bounds;
                 if (bounds.HasValue)
@@ -473,22 +481,23 @@ namespace MattyFixes.Patches
 
         internal static void MakeMeshReadable(GameObject go)
         {
-            MeshFilter[] renderers;
+            MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
             if (!(renderer is null))
-                renderers = new[] { renderer };
+                filters = new[] { renderer };
             else
-                renderers = go.GetComponentsInChildren<MeshFilter>();
-
-            foreach (var meshFilter in renderers)
+                filters = go.GetComponentsInChildren<MeshFilter>();
+            
+            foreach (var meshFilter in filters)
             {
-                var mesh = meshFilter.mesh;
+                var mesh = meshFilter.sharedMesh;
 
                 if (!mesh.isReadable)
                 {
-                    meshFilter.mesh = MakeReadableMeshCopy(mesh);
+                    meshFilter.sharedMesh = MakeReadableMeshCopy(mesh);
                 }
-            }
+            }            
+            
         }
 
         public static Mesh MakeReadableMeshCopy(Mesh nonReadableMesh)
@@ -497,42 +506,26 @@ namespace MattyFixes.Patches
             meshCopy.indexFormat = nonReadableMesh.indexFormat;
 
             // Handle vertices
-            try
-            {
-                nonReadableMesh.vertexBufferTarget |= GraphicsBuffer.Target.Vertex;
-                GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
-                int totalSize = verticesBuffer.stride * verticesBuffer.count;
-                byte[] data = new byte[totalSize];
-                verticesBuffer.GetData(data);
-                meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
-                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
-                verticesBuffer.Release();
-            }
-            catch (ArgumentException ex)
-            {
-                if (!ex.Message.Contains("is null") || !ex.Message.Contains("vertex buffer"))
-                    throw;
-            }
+            nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
+            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+            int totalSize = verticesBuffer.stride * verticesBuffer.count;
+            byte[] data = new byte[totalSize];
+            verticesBuffer.GetData(data);
+            meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
+            meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+            verticesBuffer.Release();
 
             
             // Handle triangles
-            try
-            {
-                nonReadableMesh.indexBufferTarget |= GraphicsBuffer.Target.Index;
-                meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
-                GraphicsBuffer indexesBuffer = nonReadableMesh.GetIndexBuffer();
-                int tot = indexesBuffer.stride * indexesBuffer.count;
-                byte[] indexesData = new byte[tot];
-                indexesBuffer.GetData(indexesData);
-                meshCopy.SetIndexBufferParams(indexesBuffer.count, nonReadableMesh.indexFormat);
-                meshCopy.SetIndexBufferData(indexesData, 0, 0, tot);
-                indexesBuffer.Release();
-            }
-            catch (ArgumentException ex)
-            {
-                if (!ex.Message.Contains("is null") || !ex.Message.Contains("index buffer"))
-                    throw;
-            }
+            nonReadableMesh.indexBufferTarget = GraphicsBuffer.Target.Index;
+            meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
+            GraphicsBuffer indexesBuffer = nonReadableMesh.GetIndexBuffer();
+            int tot = indexesBuffer.stride * indexesBuffer.count;
+            byte[] indexesData = new byte[tot];
+            indexesBuffer.GetData(indexesData);
+            meshCopy.SetIndexBufferParams(indexesBuffer.count, nonReadableMesh.indexFormat);
+            meshCopy.SetIndexBufferData(indexesData, 0, 0, tot);
+            indexesBuffer.Release();
 
             // Restore submesh structure
             uint currentIndexOffset = 0;

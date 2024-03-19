@@ -1,3 +1,8 @@
+## v1.0.2
+- improved NameFix ( should not crash anymore )
+- OutOfBounds teleport only items below the ship
+- improvements to ReadableMeshes
+
 ## v1.0.0
 - improved handling of Cupboard and OutOfBound checks
 - mark all meshes as readable

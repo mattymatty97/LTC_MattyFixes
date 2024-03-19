@@ -39,10 +39,10 @@ namespace MattyFixes.Patches
         {
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
 
-            var hangarShip = GameObject.Find("/Environment/HangarShip/StorageCloset");
+            var closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
             var transform = __instance.transform;
 
-            if (transform.parent != hangarShip.transform)
+            if (transform.parent != closet.transform)
             {
                 var position = updateHolder.OriginalPos;
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
@@ -73,7 +73,7 @@ namespace MattyFixes.Patches
                 if (!item.isInShipRoom)
                     continue;
                 var transform = item.transform;
-                if (!collider.bounds.Contains(transform.position))
+                if (transform.position.y < collider.bounds.min.y)
                 {
                     transform.position = collider.bounds.center;
                     item.targetFloorPosition = transform.localPosition;
@@ -95,7 +95,7 @@ namespace MattyFixes.Patches
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
             
             var transform = __instance.transform;
-            if (!collider.bounds.Contains(transform.position))
+            if (transform.position.y < collider.bounds.min.y)
             {
                 transform.position = collider.bounds.center;
                 __instance.targetFloorPosition = transform.localPosition;
