@@ -19,17 +19,18 @@
         <!-- Publicize directly when referencing -->
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Assembly-CSharp.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Assembly-CSharp-firstpass.dll" Publicize="true"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="true"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="true"/>
 
         <!-- clean referencing -->
         <Reference Include="$(ProfileDirectory)\BepInEx\core\0Harmony.dll" Publicize="false"/>
         <Reference Include="$(ProfileDirectory)\BepInEx\core\BepInEx.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.PhysicsModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.ParticleSystemModule.dll" Publicize="false"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
 </ItemGroup>
 
 <!-- Ensure the user (you!) has actually set everything up properly. -->

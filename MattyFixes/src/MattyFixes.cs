@@ -17,7 +17,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "0.0.1";
+        public const string VERSION = "1.0.0";
 
         internal static ManualLogSource Log;
 
@@ -42,7 +42,7 @@ namespace MattyFixes
                     }
                     Log.LogError($"{incompatibleMods.Length} incompatible mods found! Disabling!");
                     var harmony = new Harmony(GUID);
-                    harmony.PatchAll(typeof(OnDisablePatch));
+                    harmony.PatchAll(typeof(PopUpPatch));
                 }
                 else
                 {
@@ -72,9 +72,10 @@ namespace MattyFixes
                 //Initialize Configs
                 //ReadableMeshes
                 ReadableMeshes.Enabled = config.Bind("ReadableMeshes","enabled",true
-                    ,"convert all meshes to readable at runtime ( will increase RAM usage )");
-                ReadableMeshes.PopUp = config.Bind("ReadableMeshes","pupup",true
-                    ,"show up warning popup after boot");
+                    ,"convert all meshes to readable at runtime");
+                //NameFixes
+                NameFixes.Enabled = config.Bind("NameFixes","enabled",true
+                    ,"fix late joining players reading as 'Unknown' and radar with wrong names");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
@@ -119,7 +120,11 @@ namespace MattyFixes
             internal static class ReadableMeshes
             {
                 internal static ConfigEntry<bool> Enabled;
-                internal static ConfigEntry<bool> PopUp;
+            }
+            
+            internal static class NameFixes
+            {
+                internal static ConfigEntry<bool> Enabled;
             }
             
             internal static class CupBoard

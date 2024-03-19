@@ -6,19 +6,12 @@ using UnityEngine;
 namespace MattyFixes.PopUp
 {
     [HarmonyPatch]
-    internal class OnDisablePatch
+    internal class PopUpPatch
     {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(MenuManager), nameof(MenuManager.Awake))]
         private static void AddPopups(MenuManager __instance)
         {
-            
-            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.PopUp.Value)
-            {
-                StringBuilder sb = new StringBuilder($"WARNING!\n{MattyFixes.NAME}\nReadable meshes are enabled\nthis might increase RAM usage!");
-                AppendPopup("MF_MeshPopup", sb.ToString());
-            }
-            
             if (MattyFixes.FoundIncompatibilities.Count > 0)
             {
                 StringBuilder sb = new StringBuilder($"{MattyFixes.NAME} was DISABLED!\nIncompatible:");

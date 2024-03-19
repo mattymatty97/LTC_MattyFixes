@@ -543,7 +543,7 @@ namespace MattyFixes.Patches
                 try
                 {
                     var shapeModule = __instance.staticElectricityParticle.shape;
-                    if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value || !MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                     {
                         Bounds? bounds = CalculateRendererBounds(warningObject.gameObject);
 
@@ -556,10 +556,8 @@ namespace MattyFixes.Patches
                     }
                     else
                     {
-                        MakeMeshReadable(warningObject.gameObject);
-                        shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
-                        shapeModule.radiusThickness = 0f;
-                        shapeModule.radius = 0f;
+                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                            MakeMeshReadable(warningObject.gameObject);
                     }
                 }
                 catch (Exception ex)

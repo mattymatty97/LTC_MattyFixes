@@ -23,7 +23,7 @@ namespace MattyFixes.Patches
             if (!(__instance is GrabbableObject obj))
                 return;
 
-            if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
+            if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position) && !obj.isInShipRoom)
                 return;
             
             if (StartOfRound.Instance.localPlayerController != null && !StartOfRound.Instance.localPlayerController.justConnected)
@@ -38,16 +38,20 @@ namespace MattyFixes.Patches
             GrabbableObjectUtility.UpdateHolder updateHolder)
         {
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
-                            
-            var hangarShip = GameObject.Find("/Environment/HangarShip");
+
+            var hangarShip = GameObject.Find("/Environment/HangarShip/StorageCloset");
             var transform = __instance.transform;
 
-            if (transform.parent == hangarShip.transform)
+            if (transform.parent != hangarShip.transform)
             {
                 var position = updateHolder.OriginalPos;
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
-                position = collider.ClosestPoint(position);
+                
+                if (!collider.bounds.Contains(position))
+                    position = Vector3.zero;
+                
                 transform.position = position;
+                __instance.targetFloorPosition = transform.localPosition;
                                 
                 __instance.FallToGround();
             }
@@ -68,8 +72,13 @@ namespace MattyFixes.Patches
             {
                 if (!item.isInShipRoom)
                     continue;
-
-                item.transform.position = collider.ClosestPoint(item.transform.position);
+                var transform = item.transform;
+                if (!collider.bounds.Contains(transform.position))
+                {
+                    transform.position = Vector3.zero;
+                    item.targetFloorPosition = transform.localPosition;
+                    item.FallToGround();
+                }
             }
         }
 
@@ -81,10 +90,14 @@ namespace MattyFixes.Patches
                 return;
 
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
-
-            var position = __instance.transform.position;
-            position = collider.ClosestPoint(position);
-            __instance.transform.position = position;
+            
+            var transform = __instance.transform;
+            if (!collider.bounds.Contains(transform.position))
+            {
+                transform.position = Vector3.zero;
+                __instance.targetFloorPosition = transform.localPosition;
+                __instance.FallToGround();
+            }
         }
     }
 }

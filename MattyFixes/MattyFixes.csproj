@@ -40,10 +40,11 @@
         <Compile Include="src\Patches\CupBoardFix.cs" />
         <Compile Include="src\Patches\DebugPatches.cs" />
         <Compile Include="src\Patches\ItemPatches.cs" />
+        <Compile Include="src\Patches\NamePatches.cs" />
         <Compile Include="src\Patches\OutOfBoundsItemsFix.cs" />
         <Compile Include="src\Patches\RadarPatch.cs" />
         <Compile Include="src\Patches\Utility\GrabbableObjectUtility.cs" />
-        <Compile Include="src\PopUp\OnDisablePatch.cs" />
+        <Compile Include="src\PopUp\PopUpPatch.cs" />
         <Compile Include="src\Properties\AssemblyInfo.cs" />
     </ItemGroup>
     <ItemGroup>
@@ -52,6 +53,9 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Output\" />
+    </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
     <Import Project="PostBuildEvents.targets"/>

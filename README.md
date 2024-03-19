@@ -1,13 +1,8 @@
-ALPHA VERSION
-=============
-this mod is not yet fully released and is waiting for the last tests before release
-
-
 Matty's Fixes
 ============
 [![GitHub Release](https://img.shields.io/github/v/release/mattymatty97/LTC_MattyFixes?display_name=release&logo=github&logoColor=white)](https://github.com/mattymatty97/LTC_MattyFixes/releases/latest)
 [![GitHub Pre-Release](https://img.shields.io/github/v/release/mattymatty97/LTC_MattyFixes?include_prereleases&display_name=release&logo=github&logoColor=white&label=preview)](https://github.com/mattymatty97/LTC_MattyFixes/releases)  
-[![Thunderstore Downloads](https://img.shields.io/thunderstore/dt/mattymatty/MattyFixes?style=flat&logo=thunderstore&logoColor=white&label=thunderstore)](https://thunderstore.io/c/lethal-company/p/mattymatty/MattyFixes/)
+[![Thunderstore Downloads](https://img.shields.io/thunderstore/dt/mattymatty/Matty_Fixes?style=flat&logo=thunderstore&logoColor=white&label=thunderstore)](https://thunderstore.io/c/lethal-company/p/mattymatty/Matty_Fixes/)
 
 
 A collection of Fixes for the vanilla game, with focus on vanilla compatibility.
@@ -37,6 +32,9 @@ Patches:
     - Stormy weather spamming zero_surface_area warnings
     - Lightning particle showing as a point instead of on the item model
     - align items to the floor instead of clipping/floating
+- ### **Experimental** Name De-sync
+  - prevent "Unknown" names for late joiners
+  - correctly apply names to radar icons
 
 Differences to [ItemClippingFix](https://thunderstore.io/c/lethal-company/p/ViViKo/ItemClippingFix/)
 ------------------------
