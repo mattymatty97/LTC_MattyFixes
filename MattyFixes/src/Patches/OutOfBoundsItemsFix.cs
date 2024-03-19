@@ -48,7 +48,7 @@ namespace MattyFixes.Patches
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
                 
                 if (!collider.bounds.Contains(position))
-                    position = Vector3.zero;
+                    position = collider.bounds.center;
                 
                 transform.position = position;
                 __instance.targetFloorPosition = transform.localPosition;
@@ -75,7 +75,7 @@ namespace MattyFixes.Patches
                 var transform = item.transform;
                 if (!collider.bounds.Contains(transform.position))
                 {
-                    transform.position = Vector3.zero;
+                    transform.position = collider.bounds.center;
                     item.targetFloorPosition = transform.localPosition;
                     item.FallToGround();
                 }
@@ -88,13 +88,16 @@ namespace MattyFixes.Patches
         {
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
+            
+            if (!__instance.isInShipRoom)
+                return;
 
             var collider = StartOfRound.Instance.shipInnerRoomBounds;
             
             var transform = __instance.transform;
             if (!collider.bounds.Contains(transform.position))
             {
-                transform.position = Vector3.zero;
+                transform.position = collider.bounds.center;
                 __instance.targetFloorPosition = transform.localPosition;
                 __instance.FallToGround();
             }

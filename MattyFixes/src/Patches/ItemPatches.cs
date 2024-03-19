@@ -497,25 +497,42 @@ namespace MattyFixes.Patches
             meshCopy.indexFormat = nonReadableMesh.indexFormat;
 
             // Handle vertices
-            nonReadableMesh.vertexBufferTarget |= GraphicsBuffer.Target.Vertex;
-            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
-            int totalSize = verticesBuffer.stride * verticesBuffer.count;
-            byte[] data = new byte[totalSize];
-            verticesBuffer.GetData(data);
-            meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
-            meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
-            verticesBuffer.Release();
+            try
+            {
+                nonReadableMesh.vertexBufferTarget |= GraphicsBuffer.Target.Vertex;
+                GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+                int totalSize = verticesBuffer.stride * verticesBuffer.count;
+                byte[] data = new byte[totalSize];
+                verticesBuffer.GetData(data);
+                meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
+                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+                verticesBuffer.Release();
+            }
+            catch (ArgumentException ex)
+            {
+                if (!ex.Message.Contains("is null") || !ex.Message.Contains("vertex buffer"))
+                    throw;
+            }
 
+            
             // Handle triangles
-            nonReadableMesh.indexBufferTarget |= GraphicsBuffer.Target.Index;
-            meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
-            GraphicsBuffer indexesBuffer = nonReadableMesh.GetIndexBuffer();
-            int tot = indexesBuffer.stride * indexesBuffer.count;
-            byte[] indexesData = new byte[tot];
-            indexesBuffer.GetData(indexesData);
-            meshCopy.SetIndexBufferParams(indexesBuffer.count, nonReadableMesh.indexFormat);
-            meshCopy.SetIndexBufferData(indexesData, 0, 0, tot);
-            indexesBuffer.Release();
+            try
+            {
+                nonReadableMesh.indexBufferTarget |= GraphicsBuffer.Target.Index;
+                meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
+                GraphicsBuffer indexesBuffer = nonReadableMesh.GetIndexBuffer();
+                int tot = indexesBuffer.stride * indexesBuffer.count;
+                byte[] indexesData = new byte[tot];
+                indexesBuffer.GetData(indexesData);
+                meshCopy.SetIndexBufferParams(indexesBuffer.count, nonReadableMesh.indexFormat);
+                meshCopy.SetIndexBufferData(indexesData, 0, 0, tot);
+                indexesBuffer.Release();
+            }
+            catch (ArgumentException ex)
+            {
+                if (!ex.Message.Contains("is null") || !ex.Message.Contains("index buffer"))
+                    throw;
+            }
 
             // Restore submesh structure
             uint currentIndexOffset = 0;
