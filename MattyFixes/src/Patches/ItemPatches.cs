@@ -271,8 +271,9 @@ namespace MattyFixes.Patches
                     }
                     catch (Exception ex)
                     {
-                        MattyFixes.Log.LogError($"Crash while setting meshes to Readable! {ex}");
+                        MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
                         BrokenMeshItems.Add(itemType);
+                        MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
                     }
                 }
             }
@@ -420,7 +421,22 @@ namespace MattyFixes.Patches
 
         internal static Bounds? CalculateColliderBounds(GameObject go)
         {
-            MakeMeshReadable(go);
+            var grabbable = go.GetComponent<GrabbableObject>();
+            if (BrokenMeshItems.Contains(grabbable.itemProperties))
+                return CalculateRendererBounds(go);
+
+            try
+            {
+                MakeMeshReadable(go);
+            }
+            catch (Exception ex)
+            {
+                MattyFixes.Log.LogError($"{grabbable.itemProperties.itemName} Failed to mark Mesh Readable! {ex}");
+                BrokenMeshItems.Add(grabbable.itemProperties);
+                MattyFixes.Log.LogWarning($"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
+                return CalculateRendererBounds(go);
+            }
+
             MeshFilter[] meshFilters;
             var filter = go.GetComponent<MeshFilter>();
             if (filter != null)
