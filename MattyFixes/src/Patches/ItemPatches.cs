@@ -376,6 +376,20 @@ namespace MattyFixes.Patches
 
             go.transform.rotation = Quaternion.Euler(itemType.restingRotation);
 
+            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && !BrokenMeshItems.Contains(itemType))
+            {
+                try
+                {
+                    MakeMeshReadable(itemType.spawnPrefab);
+                }
+                catch (Exception ex)
+                {
+                    MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                    BrokenMeshItems.Add(itemType);
+                    MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                }
+            }
+
             try
             {
                 if (!manualOffsets.TryGetValue(

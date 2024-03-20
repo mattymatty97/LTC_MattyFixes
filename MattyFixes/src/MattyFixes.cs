@@ -7,17 +7,19 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using MattyFixes.Dependency;
 using MattyFixes.PopUp;
 using PluginInfo = BepInEx.PluginInfo;
 
 namespace MattyFixes
 {
     [BepInPlugin(GUID, NAME, VERSION)]
+    [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
     internal class MattyFixes : BaseUnityPlugin
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.4";
+        public const string VERSION = "1.0.6";
 
         internal static ManualLogSource Log;
 
@@ -46,6 +48,9 @@ namespace MattyFixes
                 }
                 else
                 {
+                    if (LobbyCompatibilityChecker.Enabled)
+                        LobbyCompatibilityChecker.Init();
+                    
                     Log.LogInfo("Initializing Configs");
 
                     PluginConfig.Init(this);
@@ -62,8 +67,7 @@ namespace MattyFixes
                 Log.LogError("Exception while initializing: \n" + ex);
             }
         }
-
-
+        
         internal static class PluginConfig
         {
             internal static void Init(BaseUnityPlugin plugin)

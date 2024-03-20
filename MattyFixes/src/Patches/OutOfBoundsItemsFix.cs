@@ -46,8 +46,9 @@ namespace MattyFixes.Patches
             {
                 var position = updateHolder.OriginalPos;
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+                position += Vector3.up * __instance.itemProperties.verticalOffset;
                 
-                if (!collider.bounds.Contains(position))
+                if (position.y < collider.bounds.min.y)
                     position = collider.bounds.center;
                 
                 transform.position = position;

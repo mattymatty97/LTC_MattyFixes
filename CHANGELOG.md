@@ -1,3 +1,9 @@
+## v1.0.5
+- Fixed NameFix ( should not crash anymore )
+- improved OutOfBounds and CupBoard
+- added graceful handling of Mesh Exceptions
+- added LobbyCompatibility as a soft Dependency
+
 ## v1.0.2
 - improved NameFix ( should not crash anymore )
 - OutOfBounds teleport only items below the ship

@@ -42,7 +42,7 @@ namespace MattyFixes.Patches
             var tolerance = MattyFixes.PluginConfig.CupBoard.Tolerance.Value;
             try
             {
-                var pos = updateHolder.OriginalPos;
+                var pos = updateHolder.OriginalPos + Vector3.up * grabbable.itemProperties.verticalOffset;
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 
