@@ -56,7 +56,7 @@ namespace MattyFixes.Patches
                         _waitingTask = request,
                         _playerObjectIndex = index
                     });
-                    __instance.quickMenuManager.AddUserToPlayerList(steamID, playerScript.playerUsername, finalIndex);
+                    //__instance.quickMenuManager.AddUserToPlayerList(steamID, playerScript.playerUsername, finalIndex);
                 }
             }
             
@@ -71,9 +71,9 @@ namespace MattyFixes.Patches
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LateUpdate))]
         private static void PostUpdate(StartOfRound __instance)
         {
-            for (var index = NameTasks.Count; index >= 0; index--)
+            for (var index = NameTasks.Count; index > 0; index--)
             {
-                var taskHolder = NameTasks[index];
+                var taskHolder = NameTasks[index - 1];
                 if (taskHolder._waitingTask.IsCompleted)
                 {
                     var playerScript = __instance.allPlayerScripts[taskHolder._playerObjectIndex];
@@ -103,7 +103,7 @@ namespace MattyFixes.Patches
                             radarTarget.name = playerName;
                     }
 
-                    NameTasks.Remove(taskHolder);
+                    NameTasks.RemoveAt(index - 1);
                 }
             }
         }

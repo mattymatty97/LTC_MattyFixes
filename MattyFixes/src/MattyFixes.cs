@@ -17,7 +17,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.2";
+        public const string VERSION = "1.0.3";
 
         internal static ManualLogSource Log;
 
@@ -75,7 +75,7 @@ namespace MattyFixes
                     ,"convert all meshes to readable at runtime");
                 //NameFixes
                 NameFixes.Enabled = config.Bind("NameFixes","enabled",true
-                    ,"fix late joining players reading as 'Unknown' and radar with wrong names");
+                    ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
