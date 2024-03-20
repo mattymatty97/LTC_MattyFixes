@@ -43,6 +43,7 @@
         <Compile Include="src\Patches\ItemPatches.cs" />
         <Compile Include="src\Patches\NamePatches.cs" />
         <Compile Include="src\Patches\OutOfBoundsItemsFix.cs" />
+        <Compile Include="src\Patches\PlayerLevelPatch.cs" />
         <Compile Include="src\Patches\RadarPatch.cs" />
         <Compile Include="src\Patches\Utility\GrabbableObjectUtility.cs" />
         <Compile Include="src\PopUp\PopUpPatch.cs" />

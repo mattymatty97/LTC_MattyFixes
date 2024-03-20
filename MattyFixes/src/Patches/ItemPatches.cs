@@ -14,6 +14,8 @@ namespace MattyFixes.Patches
     {
         private static readonly HashSet<Item> ComputedItems = new HashSet<Item>();
 
+        private static readonly HashSet<Item> ReadableObjects = new HashSet<Item>();
+
         private static readonly Dictionary<string, List<float>> ItemFixes = new Dictionary<string, List<float>>
         {
             {
@@ -268,6 +270,8 @@ namespace MattyFixes.Patches
                         itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
 
                         MakeMeshReadable(itemType.spawnPrefab);
+
+                        ReadableObjects.Add(itemType);
                     }
                     catch (Exception ex)
                     {
@@ -376,26 +380,12 @@ namespace MattyFixes.Patches
 
             go.transform.rotation = Quaternion.Euler(itemType.restingRotation);
 
-            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && !BrokenMeshItems.Contains(itemType))
-            {
-                try
-                {
-                    MakeMeshReadable(itemType.spawnPrefab);
-                }
-                catch (Exception ex)
-                {
-                    MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
-                    BrokenMeshItems.Add(itemType);
-                    MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
-                }
-            }
-
             try
             {
                 if (!manualOffsets.TryGetValue(
                         itemType.itemName, out var offset))
                 {
-                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && !BrokenMeshItems.Contains(itemType))
+                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
                         ? CalculateColliderBounds(go)
                         : CalculateRendererBounds(go);
 
@@ -436,20 +426,8 @@ namespace MattyFixes.Patches
         internal static Bounds? CalculateColliderBounds(GameObject go)
         {
             var grabbable = go.GetComponent<GrabbableObject>();
-            if (BrokenMeshItems.Contains(grabbable.itemProperties))
+            if (!ReadableObjects.Contains(grabbable.itemProperties))
                 return CalculateRendererBounds(go);
-
-            try
-            {
-                MakeMeshReadable(go);
-            }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"{grabbable.itemProperties.itemName} Failed to mark Mesh Readable! {ex}");
-                BrokenMeshItems.Add(grabbable.itemProperties);
-                MattyFixes.Log.LogWarning($"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
-                return CalculateRendererBounds(go);
-            }
 
             MeshFilter[] meshFilters;
             var filter = go.GetComponent<MeshFilter>();
@@ -464,15 +442,11 @@ namespace MattyFixes.Patches
 
             foreach (var meshFilter in meshFilters)
             {
-                var renderer = meshFilter.GetComponent<Renderer>();
-                if (!meshFilter.gameObject.activeSelf || renderer == null || !renderer.enabled || !renderer.isVisible)
-                    continue;
-                
                 var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
                 Physics.SyncTransforms();
                 collider.convex = true;
                 collider.sharedMesh = null;
-                collider.sharedMesh = meshFilter.sharedMesh;
+                collider.sharedMesh = meshFilter.mesh;
                 var cbounds = collider.bounds;
                 if (bounds.HasValue)
                     bounds.Value.Encapsulate(cbounds);
@@ -520,11 +494,11 @@ namespace MattyFixes.Patches
             
             foreach (var meshFilter in filters)
             {
-                var mesh = meshFilter.sharedMesh;
+                var mesh = meshFilter.mesh;
 
                 if (!mesh.isReadable)
                 {
-                    meshFilter.sharedMesh = MakeReadableMeshCopy(mesh);
+                    meshFilter.mesh = MakeReadableMeshCopy(mesh);
                 }
             }            
             
@@ -596,7 +570,10 @@ namespace MattyFixes.Patches
                     }
                     else
                     {
-                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                        var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
+                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && 
+                            !BrokenMeshItems.Contains(grabbable.itemProperties)
+                            && !ReadableObjects.Contains(grabbable.itemProperties))
                             MakeMeshReadable(warningObject.gameObject);
                     }
                 }

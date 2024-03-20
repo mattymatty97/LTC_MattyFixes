@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using System;
+using HarmonyLib;
 using MattyFixes.Patches.Utility;
 using Unity.Netcode;
 using UnityEngine;
@@ -46,7 +47,7 @@ namespace MattyFixes.Patches
             {
                 var position = updateHolder.OriginalPos;
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
-                position += Vector3.up * __instance.itemProperties.verticalOffset;
+                position += Vector3.down * Math.Min(0, __instance.itemProperties.verticalOffset);
                 
                 if (position.y < collider.bounds.min.y)
                     position = collider.bounds.center;

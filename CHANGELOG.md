@@ -1,3 +1,7 @@
+## v1.0.6
+- Fixes to mesh stuff
+- Fix Level overflow of players ( will work as host for everybody or as client for yourself )
+
 ## v1.0.5
 - Fixed NameFix ( should not crash anymore )
 - improved OutOfBounds and CupBoard
