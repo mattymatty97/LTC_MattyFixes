@@ -7,12 +7,9 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using LobbyCompatibility.Attributes;
-using LobbyCompatibility.Enums;
 using MattyFixes.PopUp;
 using PluginInfo = BepInEx.PluginInfo;
-
-[assembly: SoftLobbyCompatibility(typeof(MattyFixes.MattyFixes), CompatibilityLevel.ClientOnly, VersionStrictness.Minor)]
+using MattyFixes.Dependency;
 
 namespace MattyFixes
 {
@@ -22,7 +19,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.8";
+        public const string VERSION = "1.0.9";
 
         internal static ManualLogSource Log;
 
@@ -51,6 +48,9 @@ namespace MattyFixes
                 }
                 else
                 {
+                    if (LobbyCompatibilityChecker.Enabled)
+                        LobbyCompatibilityChecker.Init();
+                    
                     Log.LogInfo("Initializing Configs");
 
                     PluginConfig.Init(this);
@@ -80,6 +80,13 @@ namespace MattyFixes
                 //NameFixes
                 NameFixes.Enabled = config.Bind("NameFixes","enabled",true
                     ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
+                //BadgeFixes
+                BadgeFixes.Enabled = config.Bind("BadgeFixes","enabled",true
+                    ,"[EXPERIMENTAL] prevent boss level overflow");
+                BadgeFixes.Host = config.Bind("BadgeFixes","host",true
+                    ,"[EXPERIMENTAL] allow fixing from host side");
+                BadgeFixes.Client = config.Bind("BadgeFixes","client",true
+                    ,"[EXPERIMENTAL] allow fixing from client side");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
@@ -129,6 +136,13 @@ namespace MattyFixes
             internal static class NameFixes
             {
                 internal static ConfigEntry<bool> Enabled;
+            }
+            
+            internal static class BadgeFixes
+            {
+                internal static ConfigEntry<bool> Enabled;
+                internal static ConfigEntry<bool> Host;
+                internal static ConfigEntry<bool> Client;
             }
             
             internal static class CupBoard

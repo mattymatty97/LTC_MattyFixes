@@ -36,6 +36,7 @@
         <ExcludeGeneratedDebugSymbol>False</ExcludeGeneratedDebugSymbol>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="src\Dependency\LobbyCompatibilityChecker.cs" />
         <Compile Include="src\MattyFixes.cs" />
         <Compile Include="src\Patches\CupBoardFix.cs" />
         <Compile Include="src\Patches\DebugPatches.cs" />

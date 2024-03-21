@@ -1,3 +1,7 @@
+## v1.0.9
+- fix minor bug with LobbyCompatibility SoftDependency
+- added config toggle for PlayerLevel fix
+
 ## v1.0.8
 - Changes to NameFix
 
