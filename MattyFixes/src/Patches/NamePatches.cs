@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using GameNetcodeStuff;
@@ -11,69 +12,63 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class NamePatches
     {
-        private static readonly List<NameTaskHolder> NameTasks = new List<NameTaskHolder>();
+        private static readonly Dictionary<ulong, NameTaskHolder> NameTasks = new Dictionary<ulong, NameTaskHolder>();
+
         private struct NameTaskHolder
         {
             internal Task _waitingTask;
             internal Friend _friend;
             internal int _playerObjectIndex;
         }
-        
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.SendNewPlayerValuesClientRpc))]
         [HarmonyPriority(Priority.First)]
-        private static bool PatchNames(PlayerControllerB __instance, ulong[] playerSteamIds)
+        private static void PatchNames(PlayerControllerB __instance, ulong[] playerSteamIds)
         {
             if (!MattyFixes.PluginConfig.NameFixes.Enabled.Value)
-                return true;
-            
+                return;
+
             NetworkManager networkManager = __instance.NetworkManager;
             if (networkManager == null || !networkManager.IsListening)
-                return true;
-            
+                return;
+
             if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client &&
                 (networkManager.IsServer || networkManager.IsHost))
-                return true;
-            
-            if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client || !networkManager.IsClient && !networkManager.IsHost)
-                return true;
-            
+                return;
+
+            if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client ||
+                !networkManager.IsClient && !networkManager.IsHost)
+                return;
+
             for (int index = 0; index < playerSteamIds.Length; ++index)
             {
-                if (__instance.playersManager.allPlayerScripts[index].isPlayerControlled || __instance.playersManager.allPlayerScripts[index].isPlayerDead)
+                if (__instance.playersManager.allPlayerScripts[index].isPlayerControlled ||
+                    __instance.playersManager.allPlayerScripts[index].isPlayerDead)
                 {
-                    var friend = new Friend(playerSteamIds[index]);
-                    var request = friend.RequestInfoAsync();
-                    var playerScript =__instance.playersManager.allPlayerScripts[index];
                     var steamID = playerSteamIds[index];
-                    var finalIndex = index;
-                    playerScript.playerSteamId = steamID;
-                    playerScript.playerUsername = playerScript.name;
-                    playerScript.usernameBillboardText.text = playerScript.name;
-                    NameTasks.Add(new NameTaskHolder()
+                    if (NameTasks.ContainsKey(steamID))
+                        continue;
+
+                    var friend = new Friend(steamID);
+                    var request = friend.RequestInfoAsync();
+                    NameTasks[steamID] = new NameTaskHolder
                     {
                         _friend = friend,
                         _waitingTask = request,
                         _playerObjectIndex = index
-                    });
-                    //__instance.quickMenuManager.AddUserToPlayerList(steamID, playerScript.playerUsername, finalIndex);
+                    };
                 }
             }
-            
-            StartOfRound.Instance.StartTrackingAllPlayerVoices();
-
-            GameNetworkManager.Instance!.localPlayerController!.updatePositionForNewlyJoinedClient = true;
-            
-            return false;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LateUpdate))]
         private static void PostUpdate(StartOfRound __instance)
         {
-            for (var index = NameTasks.Count; index > 0; index--)
+            var updated = false;
+            foreach (var taskHolder in NameTasks.Values.ToArray())
             {
-                var taskHolder = NameTasks[index - 1];
                 if (taskHolder._waitingTask.IsCompleted)
                 {
                     var playerScript = __instance.allPlayerScripts[taskHolder._playerObjectIndex];
@@ -90,22 +85,30 @@ namespace MattyFixes.Patches
                     playerScript.playerSteamId = steamID;
                     playerScript.playerUsername = playerName;
                     playerScript.usernameBillboardText.text = playerName;
-                        
+
                     var duplicateNamesInLobby = playerScript.GetNumberOfDuplicateNamesInLobby();
                     if (duplicateNamesInLobby > 0)
                         playerName = $"{playerName}{duplicateNamesInLobby}";
-                        
-                    playerScript.quickMenuManager.AddUserToPlayerList(steamID, playerName, taskHolder._playerObjectIndex);
-                        
-                    foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
-                    {
-                        if (radarTarget.transform == playerScript.transform)
-                            radarTarget.name = playerName;
-                    }
 
-                    NameTasks.RemoveAt(index - 1);
+                    playerScript.quickMenuManager.AddUserToPlayerList(steamID, playerName,
+                        taskHolder._playerObjectIndex);
+
+                    updated = true;
+
+                    NameTasks.Remove(taskHolder._friend.Id);
                 }
             }
+
+            if (updated)
+                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
+                {
+                    var playerController = radarTarget.transform.gameObject.GetComponent<PlayerControllerB>();
+                    var radarBooster = radarTarget.transform.gameObject.GetComponent<RadarBoosterItem>();
+                    var newName = playerController != null ? playerController.playerUsername :
+                        radarBooster != null ? radarBooster.radarBoosterName : null;
+                    if (newName != null)
+                        radarTarget.name = newName;
+                }
         }
 
         [HarmonyPostfix]
@@ -114,6 +117,5 @@ namespace MattyFixes.Patches
         {
             NameTasks.Clear();
         }
-
     }
 }

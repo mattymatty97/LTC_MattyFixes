@@ -7,9 +7,12 @@ using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using MattyFixes.Dependency;
+using LobbyCompatibility.Attributes;
+using LobbyCompatibility.Enums;
 using MattyFixes.PopUp;
 using PluginInfo = BepInEx.PluginInfo;
+
+[assembly: SoftLobbyCompatibility(typeof(MattyFixes.MattyFixes), CompatibilityLevel.ClientOnly, VersionStrictness.Minor)]
 
 namespace MattyFixes
 {
@@ -19,7 +22,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.7";
+        public const string VERSION = "1.0.8";
 
         internal static ManualLogSource Log;
 
@@ -48,9 +51,6 @@ namespace MattyFixes
                 }
                 else
                 {
-                    if (LobbyCompatibilityChecker.Enabled)
-                        LobbyCompatibilityChecker.Init();
-                    
                     Log.LogInfo("Initializing Configs");
 
                     PluginConfig.Init(this);

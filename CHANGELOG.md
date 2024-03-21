@@ -1,3 +1,6 @@
+## v1.0.8
+- Changes to NameFix
+
 ## v1.0.6
 - Fixes to mesh stuff
 - Fix Level overflow of players ( will work as host for everybody or as client for yourself )
