@@ -1,6 +1,9 @@
+## v1.0.10
+- actually working BadgeFix
+
 ## v1.0.9
 - fix minor bug with LobbyCompatibility SoftDependency
-- added config toggle for PlayerLevel fix
+- added config toggle for BadgeFix
 
 ## v1.0.8
 - Changes to NameFix

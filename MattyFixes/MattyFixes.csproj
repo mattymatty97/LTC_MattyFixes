@@ -51,10 +51,8 @@
     </ItemGroup>
     <ItemGroup>
         <Content Include="GameDirectory.targets"/>
+        <Content Include="Output\.gitignore" />
         <Content Include="PostBuildEvents.targets"/>
-    </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Output\" />
     </ItemGroup>
     <ItemGroup>
       <PackageReference Include="System.Text.RegularExpressions" Version="4.3.1" />

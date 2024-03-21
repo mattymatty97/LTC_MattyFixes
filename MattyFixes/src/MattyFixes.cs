@@ -19,7 +19,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.9";
+        public const string VERSION = "1.0.10";
 
         internal static ManualLogSource Log;
 
@@ -82,11 +82,7 @@ namespace MattyFixes
                     ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
                 //BadgeFixes
                 BadgeFixes.Enabled = config.Bind("BadgeFixes","enabled",true
-                    ,"[EXPERIMENTAL] prevent boss level overflow");
-                BadgeFixes.Host = config.Bind("BadgeFixes","host",true
-                    ,"[EXPERIMENTAL] allow fixing from host side");
-                BadgeFixes.Client = config.Bind("BadgeFixes","client",true
-                    ,"[EXPERIMENTAL] allow fixing from client side");
+                    ,"[EXPERIMENTAL] show correct level tag");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
@@ -141,8 +137,6 @@ namespace MattyFixes
             internal static class BadgeFixes
             {
                 internal static ConfigEntry<bool> Enabled;
-                internal static ConfigEntry<bool> Host;
-                internal static ConfigEntry<bool> Client;
             }
             
             internal static class CupBoard

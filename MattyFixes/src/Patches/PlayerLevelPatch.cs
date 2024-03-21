@@ -1,4 +1,6 @@
-﻿using System;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
 using HarmonyLib;
 
 namespace MattyFixes.Patches
@@ -6,50 +8,49 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class PlayerLevelPatch
     {
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SyncPlayerLevelClientRpc))]
-        private static void LimitClientLevel1(HUDManager __instance, ref int playerLevelIndex)
-        {
-            if (MattyFixes.PluginConfig.BadgeFixes.Enabled.Value && MattyFixes.PluginConfig.BadgeFixes.Client.Value)
-                playerLevelIndex = Math.Min(playerLevelIndex, __instance.playerLevels.Length - 1);
-        }
-        
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SyncPlayerLevelServerRpc))]
-        private static void LimitServerLevel1(HUDManager __instance, ref int playerLevelIndex)
-        {
-            if (MattyFixes.PluginConfig.BadgeFixes.Enabled.Value && MattyFixes.PluginConfig.BadgeFixes.Host.Value)
-                playerLevelIndex = Math.Min(playerLevelIndex, __instance.playerLevels.Length - 1);
-        }
-        
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SyncAllPlayerLevelsClientRpc), typeof(int[]), typeof(bool[]))]
-        private static void LimitClientLevel2(HUDManager __instance,ref int[] playerLevelNumbers)
-        {
-            if (MattyFixes.PluginConfig.BadgeFixes.Enabled.Value && MattyFixes.PluginConfig.BadgeFixes.Client.Value)
-                for (var index = 0; index < playerLevelNumbers.Length; index++)
-                {
-                    playerLevelNumbers[index] = Math.Min(playerLevelNumbers[index], __instance.playerLevels.Length - 1);
-                }
-        }        
-        
-        [HarmonyPrefix]
+        [HarmonyTranspiler]
         [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SyncAllPlayerLevelsClientRpc), typeof(int[]), typeof(int))]
-        private static void LimitClientLevel3(HUDManager __instance,ref int[] allPlayerLevels)
+        private static IEnumerable<CodeInstruction> AlwaysUpdateLocalPlayer(IEnumerable<CodeInstruction> instructions)
         {
-            if (MattyFixes.PluginConfig.BadgeFixes.Enabled.Value && MattyFixes.PluginConfig.BadgeFixes.Client.Value)
-                for (var index = 0; index < allPlayerLevels.Length; index++)
+            if (!MattyFixes.PluginConfig.BadgeFixes.Enabled.Value)
+                return instructions;
+            
+            var codes = instructions.ToList();
+
+            var fieldInfo = typeof(GameNetworkManager).GetField(nameof(GameNetworkManager.localPlayerController));
+            
+            for (var index = 0; index < codes.Count; index++)
+            {
+                var curr = codes[index];
+
+                if (curr.LoadsField(fieldInfo))
                 {
-                    allPlayerLevels[index] = Math.Min(allPlayerLevels[index], __instance.playerLevels.Length - 1);
+                    if (codes[index + 2].Branches(out var label))
+                    {
+                        
+                        for (var i = index - 5; i < index + 2; i++)
+                        {
+                            codes[i] = new CodeInstruction(OpCodes.Nop)
+                            {
+                                labels = codes[i].labels,
+                                blocks = codes[i].blocks
+                            };
+                        }
+                        
+                        codes[index + 2] = new CodeInstruction(OpCodes.Br, label)
+                        {
+                            labels = codes[index + 2].labels,
+                            blocks = codes[index + 2].blocks
+                        };
+                        
+                        MattyFixes.Log.LogDebug("SyncAllPlayerLevelsClientRpc patched!");
+                        break;
+                    }   
                 }
+            }
+            
+            return codes;
         }
         
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(HUDManager), nameof(HUDManager.SyncAllPlayerLevelsServerRpc), typeof(int), typeof(int))]
-        private static void LimitServerLevel2(HUDManager __instance,ref int newPlayerLevel)
-        {
-            if (MattyFixes.PluginConfig.BadgeFixes.Enabled.Value && MattyFixes.PluginConfig.BadgeFixes.Host.Value)
-                newPlayerLevel = Math.Min(newPlayerLevel, __instance.playerLevels.Length - 1);
-        }
     }
 }
