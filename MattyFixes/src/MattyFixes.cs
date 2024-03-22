@@ -19,7 +19,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.10";
+        public const string VERSION = "1.0.11";
 
         internal static ManualLogSource Log;
 
@@ -77,6 +77,10 @@ namespace MattyFixes
                 //ReadableMeshes
                 ReadableMeshes.Enabled = config.Bind("ReadableMeshes","enabled",true
                     ,"convert all meshes to readable at runtime");
+                ReadableMeshes.UseCollider = config.Bind("ReadableMeshes","use_collider",true
+                    ,"use a Mesh collider to get more accurate item sizes");
+                ReadableMeshes.FixLignting = config.Bind("ReadableMeshes","fix_lighting",true
+                    ,"show lighting particles as dev intended! ( will have no effect if AlternateLightningParticles is active )");
                 //NameFixes
                 NameFixes.Enabled = config.Bind("NameFixes","enabled",true
                     ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
@@ -127,6 +131,8 @@ namespace MattyFixes
             internal static class ReadableMeshes
             {
                 internal static ConfigEntry<bool> Enabled;
+                internal static ConfigEntry<bool> UseCollider;
+                internal static ConfigEntry<bool> FixLignting;
             }
             
             internal static class NameFixes

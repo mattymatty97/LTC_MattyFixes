@@ -16,7 +16,9 @@ namespace MattyFixes.Patches
 
         private static readonly HashSet<Item> ReadableObjects = new HashSet<Item>();
 
-        private static readonly Dictionary<string, List<float>> ItemFixes = new Dictionary<string, List<float>>
+        private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new Dictionary<Mesh, Mesh>();
+
+        private static readonly Dictionary<string, List<float>> ItemRotations = new Dictionary<string, List<float>>
         {
             {
                 "Flashlight[6]",
@@ -256,6 +258,7 @@ namespace MattyFixes.Patches
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
+        [HarmonyPriority(0)]
         private static void AwakePatch(StartOfRound __instance, bool __runOriginal)
         {
             if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
@@ -292,7 +295,7 @@ namespace MattyFixes.Patches
                     if (itemType.spawnPrefab == null)
                         continue;
 
-                    if (!ItemFixes.TryGetValue($"{itemType.itemName}[{itemType.itemId}]", out List<float> value))
+                    if (!ItemRotations.TryGetValue($"{itemType.itemName}[{itemType.itemId}]", out List<float> value))
                         value = new List<float>();
 
                     if (value.Count > 1)
@@ -382,10 +385,28 @@ namespace MattyFixes.Patches
 
             try
             {
+                if (itemType.spawnPrefab != null)
+                {
+                    itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
+
+                    MakeMeshReadable(itemType.spawnPrefab);
+
+                    ReadableObjects.Add(itemType);
+                }
+            }
+            catch (Exception ex)
+            {
+                MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                BrokenMeshItems.Add(itemType);
+                MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+            }
+
+            try
+            {
                 if (!manualOffsets.TryGetValue(
                         itemType.itemName, out var offset))
                 {
-                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.UseCollider.Value)
                         ? CalculateColliderBounds(go)
                         : CalculateRendererBounds(go);
 
@@ -429,30 +450,31 @@ namespace MattyFixes.Patches
             if (!ReadableObjects.Contains(grabbable.itemProperties))
                 return CalculateRendererBounds(go);
 
-            MeshFilter[] meshFilters;
             var filter = go.GetComponent<MeshFilter>();
-            if (filter != null)
-                meshFilters = new[] { filter };
-            else
-            {
-                meshFilters = go.GetComponentsInChildren<MeshFilter>();
-            }
+
+            MeshFilter[] meshFilters = filter != null ? new[] { filter } : go.GetComponentsInChildren<MeshFilter>();
 
             Bounds? bounds = null;
 
             foreach (var meshFilter in meshFilters)
             {
+                var oldMesh = meshFilter.sharedMesh;
+                if (!ReadableMeshMap.TryGetValue(oldMesh, out var readableMesh))
+                    readableMesh = meshFilter.sharedMesh;
+
+                meshFilter.sharedMesh = readableMesh;
+
                 var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
                 Physics.SyncTransforms();
                 collider.convex = true;
-                collider.sharedMesh = null;
-                collider.sharedMesh = meshFilter.mesh;
-                var cbounds = collider.bounds;
+
+                var cBounds = collider.bounds;
                 if (bounds.HasValue)
-                    bounds.Value.Encapsulate(cbounds);
+                    bounds.Value.Encapsulate(cBounds);
                 else
-                    bounds = cbounds;
+                    bounds = cBounds;
                 Object.Destroy(collider);
+                meshFilter.sharedMesh = oldMesh;
             }
 
             return bounds;
@@ -483,7 +505,8 @@ namespace MattyFixes.Patches
             return bounds;
         }
 
-        internal static void MakeMeshReadable(GameObject go)
+        internal static void MakeMeshReadable(GameObject go, bool updateOriginal = false,
+            Dictionary<MeshFilter, Mesh> reverseMap = null)
         {
             MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
@@ -491,17 +514,42 @@ namespace MattyFixes.Patches
                 filters = new[] { renderer };
             else
                 filters = go.GetComponentsInChildren<MeshFilter>();
-            
+
             foreach (var meshFilter in filters)
             {
                 var mesh = meshFilter.mesh;
 
                 if (!mesh.isReadable)
                 {
-                    meshFilter.mesh = MakeReadableMeshCopy(mesh);
+                    if (!ReadableMeshMap.TryGetValue(mesh, out var readableMesh))
+                        readableMesh = MakeReadableMeshCopy(mesh);
+                    ReadableMeshMap[mesh] = readableMesh;
+                    if (updateOriginal)
+                        meshFilter.mesh = readableMesh;
+                    if (reverseMap != null)
+                        reverseMap[meshFilter] = mesh;
                 }
-            }            
-            
+            }
+        }
+
+        internal static void ApplyMeshMap(GameObject go, Dictionary<MeshFilter, Mesh> meshMap)
+        {
+            MeshFilter[] filters;
+            var renderer = go.GetComponent<MeshFilter>();
+            if (!(renderer is null))
+                filters = new[] { renderer };
+            else
+                filters = go.GetComponentsInChildren<MeshFilter>();
+
+            foreach (var meshFilter in filters)
+            {
+                var mesh = meshFilter.mesh;
+
+                if (meshMap.TryGetValue(meshFilter, out var newmesh))
+                {
+                    meshFilter.mesh = newmesh;
+                }
+            }
         }
 
         public static Mesh MakeReadableMeshCopy(Mesh nonReadableMesh)
@@ -511,15 +559,18 @@ namespace MattyFixes.Patches
 
             // Handle vertices
             nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
-            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
-            int totalSize = verticesBuffer.stride * verticesBuffer.count;
-            byte[] data = new byte[totalSize];
-            verticesBuffer.GetData(data);
-            meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
-            meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
-            verticesBuffer.Release();
+            if (nonReadableMesh.vertexBufferCount > 0)
+            {
+                GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+                int totalSize = verticesBuffer.stride * verticesBuffer.count;
+                byte[] data = new byte[totalSize];
+                verticesBuffer.GetData(data);
+                meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
+                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+                verticesBuffer.Release();
+            }
 
-            
+
             // Handle triangles
             nonReadableMesh.indexBufferTarget = GraphicsBuffer.Target.Index;
             meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
@@ -544,13 +595,17 @@ namespace MattyFixes.Patches
             meshCopy.RecalculateNormals();
             meshCopy.RecalculateBounds();
 
+            meshCopy.name = $"Readable {nonReadableMesh.name}";
             return meshCopy;
         }
+
+
+        private static readonly Dictionary<MeshFilter, Mesh> reverseMeshMap = new Dictionary<MeshFilter, Mesh>();
 
         [HarmonyPatch]
         internal class StormyWeatherPatch
         {
-            [HarmonyPrefix]
+            [HarmonyPostfix]
             [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
             private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
             {
@@ -571,10 +626,21 @@ namespace MattyFixes.Patches
                     else
                     {
                         var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
-                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && 
-                            !BrokenMeshItems.Contains(grabbable.itemProperties)
-                            && !ReadableObjects.Contains(grabbable.itemProperties))
-                            MakeMeshReadable(warningObject.gameObject);
+                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.FixLignting.Value &&
+                            !BrokenMeshItems.Contains(grabbable.itemProperties))
+                        {
+                            try
+                            {
+                                MakeMeshReadable(warningObject.gameObject, true, reverseMeshMap);
+                            }
+                            catch (Exception ex)
+                            {
+                                MattyFixes.Log.LogError(
+                                    $"{grabbable.itemProperties.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                                BrokenMeshItems.Add(grabbable.itemProperties);
+                                MattyFixes.Log.LogWarning($"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -582,22 +648,35 @@ namespace MattyFixes.Patches
                     MattyFixes.Log.LogError(ex);
                 }
             }
-            
+
+            [HarmonyPrefix]
+            [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.LightningStrike))]
+            private static void ResetMeshes(StormyWeather __instance, bool useTargetedObject)
+            {
+                if (__instance.setStaticToObject == null || !useTargetedObject)
+                    return;
+
+                if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
+                    ApplyMeshMap(__instance.setStaticToObject, reverseMeshMap);
+
+                reverseMeshMap.Clear();
+            }
+
             [HarmonyPostfix]
             [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.Update))]
             private static void SetCorrectParticlePosition(StormyWeather __instance)
             {
-                if (!MattyFixes.PluginConfig.LightingParticle.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
-                    return;
-                
-                if (__instance.setStaticToObject==null)
+                if (__instance.setStaticToObject == null)
                     return;
 
-                var bounds = CalculateRendererBounds(__instance.setStaticToObject);
-                if(!bounds.HasValue)
-                    return;
-                
-                __instance.staticElectricityParticle.transform.position = bounds.Value.center + Vector3.up * 0.5f;
+                if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
+                {
+                    var bounds = CalculateRendererBounds(__instance.setStaticToObject);
+                    if (!bounds.HasValue)
+                        return;
+
+                    __instance.staticElectricityParticle.transform.position = bounds.Value.center + Vector3.up * 0.5f;
+                }
             }
         }
     }

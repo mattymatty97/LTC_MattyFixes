@@ -1,3 +1,6 @@
+## v1.0.11
+- attempt at reducing the impact of Readable Meshes on the visuals
+
 ## v1.0.10
 - actually working BadgeFix
 
