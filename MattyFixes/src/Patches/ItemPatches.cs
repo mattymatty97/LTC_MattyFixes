@@ -479,6 +479,10 @@ namespace MattyFixes.Patches
                     collider.convex = true;
 
                     var cBounds = collider.bounds;
+                    
+                    
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} cBounds was {cBounds}");
 
                     if (bounds.HasValue)
                     {
@@ -488,14 +492,17 @@ namespace MattyFixes.Patches
                     }
                     else
                         bounds = cBounds;
-                    
+
                     Object.Destroy(collider);
                     meshFilter.sharedMesh = oldMesh;
                 }
                 else
                 {
                     var rBounds = renderer.bounds;
-                    
+                                        
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} rBounds was {rBounds}");
+
                     if (bounds.HasValue)                    {
                         var b = bounds.Value;
                         b.Encapsulate(rBounds);
@@ -503,7 +510,10 @@ namespace MattyFixes.Patches
                     }
                     else
                         bounds = rBounds;
-                }
+                }                 
+                
+                if (AsyncLoggerProxy.Enabled)
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} Bounds is {bounds.Value}");
             }
 
             return bounds;
@@ -519,7 +529,10 @@ namespace MattyFixes.Patches
             foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
             {
                 var rBounds = renderer.bounds;
-                
+                                                        
+                if (AsyncLoggerProxy.Enabled)
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} rBounds was {rBounds}");
+
                 if (bounds.HasValue){
                     var b = bounds.Value;
                     b.Encapsulate(rBounds);
@@ -527,6 +540,9 @@ namespace MattyFixes.Patches
                 }
                 else
                     bounds = rBounds;
+                
+                if (AsyncLoggerProxy.Enabled)
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} Bounds is {bounds.Value}");
             }
 
             return bounds;

@@ -63,8 +63,10 @@ namespace MattyFixes.Patches
                     {
                         var hitPoint = shelf.GetComponent<Collider>().ClosestPoint(pos);
                         var tmp = pos.y - hitPoint.y;
-                        MattyFixes.Log.LogDebug(
-                            $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
+                        
+                        if (AsyncLoggerProxy.Enabled)
+                            AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard", $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
+                        
                         if (tmp >= 0 && tmp < distance)
                         {
                             found = shelf;
@@ -72,11 +74,12 @@ namespace MattyFixes.Patches
                             closest = hitPoint;
                         }
                     }
+                    
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard", $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
 
-                    MattyFixes.Log.LogDebug(
-                        $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
-                    MattyFixes.Log.LogDebug(
-                        $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",$"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
                 }
                 
                 var transform = grabbable.transform;
@@ -91,9 +94,8 @@ namespace MattyFixes.Patches
                     {
                         newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
                     }
-
-                    MattyFixes.Log.LogDebug(
-                        $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",$"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
                     transform.parent = closet.transform;
                     transform.position = newPos;
                     grabbable.targetFloorPosition = transform.localPosition;
@@ -107,7 +109,8 @@ namespace MattyFixes.Patches
                     var yDelta = pos.y - hitPoint.y;
                     if (Math.Abs(xDelta) < tolerance && Math.Abs(zDelta) < tolerance && yDelta > 0)
                     {
-                        MattyFixes.Log.LogDebug(
+                        if (AsyncLoggerProxy.Enabled)
+                            AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",
                             $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Was above the Cupboard!");
 
                         transform.position = pos;
