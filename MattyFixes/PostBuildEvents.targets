@@ -32,6 +32,7 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.ParticleSystemModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AudioModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
+        <Reference Include="..\Dependencies/AsyncLoggers.dll" Publicize="false"/>
 </ItemGroup>
 
 <!-- Ensure the user (you!) has actually set everything up properly. -->

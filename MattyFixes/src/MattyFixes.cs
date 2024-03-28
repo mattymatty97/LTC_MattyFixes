@@ -15,11 +15,12 @@ namespace MattyFixes
 {
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("mattymatty.AsyncLoggers", BepInDependency.DependencyFlags.SoftDependency)]
     internal class MattyFixes : BaseUnityPlugin
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.11";
+        public const string VERSION = "1.0.12";
 
         internal static ManualLogSource Log;
 
@@ -50,7 +51,10 @@ namespace MattyFixes
                 {
                     if (LobbyCompatibilityChecker.Enabled)
                         LobbyCompatibilityChecker.Init();
-                    
+                                        
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "Awake", $"Started");
+
                     Log.LogInfo("Initializing Configs");
 
                     PluginConfig.Init(this);
@@ -60,6 +64,9 @@ namespace MattyFixes
                     harmony.PatchAll(Assembly.GetExecutingAssembly());
                     
                     Log.LogInfo(NAME + " v" + VERSION + " Loaded!");
+                                        
+                    if (AsyncLoggerProxy.Enabled)
+                        AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "Awake", $"Finished");
                 }
             }
             catch (Exception ex)

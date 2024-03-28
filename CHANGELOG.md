@@ -1,3 +1,6 @@
+## v1.0.12
+- softImplementation of AsyncLoggers API
+
 ## v1.0.11
 - attempt at reducing the impact of Readable Meshes on the visuals
 

@@ -66,6 +66,9 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
 
+            if (AsyncLoggerProxy.Enabled)
+                AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "ShipLeave", $"Called");
+            
             GrabbableObject[] objectsOfType = Object.FindObjectsOfType<GrabbableObject>();
 
             var collider = StartOfRound.Instance.shipInnerRoomBounds;

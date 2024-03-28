@@ -130,6 +130,9 @@ namespace MattyFixes.Patches
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
         private static void CozyImprovementsFix(StartOfRound __instance)
         {
+            if (AsyncLoggerProxy.Enabled)
+                AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "LoadUnlockables", $"Called");
+            
             var closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
             if (closet == null)
                 return;

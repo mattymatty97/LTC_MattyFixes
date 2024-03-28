@@ -261,6 +261,9 @@ namespace MattyFixes.Patches
         [HarmonyPriority(0)]
         private static void AwakePatch(StartOfRound __instance, bool __runOriginal)
         {
+            if (AsyncLoggerProxy.Enabled)
+                AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Post");
+            
             if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
             {
                 foreach (var itemType in __instance.allItemsList.itemsList)
@@ -315,6 +318,9 @@ namespace MattyFixes.Patches
             {
                 MattyFixes.Log.LogError($"An Object crashed badly! {ex}");
             }
+            
+            if (AsyncLoggerProxy.Enabled)
+                AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Finished");
         }
 
         [HarmonyPostfix]
@@ -401,6 +407,7 @@ namespace MattyFixes.Patches
                 MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
             }
 
+            Physics.SyncTransforms();
             try
             {
                 if (!manualOffsets.TryGetValue(
@@ -412,10 +419,11 @@ namespace MattyFixes.Patches
 
                     if (bounds.HasValue)
                     {
+                        
                         itemType.verticalOffset = (pos.y - bounds.Value.min.y) +
                                                   MattyFixes.PluginConfig.ItemClipping.VerticalOffset
                                                       .Value;
-
+                        
                         MattyFixes.Log.LogInfo(
                             $"{itemType.itemName} computed vertical offset is now {itemType.verticalOffset}");
                     }
@@ -450,31 +458,52 @@ namespace MattyFixes.Patches
             if (!ReadableObjects.Contains(grabbable.itemProperties))
                 return CalculateRendererBounds(go);
 
-            var filter = go.GetComponent<MeshFilter>();
+            var o_renderer = go.GetComponent<Renderer>();
 
-            MeshFilter[] meshFilters = filter != null ? new[] { filter } : go.GetComponentsInChildren<MeshFilter>();
+            Renderer[] renderers = o_renderer != null ? new[] { o_renderer } : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
 
-            foreach (var meshFilter in meshFilters)
+            foreach (var renderer in renderers.Where(f => f.gameObject.activeSelf))
             {
-                var oldMesh = meshFilter.sharedMesh;
-                if (!ReadableMeshMap.TryGetValue(oldMesh, out var readableMesh))
-                    readableMesh = meshFilter.sharedMesh;
+                if (renderer is MeshRenderer)
+                {
+                    var meshFilter = renderer.GetComponent<MeshFilter>();
+                    var oldMesh = meshFilter.sharedMesh;
+                    if (!ReadableMeshMap.TryGetValue(oldMesh, out var readableMesh))
+                        readableMesh = meshFilter.sharedMesh;
 
-                meshFilter.sharedMesh = readableMesh;
+                    meshFilter.sharedMesh = readableMesh;
 
-                var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
-                Physics.SyncTransforms();
-                collider.convex = true;
+                    var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
+                    collider.convex = true;
 
-                var cBounds = collider.bounds;
-                if (bounds.HasValue)
-                    bounds.Value.Encapsulate(cBounds);
+                    var cBounds = collider.bounds;
+
+                    if (bounds.HasValue)
+                    {
+                        var b = bounds.Value;
+                        b.Encapsulate(cBounds);
+                        bounds = b;
+                    }
+                    else
+                        bounds = cBounds;
+                    
+                    Object.Destroy(collider);
+                    meshFilter.sharedMesh = oldMesh;
+                }
                 else
-                    bounds = cBounds;
-                Object.Destroy(collider);
-                meshFilter.sharedMesh = oldMesh;
+                {
+                    var rBounds = renderer.bounds;
+                    
+                    if (bounds.HasValue)                    {
+                        var b = bounds.Value;
+                        b.Encapsulate(rBounds);
+                        bounds = b;
+                    }
+                    else
+                        bounds = rBounds;
+                }
             }
 
             return bounds;
@@ -482,24 +511,22 @@ namespace MattyFixes.Patches
 
         internal static Bounds? CalculateRendererBounds(GameObject go)
         {
-            Renderer[] renderers;
-            var filter = go.GetComponent<Renderer>();
-            if (filter != null)
-                renderers = new[] { filter };
-            else
-            {
-                renderers = go.GetComponentsInChildren<Renderer>();
-            }
+            var o_renderer = go.GetComponent<Renderer>();
+            Renderer[] renderers = o_renderer != null ? new[] { o_renderer } : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
 
-            foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled && r.isVisible))
+            foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
             {
-                var rbounds = renderer.bounds;
-                if (bounds.HasValue)
-                    bounds.Value.Encapsulate(rbounds);
+                var rBounds = renderer.bounds;
+                
+                if (bounds.HasValue){
+                    var b = bounds.Value;
+                    b.Encapsulate(rBounds);
+                    bounds = b;
+                }
                 else
-                    bounds = rbounds;
+                    bounds = rBounds;
             }
 
             return bounds;
