@@ -15,7 +15,6 @@ namespace MattyFixes
 {
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
-    [BepInDependency("mattymatty.AsyncLoggers", BepInDependency.DependencyFlags.SoftDependency)]
     internal class MattyFixes : BaseUnityPlugin
     {
         public const string GUID = "mattymatty.MattyFixes";

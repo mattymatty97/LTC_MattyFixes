@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using MattyFixes.Dependency;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering;

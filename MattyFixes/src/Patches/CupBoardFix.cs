@@ -1,5 +1,6 @@
 ﻿using System;
 using HarmonyLib;
+using MattyFixes.Dependency;
 using MattyFixes.Patches.Utility;
 using Unity.Netcode;
 using UnityEngine;
