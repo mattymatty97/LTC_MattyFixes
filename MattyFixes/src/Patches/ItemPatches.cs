@@ -358,7 +358,7 @@ namespace MattyFixes.Patches
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-        [HarmonyPriority(20)]
+        [HarmonyPriority(9999)]
         private static void StartPrefix(GrabbableObject __instance)
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
@@ -464,8 +464,15 @@ namespace MattyFixes.Patches
             Renderer[] renderers = o_renderer != null ? new[] { o_renderer } : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
+            
+            
+            
+            
+            
+            
+            
 
-            foreach (var renderer in renderers.Where(f => f.gameObject.activeSelf))
+            foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
             {
                 if (renderer is MeshRenderer)
                 {
@@ -481,9 +488,11 @@ namespace MattyFixes.Patches
 
                     var cBounds = collider.bounds;
                     
+                    if (cBounds.size == Vector3.zero)
+                        continue;
                     
                     if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} cBounds was {cBounds}");
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}),{renderer.gameObject.name} cBounds was {cBounds}");
 
                     if (bounds.HasValue)
                     {
@@ -497,12 +506,15 @@ namespace MattyFixes.Patches
                     Object.Destroy(collider);
                     meshFilter.sharedMesh = oldMesh;
                 }
-                else
+                else if (!(renderer is ParticleSystemRenderer))
                 {
                     var rBounds = renderer.bounds;
+                    
+                    if (rBounds.size == Vector3.zero)
+                        continue;
                                         
                     if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} rBounds was {rBounds}");
+                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}){renderer.gameObject.name} rBounds was {rBounds}");
 
                     if (bounds.HasValue)                    {
                         var b = bounds.Value;
@@ -511,10 +523,10 @@ namespace MattyFixes.Patches
                     }
                     else
                         bounds = rBounds;
-                }                 
+                }          
                 
                 if (AsyncLoggerProxy.Enabled)
-                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} Bounds is {bounds.Value}");
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}) Bounds is {bounds}");
             }
 
             return bounds;
@@ -530,9 +542,15 @@ namespace MattyFixes.Patches
             foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
             {
                 var rBounds = renderer.bounds;
-                                                        
+                
+                if (renderer is ParticleSystemRenderer)
+                    continue;
+                
+                if (rBounds.size == Vector3.zero)
+                    continue;
+                
                 if (AsyncLoggerProxy.Enabled)
-                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} rBounds was {rBounds}");
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}),{renderer.gameObject.name} rBounds was {rBounds}");
 
                 if (bounds.HasValue){
                     var b = bounds.Value;
@@ -543,7 +561,7 @@ namespace MattyFixes.Patches
                     bounds = rBounds;
                 
                 if (AsyncLoggerProxy.Enabled)
-                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.GetInstanceID()} Bounds is {bounds.Value}");
+                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}) Bounds is {bounds.Value}");
             }
 
             return bounds;

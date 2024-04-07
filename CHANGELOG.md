@@ -1,3 +1,6 @@
+## v1.0.13
+- fix wrong object sizes caused by other mods adding Components to items
+
 ## v1.0.12
 - softImplementation of AsyncLoggers API
 - fix wrong bounds calculation caused by Unity AggressiveInlining
