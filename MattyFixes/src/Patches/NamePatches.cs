@@ -66,7 +66,6 @@ namespace MattyFixes.Patches
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LateUpdate))]
         private static void PostUpdate(StartOfRound __instance)
         {
-            var updated = false;
             foreach (var taskHolder in NameTasks.Values.ToArray())
             {
                 if (taskHolder._waitingTask.IsCompleted)
@@ -92,23 +91,13 @@ namespace MattyFixes.Patches
 
                     playerScript.quickMenuManager.AddUserToPlayerList(steamID, playerName,
                         taskHolder._playerObjectIndex);
-
-                    updated = true;
+                    
+                    StartOfRound.Instance.mapScreen.ChangeNameOfTargetTransform(playerScript.transform, playerName);
 
                     NameTasks.Remove(taskHolder._friend.Id);
                 }
             }
-
-            if (updated)
-                foreach (var radarTarget in StartOfRound.Instance.mapScreen.radarTargets)
-                {
-                    var playerController = radarTarget.transform.gameObject.GetComponent<PlayerControllerB>();
-                    var radarBooster = radarTarget.transform.gameObject.GetComponent<RadarBoosterItem>();
-                    var newName = playerController != null ? playerController.playerUsername :
-                        radarBooster != null ? radarBooster.radarBoosterName : null;
-                    if (newName != null)
-                        radarTarget.name = newName;
-                }
+            
         }
 
         [HarmonyPostfix]
