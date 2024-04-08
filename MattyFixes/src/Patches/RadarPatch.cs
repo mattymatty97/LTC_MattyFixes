@@ -11,32 +11,18 @@ namespace MattyFixes.Patches
     internal class RadarPatch
     {
         [HarmonyPatch]
-        internal class NewShipItemPatch
+        internal class ItemInShipPatch
         {
-            private static readonly HashSet<GrabbableObject> UpdatableObjects = new HashSet<GrabbableObject>();
-            [HarmonyPrefix]
-            [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-            private static void TrackNew(GrabbableObject __instance)
-            {
-                if (!MattyFixes.PluginConfig.Radar.Enabled.Value ||
-                    !MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
-                    return;
-
-                if (!__instance.transform.IsChildOf(StartOfRound.Instance.elevatorTransform))
-                    return;
-
-                UpdatableObjects.Add(__instance);
-            }
 
             [HarmonyPostfix]
-            [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Update))]
-            [HarmonyPriority(0)]
+            [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.LateUpdate))]
+            [HarmonyPriority(Priority.Last)]
             private static void UpdatePatch(GrabbableObject __instance, bool __runOriginal)
             {
-                if (!__runOriginal || !UpdatableObjects.Remove(__instance))
+                if (!__runOriginal)
                     return;
 
-                if (__instance.radarIcon != null && __instance.radarIcon.gameObject != null)
+                if (__instance.radarIcon != null && __instance.radarIcon.gameObject != null && __instance.isInShipRoom)
                     Object.Destroy(__instance.radarIcon.gameObject);
             }
         }
