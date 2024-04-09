@@ -1,25 +1,16 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using GameNetcodeStuff;
 using HarmonyLib;
 using Steamworks;
 using Unity.Netcode;
+using UnityEngine;
 
 namespace MattyFixes.Patches
 {
     [HarmonyPatch]
     internal class NamePatches
     {
-        private static readonly Dictionary<ulong, NameTaskHolder> NameTasks = new Dictionary<ulong, NameTaskHolder>();
-
-        private struct NameTaskHolder
-        {
-            internal Task _waitingTask;
-            internal Friend _friend;
-            internal int _playerObjectIndex;
-        }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.SendNewPlayerValuesClientRpc))]
@@ -43,68 +34,41 @@ namespace MattyFixes.Patches
 
             for (int index = 0; index < playerSteamIds.Length; ++index)
             {
-                if (__instance.playersManager.allPlayerScripts[index].isPlayerControlled ||
-                    __instance.playersManager.allPlayerScripts[index].isPlayerDead)
+                var _controller = __instance.playersManager.allPlayerScripts[index];
+                if (_controller.isPlayerControlled ||
+                    _controller.isPlayerDead)
                 {
-                    var steamID = playerSteamIds[index];
-                    if (NameTasks.ContainsKey(steamID))
-                        continue;
-
-                    var friend = new Friend(steamID);
-                    var request = Task.Run(friend.RequestInfoAsync);
-                    NameTasks[steamID] = new NameTaskHolder
-                    {
-                        _friend = friend,
-                        _waitingTask = request,
-                        _playerObjectIndex = index
-                    };
+                    _controller.StartCoroutine(LateUsernameUpdate(_controller, index, playerSteamIds[index]));
                 }
             }
         }
 
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LateUpdate))]
-        private static void PostUpdate(StartOfRound __instance)
+        private static IEnumerator LateUsernameUpdate(PlayerControllerB _controller, int index, ulong steamID)
         {
-            foreach (var taskHolder in NameTasks.Values.ToArray())
-            {
-                if (taskHolder._waitingTask.IsCompleted)
-                {
-                    var playerScript = __instance.allPlayerScripts[taskHolder._playerObjectIndex];
-                    var steamID = taskHolder._friend.Id;
-                    var playerName = taskHolder._friend.Name;
+            yield return new WaitUntil(() => !SteamFriends.RequestUserInformation(steamID, false));
+            var friend = new Friend(steamID);
+            var playerName = friend.Name;
 
-                    playerName = Regex.Replace(__instance.NoPunctuation(playerName), "[^\\w\\._]", "");
+            MattyFixes.Log.LogWarning($"Late Friend update Completed Player {index} ({steamID}) has name {playerName}");
+            playerName = Regex.Replace(_controller.NoPunctuation(playerName), "[^\\w\\._]", "");
 
-                    if (playerName == string.Empty || playerName.Length == 0)
-                        playerName = "Nameless";
-                    else if (playerName.Length <= 2)
-                        playerName += "0";
+            if (playerName == string.Empty || playerName.Length == 0)
+                playerName = "Nameless";
+            else if (playerName.Length <= 2)
+                playerName += "0";
 
-                    playerScript.playerSteamId = steamID;
-                    playerScript.playerUsername = playerName;
-                    playerScript.usernameBillboardText.text = playerName;
+            _controller.playerSteamId = steamID;
+            _controller.playerUsername = playerName;
+            _controller.usernameBillboardText.text = playerName;
 
-                    var duplicateNamesInLobby = playerScript.GetNumberOfDuplicateNamesInLobby();
-                    if (duplicateNamesInLobby > 0)
-                        playerName = $"{playerName}{duplicateNamesInLobby}";
+            var duplicateNamesInLobby = _controller.GetNumberOfDuplicateNamesInLobby();
+            if (duplicateNamesInLobby > 0)
+                playerName = $"{playerName}{duplicateNamesInLobby}";
 
-                    playerScript.quickMenuManager.AddUserToPlayerList(steamID, playerName,
-                        taskHolder._playerObjectIndex);
+            _controller.quickMenuManager.AddUserToPlayerList(steamID, playerName, index);
                     
-                    StartOfRound.Instance.mapScreen.ChangeNameOfTargetTransform(playerScript.transform, playerName);
+            StartOfRound.Instance.mapScreen.ChangeNameOfTargetTransform(_controller.transform, playerName);
 
-                    NameTasks.Remove(taskHolder._friend.Id);
-                }
-            }
-            
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnLocalDisconnect))]
-        private static void OnDisconnect(StartOfRound __instance)
-        {
-            NameTasks.Clear();
         }
     }
 }

@@ -1,3 +1,9 @@
+## v1.0.17
+- rewritten NameFix with help from @zaggy1024
+
+## v1.0.16
+- attempt at making NameFix work
+
 ## v1.0.13
 - fix wrong object sizes caused by other mods adding Components to items
 
