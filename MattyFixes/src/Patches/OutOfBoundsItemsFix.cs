@@ -29,7 +29,7 @@ namespace MattyFixes.Patches
                 return;
             
             if (StartOfRound.Instance.localPlayerController != null && !StartOfRound.Instance.localPlayerController.justConnected)
-                GrabbableObjectUtility.AppendToHolder(obj, nameof(CupBoardFix), (int)GrabbableObjectUtility.DelayValues.OutOfBounds, UpdateCallback);
+                GrabbableObjectUtility.AppendToHolder(obj, nameof(OutOfBoundsItemsFix), (int)GrabbableObjectUtility.DelayValues.OutOfBounds, UpdateCallback);
             else if(obj.IsServer)
                 GrabbableObjectUtility.AppendToHolder(obj,nameof(OutOfBoundsItemsFix), (int)GrabbableObjectUtility.DelayValues.OutOfBoundsServer, UpdateCallback);
             else

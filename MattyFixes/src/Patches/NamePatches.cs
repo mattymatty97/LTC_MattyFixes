@@ -51,7 +51,7 @@ namespace MattyFixes.Patches
                         continue;
 
                     var friend = new Friend(steamID);
-                    var request = friend.RequestInfoAsync();
+                    var request = Task.Run(friend.RequestInfoAsync);
                     NameTasks[steamID] = new NameTaskHolder
                     {
                         _friend = friend,
