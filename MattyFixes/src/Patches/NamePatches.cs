@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using GameNetcodeStuff;
 using HarmonyLib;
@@ -11,6 +12,8 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class NamePatches
     {
+
+        private static readonly Dictionary<ulong, Coroutine> NameCoroutines = [];
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.SendNewPlayerValuesClientRpc))]
@@ -32,13 +35,17 @@ namespace MattyFixes.Patches
                 !networkManager.IsClient && !networkManager.IsHost)
                 return;
 
+            var startOfRound = StartOfRound.Instance;
             for (int index = 0; index < playerSteamIds.Length; ++index)
             {
-                var _controller = __instance.playersManager.allPlayerScripts[index];
-                if (_controller.isPlayerControlled ||
-                    _controller.isPlayerDead)
+                var controller = __instance.playersManager.allPlayerScripts[index];
+                var clientID = playerSteamIds[index];
+                if (controller.isPlayerControlled ||
+                    controller.isPlayerDead)
                 {
-                    _controller.StartCoroutine(LateUsernameUpdate(_controller, index, playerSteamIds[index]));
+                    if (NameCoroutines.TryGetValue(clientID, out var old))
+                        startOfRound.StopCoroutine(old);
+                    NameCoroutines[clientID] = startOfRound.StartCoroutine(LateUsernameUpdate(controller, index, clientID));
                 }
             }
         }
@@ -69,6 +76,7 @@ namespace MattyFixes.Patches
                     
             StartOfRound.Instance.mapScreen.ChangeNameOfTargetTransform(_controller.transform, playerName);
 
+            NameCoroutines.Remove(steamID);
         }
     }
 }

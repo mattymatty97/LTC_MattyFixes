@@ -1,3 +1,6 @@
+## v1.0.18
+- run namefix coroutine on StartOfRound to bypass More Company issues
+
 ## v1.0.17
 - rewritten NameFix with help from @zaggy1024
 
