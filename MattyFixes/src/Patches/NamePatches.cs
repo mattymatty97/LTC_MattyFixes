@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using GameNetcodeStuff;
 using HarmonyLib;
 using Steamworks;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace MattyFixes.Patches
 {
@@ -50,6 +53,7 @@ namespace MattyFixes.Patches
             }
         }
 
+        // ReSharper disable Unity.PerformanceAnalysis
         private static IEnumerator LateUsernameUpdate(PlayerControllerB _controller, int index, ulong steamID)
         {
             yield return new WaitUntil(() => !SteamFriends.RequestUserInformation(steamID, false));
@@ -75,6 +79,15 @@ namespace MattyFixes.Patches
             _controller.quickMenuManager.AddUserToPlayerList(steamID, playerName, index);
                     
             StartOfRound.Instance.mapScreen.ChangeNameOfTargetTransform(_controller.transform, playerName);
+            
+            if (HUDManager.Instance.spectatingPlayerBoxes.ContainsValue(_controller))
+            {
+                var spectatorBox = HUDManager.Instance.spectatingPlayerBoxes.First(x => x.Value == _controller)
+                    .Key.gameObject;
+                spectatorBox.GetComponentInChildren<TextMeshProUGUI>().text = playerName;
+                if (!GameNetworkManager.Instance.disableSteam)
+                    HUDManager.FillImageWithSteamProfile(spectatorBox.GetComponent<RawImage>(), _controller.playerSteamId);
+            }
 
             NameCoroutines.Remove(steamID);
         }

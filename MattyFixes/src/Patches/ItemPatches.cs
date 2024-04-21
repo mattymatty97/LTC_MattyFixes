@@ -13,201 +13,201 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class ItemPatches
     {
-        private static readonly HashSet<Item> ComputedItems = new HashSet<Item>();
+        private static readonly HashSet<Item> ComputedItems = [];
 
-        private static readonly HashSet<Item> ReadableObjects = new HashSet<Item>();
+        private static readonly HashSet<Item> ReadableObjects = [];
 
-        private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new Dictionary<Mesh, Mesh>();
+        private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new();
 
-        private static readonly Dictionary<string, List<float>> ItemRotations = new Dictionary<string, List<float>>
+        private static readonly Dictionary<string, List<float>> ItemRotations = new()
         {
             {
                 "Flashlight[6]",
-                new List<float>(3) { 90f, 0f, 90f }
+                [90f, 0f, 90f]
             },
             {
                 "Jetpack[13]",
-                new List<float>(3) { 45f, 0f, 0f }
+                [45f, 0f, 0f]
             },
             {
                 "Key[14]",
-                new List<float>(3) { 180f, 0f, 90f }
+                [180f, 0f, 90f]
             },
             {
                 "Apparatus[3]",
-                new List<float>(3) { 0f, 0f, 135f }
+                [0f, 0f, 135f]
             },
             {
                 "Pro-flashlight[1]",
-                new List<float>(3) { 90f, 0f, 90f }
+                [90f, 0f, 90f]
             },
             {
                 "Shovel[7]",
-                new List<float>(3) { 0f, -90f, -90f }
+                [0f, -90f, -90f]
             },
             {
                 "Stun grenade[12]",
-                new List<float>(3) { 0f, 0f, 90f }
+                [0f, 0f, 90f]
             },
             {
                 "Extension ladder[17]",
-                new List<float>(3) { 0f, 0f, 0f }
+                [0f, 0f, 0f]
             },
             {
                 "TZP-Inhalant[15]",
-                new List<float>(3) { 0f, 0f, -90f }
+                [0f, 0f, -90f]
             },
             {
                 "Zap gun[5]",
-                new List<float>(3) { 95f, 0f, 90f }
+                [95f, 0f, 90f]
             },
             {
                 "Magic 7 ball[0]",
-                new List<float>(3) { 0f, 0f, 0f }
+                [0f, 0f, 0f]
             },
             {
                 "Airhorn[0]",
-                new List<float>(3) { 0f, 90f, 270f }
+                [0f, 90f, 270f]
             },
             {
                 "Big bolt[0]",
-                new List<float>(3) { -21f, 0f, 0f }
+                [-21f, 0f, 0f]
             },
             {
                 "Bottles[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Brush[0]",
-                new List<float>(3) { 90f, 0f, 0f }
+                [90f, 0f, 0f]
             },
             {
                 "Candy[0]",
-                new List<float>(3) { 90f, 0f, 0f }
+                [90f, 0f, 0f]
             },
             {
                 "Chemical jug[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Clown horn[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Large axle[0]",
-                new List<float>(3) { 7f, 0f, 0f }
+                [7f, 0f, 0f]
             },
             {
                 "Teeth[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "V-type engine[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Plastic fish[0]",
-                new List<float>(3) { -45f, 0f, 90f }
+                [-45f, 0f, 90f]
             },
             {
                 "Laser pointer[1]",
-                new List<float>(3) { 0f, 0f, 0f }
+                [0f, 0f, 0f]
             },
             {
                 "Gold bar[0]",
-                new List<float>(3) { -90f, 0f, -90f }
+                [-90f, 0f, -90f]
             },
             {
                 "Magnifying glass[0]",
-                new List<float>(3) { 0f, 90f, -90f }
+                [0f, 90f, -90f]
             },
             {
                 "Cookie mold pan[0]",
-                new List<float>(3) { -90f, 0f, 90f }
+                [-90f, 0f, 90f]
             },
             {
                 "Mug[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Perfume bottle[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Old phone[0]",
-                new List<float>(3) { -90f, 0f, -90f }
+                [-90f, 0f, -90f]
             },
             {
                 "Jar of pickles[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Pill bottle[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Ring[0]",
-                new List<float>(3) { 0f, -90f, 90f }
+                [0f, -90f, 90f]
             },
             {
                 "Toy robot[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Rubber Ducky[0]",
-                new List<float>(3) { -90f, 0f, -90f }
+                [-90f, 0f, -90f]
             },
             {
                 "Steering wheel[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Toothpaste[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Hive[1531]",
-                new List<float>(3) { 7f, 0f, 0f }
+                [7f, 0f, 0f]
             },
             {
                 "Radar-booster[16]",
-                new List<float>(3) { 0f, 0f, 0f }
+                [0f, 0f, 0f]
             },
             {
                 "Shotgun[17]",
-                new List<float>(3) { 180f, 0f, -5f }
+                [180f, 0f, -5f]
             },
             {
                 "Ammo[17]",
-                new List<float>(3) { 0f, 0f, 90f }
+                [0f, 0f, 90f]
             },
             {
                 "Spray paint[18]",
-                new List<float>(3) { 0f, 0f, 195f }
+                [0f, 0f, 195f]
             },
             {
                 "Homemade flashbang[0]",
-                new List<float>(3) { 0f, 0f, 90f }
+                [0f, 0f, 90f]
             },
             {
                 "Gift[152767]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Flask[0]",
-                new List<float>(3) { 25f, 0f, 0f }
+                [25f, 0f, 0f]
             },
             {
                 "Tragedy[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Comedy[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             },
             {
                 "Whoopie cushion[0]",
-                new List<float>(3) { -90f, 0f, 0f }
+                [-90f, 0f, 0f]
             }
         };
 
@@ -255,7 +255,7 @@ namespace MattyFixes.Patches
             }
         }
 
-        private static readonly HashSet<Item> BrokenMeshItems = new HashSet<Item>();
+        private static readonly HashSet<Item> BrokenMeshItems = [];
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
@@ -300,7 +300,7 @@ namespace MattyFixes.Patches
                         continue;
 
                     if (!ItemRotations.TryGetValue($"{itemType.itemName}[{itemType.itemId}]", out List<float> value))
-                        value = new List<float>();
+                        value = [];
 
                     if (value.Count > 1)
                     {
@@ -335,7 +335,7 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                 return;
 
-            if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
+            if (__instance.transform.name is "ClipboardManual" or "StickyNoteItem")
                 return;
 
             if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
@@ -343,6 +343,9 @@ namespace MattyFixes.Patches
 
             try
             {
+                grabbable.isInElevator = true;
+                grabbable.isInShipRoom = true;
+                
                 grabbable.transform.rotation = Quaternion.Euler(
                     grabbable.itemProperties.restingRotation.x,
                     grabbable.floorYRot == -1
@@ -461,7 +464,7 @@ namespace MattyFixes.Patches
 
             var o_renderer = go.GetComponent<Renderer>();
 
-            Renderer[] renderers = o_renderer != null ? new[] { o_renderer } : go.GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = o_renderer != null ? [o_renderer] : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
             
@@ -535,7 +538,7 @@ namespace MattyFixes.Patches
         internal static Bounds? CalculateRendererBounds(GameObject go)
         {
             var o_renderer = go.GetComponent<Renderer>();
-            Renderer[] renderers = o_renderer != null ? new[] { o_renderer } : go.GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = o_renderer != null ? [o_renderer] : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
 
@@ -572,10 +575,7 @@ namespace MattyFixes.Patches
         {
             MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
-            if (!(renderer is null))
-                filters = new[] { renderer };
-            else
-                filters = go.GetComponentsInChildren<MeshFilter>();
+            filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
 
             foreach (var meshFilter in filters)
             {
@@ -598,10 +598,7 @@ namespace MattyFixes.Patches
         {
             MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
-            if (!(renderer is null))
-                filters = new[] { renderer };
-            else
-                filters = go.GetComponentsInChildren<MeshFilter>();
+            filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
 
             foreach (var meshFilter in filters)
             {

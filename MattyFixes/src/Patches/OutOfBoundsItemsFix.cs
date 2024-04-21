@@ -44,7 +44,7 @@ namespace MattyFixes.Patches
             var closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
             var transform = __instance.transform;
 
-            if (transform.parent != closet.transform)
+            if (closet == null || transform.parent != closet.transform)
             {
                 var position = updateHolder.OriginalPos;
                 position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
@@ -87,7 +87,7 @@ namespace MattyFixes.Patches
                 }
             }
         }
-
+        /*
         [HarmonyPostfix]
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.OnHitGround))]
         private static void AfterFall(GrabbableObject __instance)
@@ -108,5 +108,6 @@ namespace MattyFixes.Patches
                 __instance.FallToGround();
             }
         }
+        /**/
     }
 }

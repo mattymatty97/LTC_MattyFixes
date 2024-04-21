@@ -1,3 +1,6 @@
+## v1.0.21
+- do not throw a fit in OutOfBounds if cupboard does not exist
+
 ## v1.0.18
 - run namefix coroutine on StartOfRound to bypass More Company issues
 

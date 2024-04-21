@@ -4,7 +4,7 @@
         <RootNamespace>MattyFixes</RootNamespace>
         <AssemblyName>MattyFixes</AssemblyName>
         <Product>Matty's Fixes</Product>
-        <Version>1.0.19</Version>
+        <Version>1.0.21</Version>
         <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>Latest</LangVersion>
     </PropertyGroup>
@@ -25,14 +25,17 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Assembly-CSharp-firstpass.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="true"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.RenderPipelines.HighDefinition.Runtime.dll" Publicize="true"/>
 
         <!-- clean referencing -->
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.dll" Publicize="false"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.UI.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.PhysicsModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.ParticleSystemModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AudioModule.dll" Publicize="false"/>
+        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AnimationModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
         <Reference Include="..\Dependencies/AsyncLoggers.dll" Publicize="false"/>
     </ItemGroup>
