@@ -21,7 +21,7 @@ namespace MattyFixes.Patches
                 if (!MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                     return;
 
-                if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
+                if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
                     return;
 
                 if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))

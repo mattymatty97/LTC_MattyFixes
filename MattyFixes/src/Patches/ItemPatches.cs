@@ -329,13 +329,13 @@ namespace MattyFixes.Patches
         [HarmonyPriority(20)]
         private static void SpawnPostfix(NetworkBehaviour __instance)
         {
-            if (!(__instance is GrabbableObject grabbable))
-                return;
-
             if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                 return;
 
-            if (__instance.transform.name is "ClipboardManual" or "StickyNoteItem")
+            if (!(__instance is GrabbableObject grabbable))
+                return;
+
+            if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
                 return;
 
             if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
@@ -367,7 +367,7 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
 
-            if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
+            if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                 return;
 
             if (ComputedItems.Contains(__instance.itemProperties))

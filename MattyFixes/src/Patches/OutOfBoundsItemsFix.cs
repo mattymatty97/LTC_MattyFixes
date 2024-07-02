@@ -19,13 +19,13 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                 return;
             
-            if (__instance.transform.name == "ClipboardManual" || __instance.transform.name == "StickyNoteItem")
+            if (__instance is not GrabbableObject obj)
                 return;
 
-            if (!(__instance is GrabbableObject obj))
+            if (obj is ClipboardItem || (obj is PhysicsProp && obj.itemProperties.itemName == "Sticky note"))
                 return;
 
-            if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position) && !obj.isInShipRoom)
+            if (!obj.isInShipRoom && !StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
                 return;
             
             if (StartOfRound.Instance.localPlayerController != null && !StartOfRound.Instance.localPlayerController.justConnected)
@@ -76,8 +76,12 @@ namespace MattyFixes.Patches
 
             foreach (var item in objectsOfType)
             {
+                if (item is ClipboardItem || (item is PhysicsProp && item.itemProperties.itemName == "Sticky note"))
+                    continue;
+
                 if (!item.isInShipRoom)
                     continue;
+
                 var transform = item.transform;
                 if (transform.position.y < collider.bounds.min.y)
                 {
