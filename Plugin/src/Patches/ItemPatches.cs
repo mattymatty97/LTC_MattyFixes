@@ -328,9 +328,9 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
                 return;
 
-            try
+            foreach (var itemType in __instance.allItemsList.itemsList)
             {
-                foreach (var itemType in __instance.allItemsList.itemsList)
+                try
                 {
                     if (itemType.spawnPrefab == null)
                         continue;
@@ -340,12 +340,12 @@ namespace MattyFixes.Patches
                     
                     UpdateItemRotation(itemType);
                 }
-                MattyFixes.PluginConfig.RemoveOrphans();
+                catch (Exception ex)
+                {
+                    MattyFixes.Log.LogError($"{itemType.itemName} crashed badly ! {ex}");
+                }
             }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"An Object crashed badly! {ex}");
-            }
+            MattyFixes.PluginConfig.RemoveOrphans();
             
             if (AsyncLoggerProxy.Enabled)
                 AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Finished");

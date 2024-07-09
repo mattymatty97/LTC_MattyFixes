@@ -2,15 +2,14 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <!-- Defining the file names of project-specific data we'll load later. -->
     <PropertyGroup>
-        <AssetTargetsFile>Assets.targets</AssetTargetsFile>
         <GameDirTargetsFile>GameDirectory.targets</GameDirTargetsFile>
-        <GameDirTargetsFullPath>$(ProjectDir)$(GameDirTargetsFile)</GameDirTargetsFullPath>
+        <GameDirTargetsFullPath>$(ProjectDir)..\$(GameDirTargetsFile)</GameDirTargetsFullPath>
     </PropertyGroup>
     
     <!-- Ensure the user (you!) has actually set everything up properly. -->
     <Target Name="EnsureGameDirectoryDefined" BeforeTargets="PrepareForBuild">
         <PropertyGroup>
-            <GameDirError>This project requires you to define your own game installation directory in a separate $(GameDirTargetsFile) file. Create this file in the same folder as the $(MSBuildProjectFile) and add a 'GameDirectory' MSBuild property to it to proceed. There is an example file in $(MSBuildThisFileDirectory) you can copy and adjust.</GameDirError>
+            <GameDirError>This project requires you to define your own game installation directory in a separate $(GameDirTargetsFile) file. Create this file in the parent folder of the $(MSBuildProjectFile) and add a 'GameDirectory' MSBuild property to it to proceed. There is an example file in the parent directory of $(MSBuildThisFileDirectory) you can copy and adjust.</GameDirError>
         </PropertyGroup>
         <Error Condition="!Exists('$(GameDirTargetsFullPath)')" Text="$(GameDirError)"/>
     </Target>

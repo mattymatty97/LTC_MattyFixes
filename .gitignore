@@ -4,4 +4,5 @@ Releases
 **/bin
 **/obj
 **/GameDirectory.targets
+**/*.dll
 ShipLobby.sln.DotSettings.user

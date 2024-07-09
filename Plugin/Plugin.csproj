@@ -10,10 +10,6 @@
         <PackageId>MattyFixes</PackageId>
     </PropertyGroup>
     <ItemGroup>
-        <Content Include="GameDirectory.targets"/>
-        <Content Include="PostBuildEvents.targets"/>
-    </ItemGroup>
-    <ItemGroup>
         <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
         <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.0.1"/>
     </ItemGroup>
