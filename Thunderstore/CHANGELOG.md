@@ -1,3 +1,9 @@
+## v1.1.0
+- rewrite OutOfBounds and Cupboard checks
+- account for Cruiser in OOB check
+- add ability to manually change resting rotation of any Item
+
+
 ## v1.0.21
 - do not throw a fit in OutOfBounds if cupboard does not exist
 

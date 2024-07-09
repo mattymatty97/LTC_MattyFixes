@@ -2,11 +2,11 @@
 <Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
         <RootNamespace>MattyFixes</RootNamespace>
-        <AssemblyName>MattyFixes</AssemblyName>
         <Product>Matty's Fixes</Product>
-        <Version>1.0.21</Version>
+        <Version>1.1.0</Version>
         <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>Latest</LangVersion>
+        <PackageId>Plugin</PackageId>
     </PropertyGroup>
     <ItemGroup>
         <Content Include="GameDirectory.targets"/>
@@ -26,7 +26,8 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.RenderPipelines.HighDefinition.Runtime.dll" Publicize="true"/>
-
+<!--        <Reference Include="..\Dependencies\Assembly-CSharp.pdll" Publicize="true"/>-->
+        
         <!-- clean referencing -->
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.dll" Publicize="false"/>
@@ -37,7 +38,8 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AudioModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AnimationModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
-        <Reference Include="..\Dependencies/AsyncLoggers.dll" Publicize="false"/>
+        <Reference Include="..\Dependencies\AsyncLoggers.dll" Publicize="false"/>
+        <Reference Include="..\Dependencies\LethalConfig.dll" Publicize="false"/>
     </ItemGroup>
     <Import Project="PostBuildEvents.targets"/>
     <!-- Embedded Debug -->

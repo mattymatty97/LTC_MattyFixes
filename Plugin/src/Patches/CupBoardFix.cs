@@ -1,8 +1,7 @@
 ﻿using System;
+using System.Linq;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.Patches.Utility;
-using Unity.Netcode;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -11,39 +10,47 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class CupBoardFix
     {
-        
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
-        private static void ObjectLoad(NetworkBehaviour __instance)
+
+        private static UnlockableItem _storageCabinet = null;
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.SyncShipUnlockablesClientRpc))]
+        private static void AfterCupboardSync(StartOfRound __instance)
         {
-            if (__instance is GrabbableObject grabbable)
+            _storageCabinet ??= __instance.unlockablesList.unlockables
+                .Find(u => u.unlockableName == "StorageCloset");
+            
+            if (_storageCabinet.inStorage) 
+                return;
+            
+            var grabbables = Object.FindObjectsOfType<GrabbableObject>();
+            foreach (var grabbable in grabbables.Where(g => g.isInShipRoom))
             {
-                if (!MattyFixes.PluginConfig.CupBoard.Enabled.Value)
-                    return;
-
-                if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
-                    return;
-
-                if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
-                    return;
-                
-                if (StartOfRound.Instance.localPlayerController != null && !StartOfRound.Instance.localPlayerController.justConnected)
-                    GrabbableObjectUtility.AppendToHolder(grabbable, nameof(CupBoardFix), (int)GrabbableObjectUtility.DelayValues.CupBoard, UpdateCallback);
-                else if(grabbable.IsServer)
-                    GrabbableObjectUtility.AppendToHolder(grabbable, nameof(CupBoardFix), (int)GrabbableObjectUtility.DelayValues.CupBoardServer, UpdateCallback);
-                else
-                    GrabbableObjectUtility.AppendToHolder(grabbable, nameof(CupBoardFix), (int)GrabbableObjectUtility.DelayValues.CupBoardClient, UpdateCallback);
+                ShelfCheck(grabbable);
             }
         }
+        
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
+        private static void OnServerSpawn(GrabbableObject __instance)
+        {
+            _storageCabinet ??= StartOfRound.Instance.unlockablesList.unlockables
+                .Find(u => u.unlockableName == "StorageCloset");
 
-        private static void UpdateCallback(GrabbableObject grabbable, GrabbableObjectUtility.UpdateHolder updateHolder)
+            if (!__instance.IsServer || !_storageCabinet.inStorage) 
+                return;
+            
+            ShelfCheck(__instance);
+        }
+        
+        private static void ShelfCheck(GrabbableObject grabbable)
         {
             MattyFixes.Log.LogDebug(
                 $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard Triggered!");
             var tolerance = MattyFixes.PluginConfig.CupBoard.Tolerance.Value;
             try
             {
-                var pos = updateHolder.OriginalPos + Vector3.down * Math.Min(0, grabbable.itemProperties.verticalOffset);
+                var pos = grabbable.transform.position;
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 
@@ -84,7 +91,7 @@ namespace MattyFixes.Patches
                 }
                 
                 var transform = grabbable.transform;
-                if (found != null && closest.HasValue)
+                if (found != null)
                 {
                     Vector3 newPos;
                     if (MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
@@ -101,49 +108,11 @@ namespace MattyFixes.Patches
                     transform.position = newPos;
                     grabbable.targetFloorPosition = transform.localPosition;
                 }
-                else
-                {
-                    //check if we're above the closet
-                    var hitPoint = collider.bounds.ClosestPoint(pos);
-                    var xDelta = hitPoint.x - pos.x;
-                    var zDelta = hitPoint.z - pos.z;
-                    var yDelta = pos.y - hitPoint.y;
-                    if (Math.Abs(xDelta) < tolerance && Math.Abs(zDelta) < tolerance && yDelta > 0)
-                    {
-                        if (AsyncLoggerProxy.Enabled)
-                            AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",
-                            $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Was above the Cupboard!");
-
-                        transform.position = pos;
-                        grabbable.targetFloorPosition = transform.localPosition;
-
-                        if (Math.Abs(xDelta) > 0)
-                            grabbable.transform.position += new Vector3(xDelta, 0, 0);
-                        if (Math.Abs(zDelta) > 0)
-                            grabbable.transform.position += new Vector3(0, 0, zDelta);
-                    }
-                }
             }
             catch (Exception ex)
             {
                 MattyFixes.Log.LogError($"Exception while checking for Cupboard {ex}");
             }
-        }
-        
-        [HarmonyPrefix]
-        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
-        private static void CozyImprovementsFix(StartOfRound __instance)
-        {
-            if (AsyncLoggerProxy.Enabled)
-                AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "LoadUnlockables", $"Called");
-            
-            var closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
-            if (closet == null)
-                return;
-
-            foreach (var light in closet.GetComponentsInChildren<Light>())
-                if (light.gameObject.transform.name == "StorageClosetLight")
-                    Object.Destroy(light.gameObject);
         }
     }
 }

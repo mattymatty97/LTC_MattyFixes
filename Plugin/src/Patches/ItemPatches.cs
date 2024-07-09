@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using BepInEx.Configuration;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using Unity.Netcode;
@@ -22,191 +23,191 @@ namespace MattyFixes.Patches
         private static readonly Dictionary<string, List<float>> ItemRotations = new()
         {
             {
-                "Flashlight[6]",
+                "Flashlight",
                 [90f, 0f, 90f]
             },
             {
-                "Jetpack[13]",
+                "Jetpack",
                 [45f, 0f, 0f]
             },
             {
-                "Key[14]",
+                "Key",
                 [180f, 0f, 90f]
             },
             {
-                "Apparatus[3]",
+                "Apparatus",
                 [0f, 0f, 135f]
             },
             {
-                "Pro-flashlight[1]",
+                "Pro-flashlight",
                 [90f, 0f, 90f]
             },
             {
-                "Shovel[7]",
+                "Shovel",
                 [0f, -90f, -90f]
             },
             {
-                "Stun grenade[12]",
+                "Stun grenade",
                 [0f, 0f, 90f]
             },
             {
-                "Extension ladder[17]",
+                "Extension ladder",
                 [0f, 0f, 0f]
             },
             {
-                "TZP-Inhalant[15]",
+                "TZP-Inhalant",
                 [0f, 0f, -90f]
             },
             {
-                "Zap gun[5]",
+                "Zap gun",
                 [95f, 0f, 90f]
             },
             {
-                "Magic 7 ball[0]",
+                "Magic 7 ball",
                 [0f, 0f, 0f]
             },
             {
-                "Airhorn[0]",
+                "Airhorn",
                 [0f, 90f, 270f]
             },
             {
-                "Big bolt[0]",
+                "Big bolt",
                 [-21f, 0f, 0f]
             },
             {
-                "Bottles[0]",
+                "Bottles",
                 [-90f, 0f, 0f]
             },
             {
-                "Brush[0]",
+                "Brush",
                 [90f, 0f, 0f]
             },
             {
-                "Candy[0]",
+                "Candy",
                 [90f, 0f, 0f]
             },
             {
-                "Chemical jug[0]",
+                "Chemical jug",
                 [-90f, 0f, 0f]
             },
             {
-                "Clown horn[0]",
+                "Clown horn",
                 [-90f, 0f, 0f]
             },
             {
-                "Large axle[0]",
+                "Large axle",
                 [7f, 0f, 0f]
             },
             {
-                "Teeth[0]",
+                "Teeth",
                 [-90f, 0f, 0f]
             },
             {
-                "V-type engine[0]",
+                "V-type engine",
                 [-90f, 0f, 0f]
             },
             {
-                "Plastic fish[0]",
+                "Plastic fish",
                 [-45f, 0f, 90f]
             },
             {
-                "Laser pointer[1]",
+                "Laser pointer",
                 [0f, 0f, 0f]
             },
             {
-                "Gold bar[0]",
+                "Gold bar",
                 [-90f, 0f, -90f]
             },
             {
-                "Magnifying glass[0]",
+                "Magnifying glass",
                 [0f, 90f, -90f]
             },
             {
-                "Cookie mold pan[0]",
+                "Cookie mold pan",
                 [-90f, 0f, 90f]
             },
             {
-                "Mug[0]",
+                "Mug",
                 [-90f, 0f, 0f]
             },
             {
-                "Perfume bottle[0]",
+                "Perfume bottle",
                 [-90f, 0f, 0f]
             },
             {
-                "Old phone[0]",
+                "Old phone",
                 [-90f, 0f, -90f]
             },
             {
-                "Jar of pickles[0]",
+                "Jar of pickles",
                 [-90f, 0f, 0f]
             },
             {
-                "Pill bottle[0]",
+                "Pill bottle",
                 [-90f, 0f, 0f]
             },
             {
-                "Ring[0]",
+                "Ring",
                 [0f, -90f, 90f]
             },
             {
-                "Toy robot[0]",
+                "Toy robot",
                 [-90f, 0f, 0f]
             },
             {
-                "Rubber Ducky[0]",
+                "Rubber Ducky",
                 [-90f, 0f, -90f]
             },
             {
-                "Steering wheel[0]",
+                "Steering wheel",
                 [-90f, 0f, 0f]
             },
             {
-                "Toothpaste[0]",
+                "Toothpaste",
                 [-90f, 0f, 0f]
             },
             {
-                "Hive[1531]",
+                "Hive",
                 [7f, 0f, 0f]
             },
             {
-                "Radar-booster[16]",
+                "Radar-booster",
                 [0f, 0f, 0f]
             },
             {
-                "Shotgun[17]",
+                "Shotgun",
                 [180f, 0f, -5f]
             },
             {
-                "Ammo[17]",
+                "Ammo",
                 [0f, 0f, 90f]
             },
             {
-                "Spray paint[18]",
+                "Spray paint",
                 [0f, 0f, 195f]
             },
             {
-                "Homemade flashbang[0]",
+                "Homemade flashbang",
                 [0f, 0f, 90f]
             },
             {
-                "Gift[152767]",
+                "Gift",
                 [-90f, 0f, 0f]
             },
             {
-                "Flask[0]",
+                "Flask",
                 [25f, 0f, 0f]
             },
             {
-                "Tragedy[0]",
+                "Tragedy",
                 [-90f, 0f, 0f]
             },
             {
-                "Comedy[0]",
+                "Comedy",
                 [-90f, 0f, 0f]
             },
             {
-                "Whoopie cushion[0]",
+                "Whoopie cushion",
                 [-90f, 0f, 0f]
             }
         };
@@ -257,6 +258,34 @@ namespace MattyFixes.Patches
 
         private static readonly HashSet<Item> BrokenMeshItems = [];
 
+        private static void UpdateItemRotation(Item item)
+        {
+            if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var configEntry))
+            {
+                var ogRotation = item.restingRotation;
+                configEntry = MattyFixes.INSTANCE.Config.Bind("ItemClipping.Rotations", 
+                    item.itemName, 
+                    $"{ogRotation.x},{ogRotation.y},{ogRotation.z}", 
+                    "Comma separated Vector3 rotation");
+                MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = configEntry;
+                configEntry.SettingChanged += (sender, args) =>
+                {
+                    UpdateItemRotation(item);
+                };
+                if (LethalConfigProxy.Enabled)
+                    LethalConfigProxy.AddConfig(configEntry, false);
+            }
+
+            var rotation = configEntry.Value.Split(",");
+            
+            if (rotation.Length == 3)
+                item.restingRotation.Set(
+                    float.Parse(rotation[0]),
+                    float.Parse(rotation[1]),
+                    float.Parse(rotation[2]));
+
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
         [HarmonyPriority(0)]
@@ -264,7 +293,8 @@ namespace MattyFixes.Patches
         {
             if (AsyncLoggerProxy.Enabled)
                 AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Post");
-            
+
+          
             if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
             {
                 foreach (var itemType in __instance.allItemsList.itemsList)
@@ -299,21 +329,12 @@ namespace MattyFixes.Patches
                     if (itemType.spawnPrefab == null)
                         continue;
 
-                    if (!ItemRotations.TryGetValue($"{itemType.itemName}[{itemType.itemId}]", out List<float> value))
-                        value = [];
-
-                    if (value.Count > 1)
-                    {
+                    if (ItemRotations.TryGetValue(itemType.itemName, out List<float> value))
                         itemType.restingRotation.Set(value[0], value[1], value[2]);
-                        MattyFixes.Log.LogInfo(
-                            $"{itemType.itemName} modified rotation is now {itemType.restingRotation}");
-                    }
-                    else
-                    {
-                        MattyFixes.Log.LogInfo(
-                            $"{itemType.itemName} original rotation is now {itemType.restingRotation}");
-                    }
+                    
+                    UpdateItemRotation(itemType);
                 }
+                MattyFixes.PluginConfig.RemoveOrphans();
             }
             catch (Exception ex)
             {
@@ -329,22 +350,28 @@ namespace MattyFixes.Patches
         [HarmonyPriority(20)]
         private static void SpawnPostfix(NetworkBehaviour __instance)
         {
-            if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
-                return;
 
             if (!(__instance is GrabbableObject grabbable))
                 return;
-
-            if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
-                return;
-
+            
             if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
                 return;
-
+            
             try
             {
-                grabbable.isInElevator = true;
-                grabbable.isInShipRoom = true;
+
+                if (MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
+                {
+                    grabbable.isInElevator = true;
+                    grabbable.isInShipRoom = true;
+                }
+                
+                
+                if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
+                    return;
+                
+                if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
+                    return;
                 
                 grabbable.transform.rotation = Quaternion.Euler(
                     grabbable.itemProperties.restingRotation.x,
@@ -366,25 +393,9 @@ namespace MattyFixes.Patches
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
-
-            if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
-                return;
-
+            
             if (ComputedItems.Contains(__instance.itemProperties))
                 return;
-
-            Dictionary<string, float> manualOffsets = new Dictionary<string, float>();
-            var offsetString = MattyFixes.PluginConfig.ItemClipping.ManualOffsets.Value;
-            foreach (var entry in offsetString.Split(','))
-            {
-                var parts = entry.Split(':');
-                if (parts.Length <= 1)
-                    continue;
-
-                var name = parts[0];
-                if (float.TryParse(parts[1], out var value))
-                    manualOffsets.Add(name, value);
-            }
 
             var itemType = __instance.itemProperties;
             var go = __instance.gameObject;
@@ -414,7 +425,7 @@ namespace MattyFixes.Patches
             Physics.SyncTransforms();
             try
             {
-                if (!manualOffsets.TryGetValue(
+                if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(
                         itemType.itemName, out var offset))
                 {
                     Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.UseCollider.Value)
@@ -456,24 +467,17 @@ namespace MattyFixes.Patches
             ComputedItems.Add(__instance.itemProperties);
         }
 
-        internal static Bounds? CalculateColliderBounds(GameObject go)
+        private static Bounds? CalculateColliderBounds(GameObject go)
         {
             var grabbable = go.GetComponent<GrabbableObject>();
             if (!ReadableObjects.Contains(grabbable.itemProperties))
                 return CalculateRendererBounds(go);
 
-            var o_renderer = go.GetComponent<Renderer>();
+            var oRenderer = go.GetComponent<Renderer>();
 
-            Renderer[] renderers = o_renderer != null ? [o_renderer] : go.GetComponentsInChildren<Renderer>();
+            Renderer[] renderers = oRenderer != null ? [oRenderer] : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
-            
-            
-            
-            
-            
-            
-            
 
             foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
             {
@@ -535,10 +539,10 @@ namespace MattyFixes.Patches
             return bounds;
         }
 
-        internal static Bounds? CalculateRendererBounds(GameObject go)
+        private static Bounds? CalculateRendererBounds(GameObject go)
         {
-            var o_renderer = go.GetComponent<Renderer>();
-            Renderer[] renderers = o_renderer != null ? [o_renderer] : go.GetComponentsInChildren<Renderer>();
+            var oRenderer = go.GetComponent<Renderer>();
+            Renderer[] renderers = oRenderer != null ? [oRenderer] : go.GetComponentsInChildren<Renderer>();
 
             Bounds? bounds = null;
 
@@ -570,12 +574,11 @@ namespace MattyFixes.Patches
             return bounds;
         }
 
-        internal static void MakeMeshReadable(GameObject go, bool updateOriginal = false,
+        private static void MakeMeshReadable(GameObject go, bool updateOriginal = false,
             Dictionary<MeshFilter, Mesh> reverseMap = null)
         {
-            MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
-            filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
+            var filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
 
             foreach (var meshFilter in filters)
             {
@@ -594,11 +597,10 @@ namespace MattyFixes.Patches
             }
         }
 
-        internal static void ApplyMeshMap(GameObject go, Dictionary<MeshFilter, Mesh> meshMap)
+        private static void ApplyMeshMap(GameObject go, Dictionary<MeshFilter, Mesh> meshMap)
         {
-            MeshFilter[] filters;
             var renderer = go.GetComponent<MeshFilter>();
-            filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
+            var filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
 
             foreach (var meshFilter in filters)
             {
@@ -611,7 +613,7 @@ namespace MattyFixes.Patches
             }
         }
 
-        public static Mesh MakeReadableMeshCopy(Mesh nonReadableMesh)
+        private static Mesh MakeReadableMeshCopy(Mesh nonReadableMesh)
         {
             Mesh meshCopy = new Mesh();
             meshCopy.indexFormat = nonReadableMesh.indexFormat;
@@ -659,7 +661,7 @@ namespace MattyFixes.Patches
         }
 
 
-        private static readonly Dictionary<MeshFilter, Mesh> reverseMeshMap = new Dictionary<MeshFilter, Mesh>();
+        private static readonly Dictionary<MeshFilter, Mesh> ReverseMeshMap = new Dictionary<MeshFilter, Mesh>();
 
         [HarmonyPatch]
         internal class StormyWeatherPatch
@@ -690,7 +692,7 @@ namespace MattyFixes.Patches
                         {
                             try
                             {
-                                MakeMeshReadable(warningObject.gameObject, true, reverseMeshMap);
+                                MakeMeshReadable(warningObject.gameObject, true, ReverseMeshMap);
                             }
                             catch (Exception ex)
                             {
@@ -716,9 +718,9 @@ namespace MattyFixes.Patches
                     return;
 
                 if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
-                    ApplyMeshMap(__instance.setStaticToObject, reverseMeshMap);
+                    ApplyMeshMap(__instance.setStaticToObject, ReverseMeshMap);
 
-                reverseMeshMap.Clear();
+                ReverseMeshMap.Clear();
             }
 
             [HarmonyPostfix]

@@ -19,8 +19,9 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.0.21";
+        public const string VERSION = "1.1.0";
 
+        internal static MattyFixes INSTANCE { get; private set;}
         internal static ManualLogSource Log;
 
         private static readonly string[] IncompatibleGUIDs = new string[]
@@ -31,6 +32,7 @@ namespace MattyFixes
             
         private void Awake()
         {
+            INSTANCE = this;
             Log = Logger;
             try
             {
@@ -56,7 +58,7 @@ namespace MattyFixes
 
                     Log.LogInfo("Initializing Configs");
 
-                    PluginConfig.Init(this);
+                    PluginConfig.Init();
                     
                     Log.LogInfo("Patching Methods");
                     var harmony = new Harmony(GUID);
@@ -76,9 +78,9 @@ namespace MattyFixes
         
         internal static class PluginConfig
         {
-            internal static void Init(BaseUnityPlugin plugin)
+            internal static void Init()
             {
-                var config = plugin.Config;
+                var config = INSTANCE.Config;;
                 //Initialize Configs
                 //ReadableMeshes
                 ReadableMeshes.Enabled = config.Bind("ReadableMeshes","enabled",true
@@ -125,12 +127,52 @@ namespace MattyFixes
                 LightingParticle.Enabled = config.Bind("AlternateLightningParticles","enabled",false
                     ,"use sphere shape for lightning particles ");
 
+                
+                var offsetString = ItemClipping.ManualOffsets.Value;
+                foreach (var entry in offsetString.Split(','))
+                {
+                    var parts = entry.Split(':');
+                    if (parts.Length <= 1)
+                        continue;
+
+                    var name = parts[0];
+                    if (float.TryParse(parts[1], out var value))
+                        ItemClipping.ManualOffsetMap.Add(name, value);
+                }
+                
+
+                if (LethalConfigProxy.Enabled)
+                {
+                    LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
+                    LethalConfigProxy.AddConfig(ReadableMeshes.UseCollider, true);
+                    LethalConfigProxy.AddConfig(ReadableMeshes.FixLignting, false);
+                    LethalConfigProxy.AddConfig(NameFixes.Enabled, false);
+                    LethalConfigProxy.AddConfig(BadgeFixes.Enabled, true);
+                    LethalConfigProxy.AddConfig(CupBoard.Enabled, false);
+                    LethalConfigProxy.AddConfig(CupBoard.Tolerance, false);
+                    LethalConfigProxy.AddConfig(CupBoard.Shift, false);
+                    LethalConfigProxy.AddConfig(Radar.Enabled, false);
+                    LethalConfigProxy.AddConfig(Radar.RemoveDeleted, false);
+                    LethalConfigProxy.AddConfig(Radar.RemoveOnShip, false);
+                    LethalConfigProxy.AddConfig(ItemClipping.Enabled, false);
+                    LethalConfigProxy.AddConfig(ItemClipping.RotateOnSpawn, false);
+                    LethalConfigProxy.AddConfig(ItemClipping.VerticalOffset, false);
+                    LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
+                    LethalConfigProxy.AddConfig(OutOfBounds.Enabled, false);
+                    LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
+                }
+                
+            }
+
+            internal static void RemoveOrphans()
+            {
+                var config = INSTANCE.Config;
                 //remove unused options
                 PropertyInfo orphanedEntriesProp = config.GetType().GetProperty("OrphanedEntries", BindingFlags.NonPublic | BindingFlags.Instance);
 
                 var orphanedEntries = (Dictionary<ConfigDefinition, string>)orphanedEntriesProp!.GetValue(config, null);
-
-                orphanedEntries.Clear(); // Clear orphaned entries (Unbinded/Abandoned entries)
+                
+                orphanedEntries.Clear();
                 config.Save(); // Save the config file
             }
             
@@ -170,6 +212,8 @@ namespace MattyFixes
                 internal static ConfigEntry<bool> RotateOnSpawn;
                 internal static ConfigEntry<float> VerticalOffset;
                 internal static ConfigEntry<string> ManualOffsets;
+                internal static Dictionary<string, float> ManualOffsetMap = new();
+                internal static readonly Dictionary<Item, ConfigEntry<string>> ItemRotations = new();
             }
             
             internal static class OutOfBounds
