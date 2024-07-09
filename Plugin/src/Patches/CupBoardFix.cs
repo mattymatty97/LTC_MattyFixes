@@ -18,7 +18,7 @@ namespace MattyFixes.Patches
         private static void AfterCupboardSync(StartOfRound __instance)
         {
             _storageCabinet ??= __instance.unlockablesList.unlockables
-                .Find(u => u.unlockableName == "StorageCloset");
+                .Find(u => u.unlockableName == "Cupboard");
             
             if (_storageCabinet.inStorage) 
                 return;
@@ -35,7 +35,7 @@ namespace MattyFixes.Patches
         private static void OnServerSpawn(GrabbableObject __instance)
         {
             _storageCabinet ??= StartOfRound.Instance.unlockablesList.unlockables
-                .Find(u => u.unlockableName == "StorageCloset");
+                .Find(u => u.unlockableName == "Cupboard");
 
             if (!__instance.IsServer || !_storageCabinet.inStorage) 
                 return;

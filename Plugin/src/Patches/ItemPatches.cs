@@ -264,7 +264,13 @@ namespace MattyFixes.Patches
             {
                 var ogRotation = item.restingRotation;
                 configEntry = MattyFixes.INSTANCE.Config.Bind("ItemClipping.Rotations", 
-                    item.itemName, 
+                    item.itemName
+                        .Replace('\n',' ')
+                        .Replace('\t', ' ')
+                        .Replace("\\" , "")
+                        .Replace("\'","")
+                        .Replace("[","")
+                        .Replace("]",""), 
                     $"{ogRotation.x},{ogRotation.y},{ogRotation.z}", 
                     "Comma separated Vector3 rotation");
                 MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = configEntry;
