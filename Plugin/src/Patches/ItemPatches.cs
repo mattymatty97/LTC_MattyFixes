@@ -1,18 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BepInEx.Configuration;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace MattyFixes.Patches
 {
     [HarmonyPatch]
-    internal class ItemPatches
+    internal static class ItemPatches
     {
         private static readonly HashSet<Item> ComputedItems = [];
 
@@ -367,6 +365,78 @@ namespace MattyFixes.Patches
             }
         }
 
+        private static List<Vector3> GetChildVertexes(Transform target)
+        {
+            List<Vector3> vertices = [];
+            var renderers = target.GetComponents<Renderer>();
+            
+            //TODO: remove log
+            MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name}");
+
+            foreach (var renderer in renderers.Where(r => r.enabled))
+            {
+                List<Vector3> rVertices = [];
+                
+                //TODO: remove log
+                MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name} renderer {renderer.GetType().Name}");
+                
+                switch (renderer)
+                {
+                    case SkinnedMeshRenderer skinnedMeshRenderer:
+                    {
+                        var mesh = skinnedMeshRenderer.sharedMesh;
+                        if (mesh.isReadable)
+                            mesh.GetVertices(rVertices);
+                        else
+                            rVertices = GetNonReadableVertices(mesh);
+                        break;
+                    }
+                    case MeshRenderer:
+                    {
+                        var filter = renderer.GetComponent<MeshFilter>();
+                        var mesh = filter.sharedMesh;
+                        if (mesh.isReadable)
+                            mesh.GetVertices(rVertices);
+                        else
+                            rVertices = GetNonReadableVertices(mesh);
+                        break;
+                    }
+                    case ParticleSystemRenderer:
+                        break;
+                    default:
+                    {
+                        var bounds = renderer.bounds;
+                        rVertices.Add(bounds.min);
+                        rVertices.Add(new Vector3(bounds.min.x,bounds.min.y, bounds.max.z));
+                        rVertices.Add(new Vector3(bounds.min.x,bounds.max.y, bounds.max.z));
+                        rVertices.Add(new Vector3(bounds.max.x,bounds.min.y, bounds.max.z));
+                        rVertices.Add(new Vector3(bounds.max.x,bounds.min.y, bounds.min.z));
+                        rVertices.Add(new Vector3(bounds.max.x,bounds.max.y, bounds.min.z));
+                        rVertices.Add(bounds.max);
+                        break;
+                    }
+                }
+
+                float? rMin = rVertices.Count > 0 ? rVertices.Min(v => v.y) : null;
+                
+                //TODO: remove log
+                MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name} renderer {renderer.GetType().Name} min {rMin}");
+
+                vertices.AddRange(rVertices);
+            }
+
+            foreach (Transform child in target.transform)
+            {
+                vertices.AddRange(GetChildVertexes(child));
+            }
+
+            var tmp = vertices.Select(target.TransformVector).ToList();
+            float? min = tmp.Count > 0 ? tmp.Min(v => v.y) : null;
+            MattyFixes.Log.LogDebug($"Processing {target.name} min {min}");
+            
+            return tmp;
+        }
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
         [HarmonyPriority(9999)]
@@ -375,22 +445,15 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
             
-            if (ComputedItems.Contains(__instance.itemProperties))
-                return;
-
             var itemType = __instance.itemProperties;
-            var go = __instance.gameObject;
-            var pos = go.transform.position;
-            var oldRot = go.transform.rotation;
-
-            go.transform.rotation = Quaternion.Euler(itemType.restingRotation);
-
+            
+            if (ComputedItems.Contains(itemType))
+                return;
+            
             try
             {
                 if (itemType.spawnPrefab != null)
                 {
-                    itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
-
                     MakeMeshReadable(itemType.spawnPrefab);
 
                     ReadableObjects.Add(itemType);
@@ -403,122 +466,39 @@ namespace MattyFixes.Patches
                 MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
             }
 
-            Physics.SyncTransforms();
             try
             {
-                if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(
-                        itemType.itemName, out var offset))
+                if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
+                        out var offset))
                 {
-                    Bounds? bounds = (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.UseCollider.Value)
-                        ? CalculateColliderBounds(go)
-                        : CalculateRendererBounds(go);
 
-                    if (bounds.HasValue)
-                    {
-                        
-                        itemType.verticalOffset = (pos.y - bounds.Value.min.y) +
-                                                  MattyFixes.PluginConfig.ItemClipping.VerticalOffset
-                                                      .Value;
-                        
-                        MattyFixes.Log.LogInfo(
-                            $"{itemType.itemName} computed vertical offset is now {itemType.verticalOffset}");
-                    }
-                    else
-                    {
-                        MattyFixes.Log.LogInfo(
-                            $"{itemType.itemName} original vertical offset is {itemType.verticalOffset}");
-                    }
-                }
-                else
-                {
-                    itemType.verticalOffset = offset +
-                                              MattyFixes.PluginConfig.ItemClipping.VerticalOffset
-                                                  .Value;
+                    var targetObject = itemType.spawnPrefab;
 
-                    MattyFixes.Log.LogInfo(
-                        $"{itemType.itemName} manual vertical offset is now {itemType.verticalOffset}");
+                    if (targetObject == null)
+                        targetObject = __instance.gameObject;
+
+                    var memRotation = targetObject.transform.rotation;
+
+                    targetObject.transform.rotation = Quaternion.Euler(itemType.restingRotation);
+
+                    var vertices = GetChildVertexes(targetObject.transform);
+
+                    targetObject.transform.rotation = memRotation;
+                    offset = vertices.Count > 0 ? vertices.Min(v => v.y) : itemType.verticalOffset;
                 }
+
+                itemType.verticalOffset = offset + MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+
+                MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError($"{itemType.itemName} crashed! {ex}");
+                MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
             }
 
-            go.transform.rotation = oldRot;
             ComputedItems.Add(__instance.itemProperties);
         }
 
-        private static Bounds? CalculateColliderBounds(GameObject go)
-        {
-            var grabbable = go.GetComponent<GrabbableObject>();
-            if (!ReadableObjects.Contains(grabbable.itemProperties))
-                return CalculateRendererBounds(go);
-
-            var oRenderer = go.GetComponent<Renderer>();
-
-            Renderer[] renderers = oRenderer != null ? [oRenderer] : go.GetComponentsInChildren<Renderer>();
-
-            Bounds? bounds = null;
-
-            foreach (var renderer in renderers.Where(r => r.gameObject.activeSelf && r.enabled))
-            {
-                if (renderer is MeshRenderer)
-                {
-                    var meshFilter = renderer.GetComponent<MeshFilter>();
-                    var oldMesh = meshFilter.sharedMesh;
-                    if (!ReadableMeshMap.TryGetValue(oldMesh, out var readableMesh))
-                        readableMesh = meshFilter.sharedMesh;
-
-                    meshFilter.sharedMesh = readableMesh;
-
-                    var collider = meshFilter.gameObject.AddComponent<MeshCollider>();
-                    collider.convex = true;
-
-                    var cBounds = collider.bounds;
-                    
-                    if (cBounds.size == Vector3.zero)
-                        continue;
-                    
-                    if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}),{renderer.gameObject.name} cBounds was {cBounds}");
-
-                    if (bounds.HasValue)
-                    {
-                        var b = bounds.Value;
-                        b.Encapsulate(cBounds);
-                        bounds = b;
-                    }
-                    else
-                        bounds = cBounds;
-
-                    Object.Destroy(collider);
-                    meshFilter.sharedMesh = oldMesh;
-                }
-                else if (!(renderer is ParticleSystemRenderer))
-                {
-                    var rBounds = renderer.bounds;
-                    
-                    if (rBounds.size == Vector3.zero)
-                        continue;
-                                        
-                    if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}){renderer.gameObject.name} rBounds was {rBounds}");
-
-                    if (bounds.HasValue)                    {
-                        var b = bounds.Value;
-                        b.Encapsulate(rBounds);
-                        bounds = b;
-                    }
-                    else
-                        bounds = rBounds;
-                }          
-                
-                if (AsyncLoggerProxy.Enabled)
-                    AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}) Bounds is {bounds}");
-            }
-
-            return bounds;
-        }
 
         private static Bounds? CalculateRendererBounds(GameObject go)
         {
@@ -641,7 +621,29 @@ namespace MattyFixes.Patches
             return meshCopy;
         }
 
+        private static List<Vector3> GetNonReadableVertices(Mesh nonReadableMesh)
+        {
+            Mesh meshCopy = new Mesh();
+            meshCopy.indexFormat = nonReadableMesh.indexFormat;
 
+            // Handle vertices
+            nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
+            if (nonReadableMesh.vertexBufferCount > 0)
+            {
+                GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+                int totalSize = verticesBuffer.stride * verticesBuffer.count;
+                byte[] data = new byte[totalSize];
+                verticesBuffer.GetData(data);
+                meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
+                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+                verticesBuffer.Release();
+            }
+
+            var vertices = new List<Vector3>();
+            meshCopy.GetVertices(vertices);
+            return vertices;
+        }
+        
         private static readonly Dictionary<MeshFilter, Mesh> ReverseMeshMap = new Dictionary<MeshFilter, Mesh>();
 
         [HarmonyPatch]

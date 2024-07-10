@@ -115,7 +115,7 @@ namespace MattyFixes
                     ,"fix rotation and height of various items when on the Ground");
                 ItemClipping.RotateOnSpawn = config.Bind("ItemClipping","rotate_on_spawn",true
                     ,"fix rotation of newly spawned items");
-                ItemClipping.VerticalOffset = config.Bind("ItemClipping","vertical_offset",0f
+                ItemClipping.VerticalOffset = config.Bind("ItemClipping","vertical_offset",0.01f
                     ,"additional y offset for items on the ground");
                 ItemClipping.ManualOffsets = config.Bind("ItemClipping","manual_offsets","Comedy:0.085,Tragedy:0.085"
                     ,"y offset for items on the ground");

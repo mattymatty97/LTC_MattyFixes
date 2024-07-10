@@ -93,7 +93,7 @@ namespace MattyFixes.Patches
                 if (!_closet.HasValue)
                 {
                     ClosetHolder holder;
-                    _closet = holder = new ClosetHolder();
+                    holder = new ClosetHolder();
                     holder.Closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
                     holder.Collider = holder.Closet.GetComponent<Collider>();
                     holder.Shelves = holder.Closet.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s => new ShelfHolder()
@@ -101,6 +101,7 @@ namespace MattyFixes.Patches
                         Shelf = s,
                         Collider = s.GetComponent<Collider>()
                     }).ToList();
+                    _closet = holder;
                 }
                 
                 var distance = float.MaxValue;
