@@ -23,7 +23,7 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="true"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.RenderPipelines.HighDefinition.Runtime.dll" Publicize="true"/>
-<!--        <Reference Include="..\Dependencies\Assembly-CSharp.pdll" Publicize="true"/>-->
+        <!--<Reference Include="..\Dependencies\Assembly-CSharp.pdll" Publicize="true"/>-->
         
         <!-- clean referencing -->
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll" Publicize="false"/>

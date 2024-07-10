@@ -15,11 +15,12 @@ namespace MattyFixes
 {
     [BepInPlugin(GUID, NAME, VERSION)]
     [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("ainavt.lc.lethalconfig", BepInDependency.DependencyFlags.SoftDependency)]
     internal class MattyFixes : BaseUnityPlugin
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.1.0";
+        public const string VERSION = "1.1.2";
 
         internal static MattyFixes INSTANCE { get; private set;}
         internal static ManualLogSource Log;

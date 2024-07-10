@@ -263,7 +263,7 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var configEntry))
             {
                 var ogRotation = item.restingRotation;
-                configEntry = MattyFixes.INSTANCE.Config.Bind("ItemClipping.Rotations", 
+                configEntry = MattyFixes.INSTANCE.Config.Bind($"ItemClipping.Rotations", 
                     item.itemName
                         .Replace('\n',' ')
                         .Replace('\t', ' ')
@@ -299,32 +299,7 @@ namespace MattyFixes.Patches
         {
             if (AsyncLoggerProxy.Enabled)
                 AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Post");
-
-          
-            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
-            {
-                foreach (var itemType in __instance.allItemsList.itemsList)
-                {
-                    try
-                    {
-                        if (itemType.spawnPrefab is null)
-                            continue;
-
-                        itemType.spawnPrefab.transform.rotation = Quaternion.Euler(itemType.restingRotation);
-
-                        MakeMeshReadable(itemType.spawnPrefab);
-
-                        ReadableObjects.Add(itemType);
-                    }
-                    catch (Exception ex)
-                    {
-                        MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
-                        BrokenMeshItems.Add(itemType);
-                        MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
-                    }
-                }
-            }
-
+            
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
                 return;
 

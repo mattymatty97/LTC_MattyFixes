@@ -9,6 +9,7 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class OutOfBoundsItemsFix
     {
+        
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
         internal class ObjectCreationPatch
         {
@@ -19,14 +20,18 @@ namespace MattyFixes.Patches
                 if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                     return;
                 
-                if (__instance.IsServer || StartOfRound.Instance.localPlayerController != null)
-                {
-                    __instance.transform.position -= Vector3.up * __instance.itemProperties.verticalOffset;
-                }
-
-                if (StartOfRound.Instance.localPlayerController == null)
+                if (!GameNetworkManager.Instance.gameHasStarted)
                 {
                     __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
+                }
+                
+                if (__instance.IsServer || GameNetworkManager.Instance.gameHasStarted)
+                {
+                    if (__instance.scrapPersistedThroughRounds)
+                        __instance.transform.localPosition += Vector3.down * __instance.itemProperties.verticalOffset;
+                    
+                    if (__instance.itemProperties.itemSpawnsOnGround)
+                        __instance.transform.localPosition += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
                 }
             
             }

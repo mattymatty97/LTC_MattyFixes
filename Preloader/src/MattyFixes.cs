@@ -5,6 +5,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using Mono.Cecil;
+using FieldAttributes = Mono.Cecil.FieldAttributes;
 
 namespace MattyFixes.Preloader
 {
@@ -18,6 +19,13 @@ namespace MattyFixes.Preloader
         
         public static void Patch(AssemblyDefinition assembly)
         {
+            var logHandler = (bool fail, string message) =>
+            {
+                if (fail)
+                    Log.LogWarning(message);
+                Log.LogInfo(message);
+            };
+            
             Log.LogWarning($"Patching {assembly.Name.Name}");
             if (assembly.Name.Name == "Assembly-CSharp")
             {
@@ -25,11 +33,12 @@ namespace MattyFixes.Preloader
                 {
                     if (type.FullName == "GrabbableObject")
                     {
-                        //type.Fields.Add(new FieldDefinition("AdditionalNetworking_isInitialized", FieldAttributes.Private, type.Module.ImportReference(typeof(bool))));
-                        //Log.LogInfo($"Adding field 'AdditionalNetworking_isInitialized' to {type.FullName}");
+                        type.AddField(FieldAttributes.Private, "MattyFixes_wasSaved",
+                            type.Module.ImportReference(typeof(bool)), logHandler);
                     }
                 }
             }
+            
             if (!PluginConfig.Enabled.Value) 
                 return;
             
@@ -42,6 +51,7 @@ namespace MattyFixes.Preloader
         public static void Initialize()
         {
             Log.LogInfo($"Prepatcher Started");
+            PluginConfig.Init();
         }
 
         // Cannot be renamed, method name is important
