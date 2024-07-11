@@ -449,21 +449,24 @@ namespace MattyFixes.Patches
             
             if (ComputedItems.Contains(itemType))
                 return;
-            
-            try
-            {
-                if (itemType.spawnPrefab != null)
-                {
-                    MakeMeshReadable(itemType.spawnPrefab);
 
-                    ReadableObjects.Add(itemType);
-                }
-            }
-            catch (Exception ex)
+            if (itemType.isConductiveMetal)
             {
-                MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
-                BrokenMeshItems.Add(itemType);
-                MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                try
+                {
+                    if (itemType.spawnPrefab != null)
+                    {
+                        MakeMeshReadable(itemType.spawnPrefab);
+
+                        ReadableObjects.Add(itemType);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                    BrokenMeshItems.Add(itemType);
+                    MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                }
             }
 
             try
