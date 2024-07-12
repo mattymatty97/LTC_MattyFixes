@@ -9,6 +9,19 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class OutOfBoundsItemsFix
     {
+
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
+        private static void CorrectlyPlaceAllUnlockables(StartOfRound __instance)
+        {
+            foreach (var placeableObject in Object.FindObjectsOfType<AutoParentToShip>())
+            {
+                placeableObject.MoveToOffset();
+            }
+            
+            Physics.SyncTransforms();
+        }
         
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
         internal class ObjectCreationPatch
@@ -16,6 +29,9 @@ namespace MattyFixes.Patches
             private static void Prefix(GrabbableObject __instance, out bool __state)
             {
                 __state = __instance.itemProperties.itemSpawnsOnGround;
+                
+                if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+                    return;
                 
                 if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                     return;
@@ -28,10 +44,10 @@ namespace MattyFixes.Patches
                 if (__instance.IsServer || GameNetworkManager.Instance.gameHasStarted)
                 {
                     if (__instance.scrapPersistedThroughRounds)
-                        __instance.transform.localPosition += Vector3.down * __instance.itemProperties.verticalOffset;
+                        __instance.transform.position -= Vector3.down * __instance.itemProperties.verticalOffset;
                     
                     if (__instance.itemProperties.itemSpawnsOnGround)
-                        __instance.transform.localPosition += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+                        __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
                 }
             
             }

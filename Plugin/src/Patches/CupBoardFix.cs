@@ -29,6 +29,23 @@ namespace MattyFixes.Patches
         private static UnlockableItem _storageCabinet = null;
         private static ClosetHolder? _closet = null;
 
+        private static void CheckCloset()
+        {
+            if (!_closet.HasValue)
+            {
+                ClosetHolder holder;
+                holder = new ClosetHolder();
+                holder.Closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
+                holder.Collider = holder.Closet.GetComponent<Collider>();
+                holder.Shelves = holder.Closet.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s => new ShelfHolder()
+                {
+                    Shelf = s,
+                    Collider = s.GetComponent<Collider>()
+                }).ToList();
+                _closet = holder;
+            }
+        }
+
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnLocalDisconnect))]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnDestroy))]
@@ -36,6 +53,35 @@ namespace MattyFixes.Patches
         {
             _storageCabinet = null;
             _closet = null;
+        }
+        
+        [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
+        internal class ObjectCreationPatch
+        {
+            private static void Prefix(GrabbableObject __instance, out bool __state)
+            {
+                __state = __instance.itemProperties.itemSpawnsOnGround;
+                
+                if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
+                    return;
+                //do not run twice if OutOfBounds is active too
+                if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+                    return;
+
+                if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
+                    return;
+                
+                if (!GameNetworkManager.Instance.gameHasStarted)
+                {
+                    __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
+                }
+                
+            }
+        
+            private static void Postfix(GrabbableObject __instance, bool __state)
+            {
+                __instance.itemProperties.itemSpawnsOnGround = __state;
+            }
         }
 
         [HarmonyPostfix]
@@ -54,6 +100,12 @@ namespace MattyFixes.Patches
             if (_storageCabinet.inStorage) 
                 return;
             
+            CheckCloset();
+            
+            _closet!.Value.Closet.GetComponent<AutoParentToShip>().MoveToOffset();
+            
+            Physics.SyncTransforms();
+            
             var grabbables = Object.FindObjectsOfType<GrabbableObject>();
             foreach (var grabbable in grabbables.Where(g => g.isInShipRoom))
             {
@@ -70,6 +122,12 @@ namespace MattyFixes.Patches
             
             if (_storageCabinet.inStorage) 
                 return;
+            
+            CheckCloset();
+            
+            _closet!.Value.Closet.GetComponent<AutoParentToShip>().MoveToOffset();
+            
+            Physics.SyncTransforms();
             
             var grabbables = Object.FindObjectsOfType<GrabbableObject>();
             foreach (var grabbable in grabbables.Where(g => g.isInShipRoom))
@@ -90,19 +148,7 @@ namespace MattyFixes.Patches
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 
-                if (!_closet.HasValue)
-                {
-                    ClosetHolder holder;
-                    holder = new ClosetHolder();
-                    holder.Closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
-                    holder.Collider = holder.Closet.GetComponent<Collider>();
-                    holder.Shelves = holder.Closet.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s => new ShelfHolder()
-                    {
-                        Shelf = s,
-                        Collider = s.GetComponent<Collider>()
-                    }).ToList();
-                    _closet = holder;
-                }
+                CheckCloset();
                 
                 var distance = float.MaxValue;
                 PlaceableObjectsSurface found = null;
@@ -110,8 +156,9 @@ namespace MattyFixes.Patches
                 
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {_closet.Value.Collider.bounds.min}!");
-                
-                if (_closet.Value.Collider.bounds.SqrDistance(pos) <= sqrTolerance)
+
+                var closetCollider = _closet.Value.Collider;
+                if (pos.y < closetCollider.bounds.max.y && closetCollider.bounds.SqrDistance(pos) <= sqrTolerance)
                 {
                     foreach (var shelfHolder in _closet.Value.Shelves)
                     {
