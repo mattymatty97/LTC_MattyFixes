@@ -108,7 +108,7 @@ namespace MattyFixes.Patches
                 PlaceableObjectsSurface found = null;
                 Vector3? closest = null;
                 
-               MattyFixes.Log.LogDebug(
+                MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {_closet.Value.Collider.bounds.min}!");
                 
                 if (_closet.Value.Collider.bounds.SqrDistance(pos) <= sqrTolerance)

@@ -212,9 +212,11 @@ namespace MattyFixes.Patches
 
         internal static Vector3 FixPlacement(Vector3 hitPoint, Transform shelfTransform, GrabbableObject heldObject)
         {
-            hitPoint.y = shelfTransform.position.y + shelfTransform.localScale.z / 2f;
-            return hitPoint + Vector3.up * (heldObject.itemProperties.verticalOffset -
-                                            MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value);
+            var renderer = shelfTransform.gameObject.GetComponent<Renderer>();
+            var bounds = renderer?.bounds;
+            var yOffset = bounds.HasValue ? bounds.Value.extents.y : shelfTransform.localScale.z / 2f;
+            hitPoint.y = shelfTransform.position.y + yOffset + heldObject.itemProperties.verticalOffset;
+            return hitPoint;
         }
 
 
@@ -365,36 +367,63 @@ namespace MattyFixes.Patches
             }
         }
 
-        private static List<Vector3> GetChildVertexes(Transform target)
+        private static List<Vector3> GetChildVertexes(Transform target, string path = "")
         {
             List<Vector3> vertices = [];
             var renderers = target.GetComponents<Renderer>();
             
             //TODO: remove log
-            MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name}");
+            MattyFixes.Log.LogDebug($"Processing {path}/{target.name}");
+
+            if (target.TryGetComponent<ScanNodeProperties>(out _))
+            {
+                MattyFixes.Log.LogDebug($"Skipping {path}/{target.name}!");
+                return vertices;
+            }
 
             foreach (var renderer in renderers.Where(r => r.enabled))
             {
                 List<Vector3> rVertices = [];
                 
                 //TODO: remove log
-                MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name} renderer {renderer.GetType().Name}");
+                MattyFixes.Log.LogDebug($"Processing {path}/{target.name} renderer {renderer.GetType().Name}");
                 
                 switch (renderer)
                 {
                     case SkinnedMeshRenderer skinnedMeshRenderer:
                     {
                         var mesh = skinnedMeshRenderer.sharedMesh;
-                        if (mesh.isReadable)
-                            mesh.GetVertices(rVertices);
+                        if (mesh == null)
+                        {
+                            MattyFixes.Log.LogWarning($"{renderer.GetType()} in {path} is missing a mesh");
+                            continue;
+                        }
+
+                        var tmpMesh = new Mesh();
+                        
+                        skinnedMeshRenderer.BakeMesh(tmpMesh, true);
+                        
+                        if (tmpMesh.isReadable)
+                            tmpMesh.GetVertices(rVertices);
                         else
-                            rVertices = GetNonReadableVertices(mesh);
+                            rVertices = GetNonReadableVertices(tmpMesh);
                         break;
                     }
                     case MeshRenderer:
                     {
                         var filter = renderer.GetComponent<MeshFilter>();
+                        if (filter == null)
+                        {
+                            MattyFixes.Log.LogWarning($"{renderer.GetType()} in {path} is missing a MeshFilter");
+                            continue;
+                        }
                         var mesh = filter.sharedMesh;
+                        
+                        if (mesh == null)
+                        {
+                            MattyFixes.Log.LogWarning($"{renderer.GetType()} in {path} is missing a mesh");
+                            continue;
+                        }
                         if (mesh.isReadable)
                             mesh.GetVertices(rVertices);
                         else
@@ -420,19 +449,19 @@ namespace MattyFixes.Patches
                 float? rMin = rVertices.Count > 0 ? rVertices.Min(v => v.y) : null;
                 
                 //TODO: remove log
-                MattyFixes.Log.LogDebug($"Processing {target.parent?.name}.{target.name} renderer {renderer.GetType().Name} min {rMin}");
+                MattyFixes.Log.LogDebug($"Processing {path}/{target.name} renderer {renderer.GetType().Name} min {rMin}");
 
                 vertices.AddRange(rVertices);
             }
 
             foreach (Transform child in target.transform)
             {
-                vertices.AddRange(GetChildVertexes(child));
+                vertices.AddRange(GetChildVertexes(child, path + "/" + target.name));
             }
 
             var tmp = vertices.Select(target.TransformVector).ToList();
             float? min = tmp.Count > 0 ? tmp.Min(v => v.y) : null;
-            MattyFixes.Log.LogDebug($"Processing {target.name} min {min}");
+            MattyFixes.Log.LogDebug($"Found {path}/{target.name} min {min}");
             
             return tmp;
         }
@@ -481,16 +510,18 @@ namespace MattyFixes.Patches
                         targetObject = __instance.gameObject;
 
                     var memRotation = targetObject.transform.rotation;
-
+                    var memPos = targetObject.transform.position;
                     targetObject.transform.rotation = Quaternion.Euler(itemType.restingRotation);
-
+                    targetObject.transform.position = Vector3.zero;
+                    
                     var vertices = GetChildVertexes(targetObject.transform);
 
                     targetObject.transform.rotation = memRotation;
+                    targetObject.transform.position = memPos;
                     offset = vertices.Count > 0 ? vertices.Min(v => v.y) : itemType.verticalOffset;
                 }
 
-                itemType.verticalOffset = offset + MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+                itemType.verticalOffset = -offset + MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
 
                 MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
             }
@@ -534,7 +565,7 @@ namespace MattyFixes.Patches
                 if (AsyncLoggerProxy.Enabled)
                     AsyncLoggerProxy.WriteData(MattyFixes.NAME, "Bounds", $"{go.name}({go.GetInstanceID()}) Bounds is {bounds.Value}");
             }
-
+            
             return bounds;
         }
 
