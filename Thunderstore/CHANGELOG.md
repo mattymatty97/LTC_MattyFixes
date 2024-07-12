@@ -1,3 +1,6 @@
+## v1.1.4
+- Fix wrong placement of object inside CC
+
 ## v1.1.3
 - Full rewrite of ItemClipping.VerticalOffset calculation
 
