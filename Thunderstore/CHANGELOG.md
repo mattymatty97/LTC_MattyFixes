@@ -1,3 +1,6 @@
+## v1.1.5
+- Invert transform while calculating vertices
+
 ## v1.1.4
 - Fix wrong placement of object inside CC
 

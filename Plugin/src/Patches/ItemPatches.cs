@@ -456,7 +456,7 @@ namespace MattyFixes.Patches
                 vertices.AddRange(GetChildVertexes(child, path + "/" + target.name));
             }
 
-            var tmp = vertices.Select(target.TransformVector).ToList();
+            var tmp = vertices.Select(target.InverseTransformVector).ToList();
             float? min = tmp.Count > 0 ? tmp.Min(v => v.y) : null;
             MattyFixes.Log.LogDebug($"Found {path}/{target.name} min {min}");
             
