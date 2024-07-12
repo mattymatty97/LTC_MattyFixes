@@ -451,12 +451,17 @@ namespace MattyFixes.Patches
                 vertices.AddRange(rVertices);
             }
 
+            
+            List<Vector3> cVertices = [];
             foreach (Transform child in target.transform)
             {
-                vertices.AddRange(GetChildVertexes(child, path + "/" + target.name));
+                if (!child.gameObject.activeSelf)
+                    continue;
+                cVertices.AddRange(GetChildVertexes(child, path + "/" + target.name));
             }
 
-            var tmp = vertices.Select(target.InverseTransformVector).ToList();
+            var tmp = vertices.Select(target.TransformPoint).ToList();
+            tmp.AddRange(cVertices);
             float? min = tmp.Count > 0 ? tmp.Min(v => v.y) : null;
             MattyFixes.Log.LogDebug($"Found {path}/{target.name} min {min}");
             
@@ -503,13 +508,13 @@ namespace MattyFixes.Patches
 
                     var targetObject = itemType.spawnPrefab;
 
-                    if (targetObject == null)
-                        targetObject = __instance.gameObject;
-
                     var memRotation = targetObject.transform.rotation;
                     var memPos = targetObject.transform.position;
-                    targetObject.transform.rotation = Quaternion.Euler(itemType.restingRotation);
+                    targetObject.transform.rotation = Quaternion.Euler(
+                        itemType.restingRotation.x, (150 + itemType.floorYOffset) + 90f,
+                        itemType.restingRotation.z);
                     targetObject.transform.position = Vector3.zero;
+                    Physics.SyncTransforms();
                     
                     var vertices = GetChildVertexes(targetObject.transform);
 
@@ -518,7 +523,7 @@ namespace MattyFixes.Patches
                     offset = vertices.Count > 0 ? vertices.Min(v => v.y) : itemType.verticalOffset;
                 }
 
-                itemType.verticalOffset = -offset + MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+                itemType.verticalOffset = (-offset) + MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
 
                 MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
             }
