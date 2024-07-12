@@ -1,4 +1,5 @@
-
+## v1.1.3
+- Full rewrite of ItemClipping.VerticalOffset calculation
 
 ## v1.1.0
 - rewrite OutOfBounds and Cupboard checks
