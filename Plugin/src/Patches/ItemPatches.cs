@@ -466,6 +466,8 @@ namespace MattyFixes.Patches
                 {
                     var meshFilter = renderer.GetComponent<MeshFilter>();
                     var oldMesh = meshFilter.sharedMesh;
+                    if (oldMesh == null)
+                        continue;
                     if (!ReadableMeshMap.TryGetValue(oldMesh, out var readableMesh))
                         readableMesh = meshFilter.sharedMesh;
 
