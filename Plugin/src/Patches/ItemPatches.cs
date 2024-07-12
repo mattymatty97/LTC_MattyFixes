@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using JetBrains.Annotations;
 using MattyFixes.Dependency;
 using Unity.Netcode;
 using UnityEngine;
@@ -214,12 +215,12 @@ namespace MattyFixes.Patches
         {
             var renderer = shelfTransform.gameObject.GetComponent<Renderer>();
             var bounds = renderer?.bounds;
+            
             var yOffset = bounds.HasValue ? bounds.Value.extents.y : shelfTransform.localScale.z / 2f;
             hitPoint.y = shelfTransform.position.y + yOffset + heldObject.itemProperties.verticalOffset;
             return hitPoint;
         }
-
-
+        
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlaceableObjectsSurface), nameof(PlaceableObjectsSurface.itemPlacementPosition))]
         private static bool ItemPlacementPositionPatch(PlaceableObjectsSurface __instance, ref Vector3 __result,
@@ -227,20 +228,16 @@ namespace MattyFixes.Patches
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return true;
-
+            
+            //only tweak if we're placing inside the CupBoard
+            if (__instance.transform.parent?.parent != CupBoardFix.GetCloset().gameObject.transform)
+                return true;
+            
             try
             {
                 if (Physics.Raycast(gameplayCamera.position, gameplayCamera.forward, out var val, 7f,
-                        StartOfRound.Instance.collidersAndRoomMask, (QueryTriggerInteraction)1))
+                        1073744640, (QueryTriggerInteraction)1))
                 {
-                    var bounds = __instance.placeableBounds.bounds;
-
-                    if (bounds.Contains(val.point))
-                    {
-                        __result = FixPlacement(val.point, __instance.transform, heldObject);
-                        return false;
-                    }
-
                     var hitPoint = __instance.placeableBounds.ClosestPoint(val.point);
                     __result = FixPlacement(hitPoint, __instance.transform, heldObject);
                     return false;

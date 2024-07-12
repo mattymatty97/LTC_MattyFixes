@@ -13,37 +13,41 @@ namespace MattyFixes.Patches
     internal class CupBoardFix
     {
         
-        private struct ClosetHolder
+        internal struct ClosetHolder
         {
-            public GameObject Closet;
+            public UnlockableItem Unlockable;
+            public GameObject gameObject;
             public List<ShelfHolder> Shelves;
             public Collider Collider;
         }
         
-        private struct ShelfHolder
+        internal struct ShelfHolder
         {
             public PlaceableObjectsSurface Shelf;
             public Collider Collider;
         }
 
-        private static UnlockableItem _storageCabinet = null;
         private static ClosetHolder? _closet = null;
 
-        private static void CheckCloset()
+        internal static ClosetHolder GetCloset()
         {
             if (!_closet.HasValue)
             {
                 ClosetHolder holder;
                 holder = new ClosetHolder();
-                holder.Closet = GameObject.Find("/Environment/HangarShip/StorageCloset");
-                holder.Collider = holder.Closet.GetComponent<Collider>();
-                holder.Shelves = holder.Closet.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s => new ShelfHolder()
+                holder.Unlockable = StartOfRound.Instance.unlockablesList.unlockables
+                    .Find(u => u.unlockableName == "Cupboard");
+                holder.gameObject = GameObject.Find("/Environment/HangarShip/StorageCloset");
+                holder.Collider = holder.gameObject.GetComponent<Collider>();
+                holder.Shelves = holder.gameObject.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s => new ShelfHolder()
                 {
                     Shelf = s,
                     Collider = s.GetComponent<Collider>()
                 }).ToList();
                 _closet = holder;
             }
+
+            return _closet.Value;
         }
 
         [HarmonyPostfix]
@@ -51,7 +55,6 @@ namespace MattyFixes.Patches
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.OnDestroy))]
         private static void ResetOnDisconnect()
         {
-            _storageCabinet = null;
             _closet = null;
         }
         
@@ -94,15 +97,12 @@ namespace MattyFixes.Patches
             if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client || !networkManager.IsClient && !networkManager.IsHost)
                 return;
             
-            _storageCabinet ??= __instance.unlockablesList.unlockables
-                .Find(u => u.unlockableName == "Cupboard");
+            var closet = GetCloset();
             
-            if (_storageCabinet.inStorage) 
+            if (closet.Unlockable.inStorage) 
                 return;
             
-            CheckCloset();
-            
-            _closet!.Value.Closet.GetComponent<AutoParentToShip>().MoveToOffset();
+            closet.gameObject.GetComponent<AutoParentToShip>().MoveToOffset();
             
             Physics.SyncTransforms();
             
@@ -117,15 +117,13 @@ namespace MattyFixes.Patches
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadShipGrabbableItems))]
         private static void OnServerSpawn(GrabbableObject __instance)
         {
-            _storageCabinet ??= StartOfRound.Instance.unlockablesList.unlockables
-                .Find(u => u.unlockableName == "Cupboard");
             
-            if (_storageCabinet.inStorage) 
+            var closet = GetCloset();
+            
+            if (closet.Unlockable.inStorage) 
                 return;
             
-            CheckCloset();
-            
-            _closet!.Value.Closet.GetComponent<AutoParentToShip>().MoveToOffset();
+            closet.gameObject.GetComponent<AutoParentToShip>().MoveToOffset();
             
             Physics.SyncTransforms();
             
@@ -148,19 +146,19 @@ namespace MattyFixes.Patches
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 
-                CheckCloset();
+                var closet = GetCloset();
                 
                 var distance = float.MaxValue;
                 PlaceableObjectsSurface found = null;
                 Vector3? closest = null;
                 
                 MattyFixes.Log.LogDebug(
-                    $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {_closet.Value.Collider.bounds.min}!");
+                    $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {closet.Collider.bounds.min}!");
 
-                var closetCollider = _closet.Value.Collider;
+                var closetCollider = closet.Collider;
                 if (pos.y < closetCollider.bounds.max.y && closetCollider.bounds.SqrDistance(pos) <= sqrTolerance)
                 {
-                    foreach (var shelfHolder in _closet.Value.Shelves)
+                    foreach (var shelfHolder in closet.Shelves)
                     {
                         var hitPoint = shelfHolder.Collider.ClosestPoint(pos);
                         var tmp = pos.y - hitPoint.y;
@@ -197,7 +195,7 @@ namespace MattyFixes.Patches
                     }
                     if (AsyncLoggerProxy.Enabled)
                         AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",$"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
-                    transform.parent = _closet.Value.Closet.transform;
+                    transform.parent = closet.gameObject.transform;
                     transform.position = newPos;
                     grabbable.targetFloorPosition = transform.localPosition;
                     MattyFixes.Log.LogDebug(
