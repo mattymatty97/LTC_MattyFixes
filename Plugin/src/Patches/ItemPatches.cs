@@ -420,7 +420,7 @@ namespace MattyFixes.Patches
 
                     var grabbable = targetObject.GetComponent<GrabbableObject>();
 
-                    if (grabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning, MattyFixes.VerboseLog))
+                    if (grabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning, MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
                         offset += +MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                     else
                         offset = itemType.verticalOffset;
@@ -546,7 +546,7 @@ namespace MattyFixes.Patches
                         using (s_RadiusProfiler.Auto())
                         {
                             if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius,
-                                    MattyFixes.Log.LogWarning, MattyFixes.VerboseLog))
+                                    MattyFixes.Log.LogWarning, MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
                                 return;
                             
                             shapeModule.radius = maxRadius;
@@ -554,7 +554,7 @@ namespace MattyFixes.Patches
                         }
                         
                         s_CentroidProfiler.Begin();
-                        warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning, MattyFixes.VerboseLog);
+                        warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning,MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
                         _staticElectricityParticleOffset = centroid - warningObject.transform.position + Vector3.up * 0.5f;
                         s_CentroidProfiler.End();
                     }
