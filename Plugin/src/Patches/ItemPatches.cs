@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define ENABLE_PROFILER
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
@@ -6,14 +8,23 @@ using JetBrains.Annotations;
 using MattyFixes.Dependency;
 using MattyFixes.Utils;
 using Unity.Netcode;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace MattyFixes.Patches
 {
+    
     [HarmonyPatch]
     internal static class ItemPatches
     {
+        private static readonly ProfilerMarker s_OffsetProfiler = new("MattyFixes.ItemPatches.TryGetVerticalOffset");
+        private static readonly ProfilerMarker s_CentroidProfiler = new("MattyFixes.ItemPatches.TryGetWorldCentroid");
+        private static readonly ProfilerMarker s_RadiusProfiler = new("MattyFixes.ItemPatches.TryGetRadius");
+        private static readonly ProfilerMarker s_LightningProfiler = new("MattyFixes.ItemPatches.StormyWeatherPatch");
+
+        
+        
         private static readonly HashSet<Item> ComputedItems = [];
 
         private static readonly HashSet<Item> ReadableObjects = [];
@@ -402,7 +413,7 @@ namespace MattyFixes.Patches
                 if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
                         out var offset))
                 {
-
+                    s_OffsetProfiler.Begin();
                     var targetObject = itemType.spawnPrefab;
                     if (targetObject == null)
                         targetObject = __instance.gameObject;
@@ -413,6 +424,7 @@ namespace MattyFixes.Patches
                         offset += +MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                     else
                         offset = itemType.verticalOffset;
+                    s_OffsetProfiler.End();
                 }
 
                 itemType.verticalOffset = offset;
@@ -523,6 +535,7 @@ namespace MattyFixes.Patches
             [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
             private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
             {
+                s_LightningProfiler.Begin();
                 try
                 {
                     var shapeModule = __instance.staticElectricityParticle.shape;
@@ -530,14 +543,20 @@ namespace MattyFixes.Patches
                     {
                         shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                         shapeModule.radiusThickness = 0.01f;
-                        if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius, MattyFixes.Log.LogWarning, MattyFixes.VerboseLog)) 
-                            return;
+                        using (s_RadiusProfiler.Auto())
+                        {
+                            if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius,
+                                    MattyFixes.Log.LogWarning, MattyFixes.VerboseLog))
+                                return;
+                            
+                            shapeModule.radius = maxRadius;
+                            shapeModule.radiusThickness = 1 - minRadius/maxRadius;
+                        }
                         
-                        shapeModule.radius = maxRadius;
-                        shapeModule.radiusThickness = 1 - minRadius/maxRadius;
-
+                        s_CentroidProfiler.Begin();
                         warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning, MattyFixes.VerboseLog);
                         _staticElectricityParticleOffset = centroid - warningObject.transform.position + Vector3.up * 0.5f;
+                        s_CentroidProfiler.End();
                     }
                     else
                     {
@@ -563,6 +582,7 @@ namespace MattyFixes.Patches
                 {
                     MattyFixes.Log.LogError(ex);
                 }
+                s_LightningProfiler.End();
             }
 
             [HarmonyPrefix]
