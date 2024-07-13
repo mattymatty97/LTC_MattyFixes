@@ -200,7 +200,6 @@ public static class VerticesExtensions
             }
 
             logDebugCallback?.Invoke($"Found {path}/{target.name} {logFunc?.Invoke(outVertices)}");
-            s_VertexProfiler.End();
             return outVertices;
         }
     }
