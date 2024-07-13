@@ -1,3 +1,6 @@
+## v1.1.6
+- only translate vertices once!
+
 ## v1.1.5
 - Invert transform while calculating vertices
 

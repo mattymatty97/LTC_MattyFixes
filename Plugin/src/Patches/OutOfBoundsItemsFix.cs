@@ -24,6 +24,7 @@ namespace MattyFixes.Patches
         }
         
         [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
+        [HarmonyPriority(Priority.Last)]
         internal class ObjectCreationPatch
         {
             private static void Prefix(GrabbableObject __instance, out bool __state)

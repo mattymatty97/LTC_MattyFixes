@@ -163,8 +163,7 @@ namespace MattyFixes.Patches
                         var hitPoint = shelfHolder.Collider.ClosestPoint(pos);
                         var tmp = pos.y - hitPoint.y;
                         
-                        if (AsyncLoggerProxy.Enabled)
-                            AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard", $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
+                        MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
                         
                         if (tmp >= 0 && tmp < distance)
                         {
@@ -174,11 +173,9 @@ namespace MattyFixes.Patches
                         }
                     }
                     
-                    if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard", $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
 
-                    if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",$"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
                 }
                 
                 var transform = grabbable.transform;
@@ -193,8 +190,7 @@ namespace MattyFixes.Patches
                     {
                         newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
                     }
-                    if (AsyncLoggerProxy.Enabled)
-                        AsyncLoggerProxy.WriteData(MattyFixes.NAME, "CupBoard",$"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
                     transform.parent = closet.gameObject.transform;
                     transform.position = newPos;
                     grabbable.targetFloorPosition = transform.localPosition;

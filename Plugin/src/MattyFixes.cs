@@ -20,7 +20,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.1.5";
+        public const string VERSION = "1.1.6";
 
         internal static MattyFixes INSTANCE { get; private set;}
         internal static ManualLogSource Log;
@@ -30,6 +30,12 @@ namespace MattyFixes
         };
 
         internal static readonly List<PluginInfo> FoundIncompatibilities = new List<PluginInfo>();
+
+        internal static void VerboseLog(string logmessage)
+        {
+            if (PluginConfig.Debug.Verbose.Value)
+                Log.LogDebug(logmessage);
+        }
             
         private void Awake()
         {
@@ -125,8 +131,11 @@ namespace MattyFixes
                 OutOfBounds.VerticalOffset = config.Bind("OutOfBounds","vertical_offset",0.2f
                     ,"vertical offset to apply to objects on load");
                 //AlternateLightningParticles
-                LightingParticle.Enabled = config.Bind("AlternateLightningParticles","enabled",false
+                LightingParticle.Enabled = config.Bind("AlternateLightningParticles","enabled",true
                     ,"use sphere shape for lightning particles ");
+                //VerboseDebug
+                Debug.Verbose = config.Bind("Debug","verbose",false
+                    ,"print more logs!");
 
                 
                 var offsetString = ItemClipping.ManualOffsets.Value;
@@ -161,6 +170,7 @@ namespace MattyFixes
                     LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
                     LethalConfigProxy.AddConfig(OutOfBounds.Enabled, false);
                     LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
+                    LethalConfigProxy.AddConfig(Debug.Verbose, false);
                 }
                 
             }
@@ -226,6 +236,11 @@ namespace MattyFixes
             internal static class LightingParticle
             {
                 internal static ConfigEntry<bool> Enabled;
+            }
+            
+            internal static class Debug
+            {
+                internal static ConfigEntry<bool> Verbose;
             }
         }
 
