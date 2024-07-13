@@ -1,30 +1,17 @@
-﻿#define ENABLE_PROFILER
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using HarmonyLib;
-using JetBrains.Annotations;
 using MattyFixes.Dependency;
 using MattyFixes.Utils;
 using Unity.Netcode;
-using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace MattyFixes.Patches
 {
-    
     [HarmonyPatch]
     internal static class ItemPatches
     {
-        private static readonly ProfilerMarker s_OffsetProfiler = new("MattyFixes.ItemPatches.TryGetVerticalOffset");
-        private static readonly ProfilerMarker s_CentroidProfiler = new("MattyFixes.ItemPatches.TryGetWorldCentroid");
-        private static readonly ProfilerMarker s_RadiusProfiler = new("MattyFixes.ItemPatches.TryGetRadius");
-        private static readonly ProfilerMarker s_LightningProfiler = new("MattyFixes.ItemPatches.StormyWeatherPatch");
-
-        
-        
         private static readonly HashSet<Item> ComputedItems = [];
 
         private static readonly HashSet<Item> ReadableObjects = [];
@@ -227,12 +214,12 @@ namespace MattyFixes.Patches
         {
             var renderer = shelfTransform.gameObject.GetComponent<Renderer>();
             var bounds = renderer?.bounds;
-            
+
             var yOffset = bounds.HasValue ? bounds.Value.extents.y : shelfTransform.localScale.z / 2f;
             hitPoint.y = shelfTransform.position.y + yOffset + heldObject.itemProperties.verticalOffset;
             return hitPoint;
         }
-        
+
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlaceableObjectsSurface), nameof(PlaceableObjectsSurface.itemPlacementPosition))]
         private static bool ItemPlacementPositionPatch(PlaceableObjectsSurface __instance, ref Vector3 __result,
@@ -240,11 +227,11 @@ namespace MattyFixes.Patches
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return true;
-            
+
             //only tweak if we're placing inside the CupBoard
             if (__instance.transform.parent?.parent != CupBoardFix.GetCloset().gameObject.transform)
                 return true;
-            
+
             try
             {
                 if (Physics.Raycast(gameplayCamera.position, gameplayCamera.forward, out var val, 7f,
@@ -272,33 +259,29 @@ namespace MattyFixes.Patches
             if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var configEntry))
             {
                 var ogRotation = item.restingRotation;
-                configEntry = MattyFixes.INSTANCE.Config.Bind($"ItemClipping.Rotations", 
+                configEntry = MattyFixes.INSTANCE.Config.Bind($"ItemClipping.Rotations",
                     item.itemName
-                        .Replace('\n',' ')
+                        .Replace('\n', ' ')
                         .Replace('\t', ' ')
-                        .Replace("\\" , "")
-                        .Replace("\'","")
-                        .Replace("[","")
-                        .Replace("]",""), 
-                    $"{ogRotation.x},{ogRotation.y},{ogRotation.z}", 
+                        .Replace("\\", "")
+                        .Replace("\'", "")
+                        .Replace("[", "")
+                        .Replace("]", ""),
+                    $"{ogRotation.x},{ogRotation.y},{ogRotation.z}",
                     "Comma separated Vector3 rotation");
                 MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = configEntry;
-                configEntry.SettingChanged += (sender, args) =>
-                {
-                    UpdateItemRotation(item);
-                };
+                configEntry.SettingChanged += (sender, args) => { UpdateItemRotation(item); };
                 if (LethalConfigProxy.Enabled)
                     LethalConfigProxy.AddConfig(configEntry, false);
             }
 
             var rotation = configEntry.Value.Split(",");
-            
+
             if (rotation.Length == 3)
                 item.restingRotation.Set(
                     float.Parse(rotation[0]),
                     float.Parse(rotation[1]),
                     float.Parse(rotation[2]));
-
         }
 
         [HarmonyPostfix]
@@ -308,7 +291,7 @@ namespace MattyFixes.Patches
         {
             if (AsyncLoggerProxy.Enabled)
                 AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Post");
-            
+
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
                 return;
 
@@ -321,7 +304,7 @@ namespace MattyFixes.Patches
 
                     if (ItemRotations.TryGetValue(itemType.itemName, out List<float> value))
                         itemType.restingRotation.Set(value[0], value[1], value[2]);
-                    
+
                     UpdateItemRotation(itemType);
                 }
                 catch (Exception ex)
@@ -329,8 +312,9 @@ namespace MattyFixes.Patches
                     MattyFixes.Log.LogError($"{itemType.itemName} crashed badly ! {ex}");
                 }
             }
+
             MattyFixes.PluginConfig.RemoveOrphans();
-            
+
             if (AsyncLoggerProxy.Enabled)
                 AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", $"Finished");
         }
@@ -340,29 +324,28 @@ namespace MattyFixes.Patches
         [HarmonyPriority(20)]
         private static void SpawnPostfix(NetworkBehaviour __instance)
         {
-
             if (!(__instance is GrabbableObject grabbable))
                 return;
-            
+
             if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
                 return;
-            
+
             try
             {
-
                 if (MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
                 {
                     grabbable.isInElevator = true;
                     grabbable.isInShipRoom = true;
                 }
-                
-                
+
+
                 if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                     return;
-                
-                if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
+
+                if (grabbable is ClipboardItem ||
+                    (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
                     return;
-                
+
                 grabbable.transform.rotation = Quaternion.Euler(
                     grabbable.itemProperties.restingRotation.x,
                     grabbable.floorYRot == -1
@@ -383,9 +366,9 @@ namespace MattyFixes.Patches
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
-            
+
             var itemType = __instance.itemProperties;
-            
+
             if (ComputedItems.Contains(itemType))
                 return;
 
@@ -413,18 +396,17 @@ namespace MattyFixes.Patches
                 if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
                         out var offset))
                 {
-                    s_OffsetProfiler.Begin();
                     var targetObject = itemType.spawnPrefab;
                     if (targetObject == null)
                         targetObject = __instance.gameObject;
 
                     var grabbable = targetObject.GetComponent<GrabbableObject>();
 
-                    if (grabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning, MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
+                    if (grabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning,
+                            MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
                         offset += +MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                     else
                         offset = itemType.verticalOffset;
-                    s_OffsetProfiler.End();
                 }
 
                 itemType.verticalOffset = offset;
@@ -524,7 +506,7 @@ namespace MattyFixes.Patches
             meshCopy.name = $"Readable {nonReadableMesh.name}";
             return meshCopy;
         }
-        
+
         private static readonly Dictionary<MeshFilter, Mesh> ReverseMeshMap = new Dictionary<MeshFilter, Mesh>();
         private static Vector3 _staticElectricityParticleOffset;
 
@@ -535,7 +517,6 @@ namespace MattyFixes.Patches
             [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
             private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
             {
-                s_LightningProfiler.Begin();
                 try
                 {
                     var shapeModule = __instance.staticElectricityParticle.shape;
@@ -543,25 +524,24 @@ namespace MattyFixes.Patches
                     {
                         shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                         shapeModule.radiusThickness = 0.01f;
-                        using (s_RadiusProfiler.Auto())
-                        {
-                            if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius,
-                                    MattyFixes.Log.LogWarning, MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
-                                return;
-                            
-                            shapeModule.radius = maxRadius;
-                            shapeModule.radiusThickness = 1 - minRadius/maxRadius;
-                        }
-                        
-                        s_CentroidProfiler.Begin();
-                        warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning,MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
-                        _staticElectricityParticleOffset = centroid - warningObject.transform.position + Vector3.up * 0.5f;
-                        s_CentroidProfiler.End();
+                        if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius,
+                                MattyFixes.Log.LogWarning,
+                                MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
+                            return;
+
+                        shapeModule.radius = maxRadius;
+                        shapeModule.radiusThickness = 1 - minRadius / maxRadius;
+
+                        warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning,
+                            MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
+                        _staticElectricityParticleOffset =
+                            centroid - warningObject.transform.position + Vector3.up * 0.5f;
                     }
                     else
                     {
                         var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
-                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value && MattyFixes.PluginConfig.ReadableMeshes.FixLignting.Value &&
+                        if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
+                            MattyFixes.PluginConfig.ReadableMeshes.FixLignting.Value &&
                             !BrokenMeshItems.Contains(grabbable.itemProperties))
                         {
                             try
@@ -573,7 +553,8 @@ namespace MattyFixes.Patches
                                 MattyFixes.Log.LogError(
                                     $"{grabbable.itemProperties.itemName} Failed to mark prefab Mesh Readable! {ex}");
                                 BrokenMeshItems.Add(grabbable.itemProperties);
-                                MattyFixes.Log.LogWarning($"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
+                                MattyFixes.Log.LogWarning(
+                                    $"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
                             }
                         }
                     }
@@ -582,7 +563,6 @@ namespace MattyFixes.Patches
                 {
                     MattyFixes.Log.LogError(ex);
                 }
-                s_LightningProfiler.End();
             }
 
             [HarmonyPrefix]
@@ -607,7 +587,7 @@ namespace MattyFixes.Patches
 
                 if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                 {
-                     __instance.staticElectricityParticle.transform.position += _staticElectricityParticleOffset;
+                    __instance.staticElectricityParticle.transform.position += _staticElectricityParticleOffset;
                 }
             }
         }
