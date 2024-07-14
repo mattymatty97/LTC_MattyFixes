@@ -134,7 +134,7 @@ public static class VerticesExtensions
                                 continue;
                             }
 
-                            if (_verticesCache.TryGetValue(skinnedMeshRenderer.sharedMesh, out var cached))
+                            if (_verticesCache.TryGetValue(mesh, out var cached))
                             {
                                 rVertices.AddRange(cached);
                             }
@@ -150,7 +150,7 @@ public static class VerticesExtensions
                                 else
                                     tmpMesh.GetNonReadableVertices(rVertices);
 
-                                _verticesCache[skinnedMeshRenderer.sharedMesh] = rVertices.ToArray();
+                                _verticesCache[mesh] = rVertices.ToArray();
 
                                 UnityEngine.Object.Destroy(tmpMesh);
                             }
@@ -266,17 +266,18 @@ public static class VerticesExtensions
                         continue;
                     }
 
-                    if (!_verticesCache.ContainsKey(skinnedMeshRenderer.sharedMesh))
+                    if (!_verticesCache.ContainsKey(mesh))
                     {
                         var tmpMesh = new Mesh();
 
                         skinnedMeshRenderer.BakeMesh(tmpMesh, true);
 
                         if (tmpMesh.isReadable)
-                            tmpMesh.CacheVertices(skinnedMeshRenderer.sharedMesh);
+                            tmpMesh.CacheVertices(mesh);
                         else
-                            tmpMesh.CacheNonReadableVertices(skinnedMeshRenderer.sharedMesh);
+                            tmpMesh.CacheNonReadableVertices(mesh);
                         
+                        UnityEngine.Object.Destroy(tmpMesh);
                     }
 
                     break;
@@ -376,7 +377,7 @@ public static class VerticesExtensions
             var attributes = nonReadableMesh.GetVertexAttributes();
             var count = nonReadableMesh.vertexCount;
             MattyFixes.Log.LogWarning($"Requesting vertices for {nonReadableMesh}");
-            AsyncGPUReadback.Request(verticesBuffer, request =>
+            AsyncGPUReadback.Request(verticesBuffer, totalSize, 0, request =>
             {
                 if (_verticesCache.ContainsKey(nonReadableMesh))
                     return;
@@ -387,13 +388,14 @@ public static class VerticesExtensions
                 meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
                 verticesBuffer.Release();
 
-                using (CollectionPool<List<Vector3>, Vector3>.Get(out var tmp))
+                using (ListPool<Vector3>.Get(out var tmp))
                 {
                     meshCopy.GetVertices(tmp);
                     MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {nonReadableMesh}");
                     _verticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
                 }
                 
+                UnityEngine.Object.Destroy(meshCopy);
             });
         }
 
@@ -405,7 +407,7 @@ public static class VerticesExtensions
         if (_verticesCache.ContainsKey(readableMesh))
             return;
         
-        using (CollectionPool<List<Vector3>, Vector3>.Get(out var tmp))
+        using (ListPool<Vector3>.Get(out var tmp))
         {
             readableMesh.GetVertices(tmp);
             MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {readableMesh}");
