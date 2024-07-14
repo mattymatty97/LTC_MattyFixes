@@ -94,8 +94,8 @@ namespace MattyFixes
                     ,"convert all meshes to readable at runtime");
                 ReadableMeshes.UseCollider = config.Bind("ReadableMeshes","use_collider",true
                     ,"use a Mesh collider to get more accurate item sizes");
-                ReadableMeshes.FixLignting = config.Bind("ReadableMeshes","fix_lighting",true
-                    ,"show lighting particles as dev intended! ( will have no effect if AlternateLightningParticles is active )");
+                ReadableMeshes.FixLightning = config.Bind("ReadableMeshes","fix_lightning",true
+                    ,"show lightning particles as dev intended! ( will have no effect if AlternateLightningParticles is active )");
                 //NameFixes
                 NameFixes.Enabled = config.Bind("NameFixes","enabled",true
                     ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
@@ -155,7 +155,7 @@ namespace MattyFixes
                 {
                     LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                     LethalConfigProxy.AddConfig(ReadableMeshes.UseCollider, true);
-                    LethalConfigProxy.AddConfig(ReadableMeshes.FixLignting, false);
+                    LethalConfigProxy.AddConfig(ReadableMeshes.FixLightning, false);
                     LethalConfigProxy.AddConfig(NameFixes.Enabled, false);
                     LethalConfigProxy.AddConfig(BadgeFixes.Enabled, true);
                     LethalConfigProxy.AddConfig(CupBoard.Enabled, false);
@@ -191,7 +191,7 @@ namespace MattyFixes
             {
                 internal static ConfigEntry<bool> Enabled;
                 internal static ConfigEntry<bool> UseCollider;
-                internal static ConfigEntry<bool> FixLignting;
+                internal static ConfigEntry<bool> FixLightning;
             }
             
             internal static class NameFixes

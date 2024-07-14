@@ -543,7 +543,7 @@ namespace MattyFixes.Patches
                     {
                         var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
                         if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
-                            MattyFixes.PluginConfig.ReadableMeshes.FixLignting.Value &&
+                            MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value &&
                             !BrokenMeshItems.Contains(grabbable.itemProperties))
                         {
                             try
