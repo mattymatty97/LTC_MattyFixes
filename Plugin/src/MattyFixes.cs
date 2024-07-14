@@ -101,7 +101,7 @@ namespace MattyFixes
                     ,"[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
                 //BadgeFixes
                 BadgeFixes.Enabled = config.Bind("BadgeFixes","enabled",true
-                    ,"[EXPERIMENTAL] show correct level tag");
+                    ,"show correct level tag");
                 //CupBoard
                 CupBoard.Enabled = config.Bind("CupBoard","enabled",true
                     ,"prevent items inside or above the Storage Closet from falling to the ground");
