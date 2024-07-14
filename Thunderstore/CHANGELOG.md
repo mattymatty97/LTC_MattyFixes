@@ -1,3 +1,6 @@
+## v1.1.7
+- performance of ItemClipping vertex go Brrr.. ( thx DiFFoZ )
+
 ## v1.1.6
 - only translate vertices once!
 

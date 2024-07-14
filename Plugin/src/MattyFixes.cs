@@ -20,7 +20,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.1.6";
+        public const string VERSION = "1.1.7";
 
         internal static MattyFixes INSTANCE { get; private set;}
         internal static ManualLogSource Log;

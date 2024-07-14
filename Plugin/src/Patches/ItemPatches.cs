@@ -318,8 +318,10 @@ namespace MattyFixes.Patches
                 {
                     if (itemType.spawnPrefab == null)
                         continue;
+                    
+                    itemType.spawnPrefab.transform.CacheChildVertexes(logWarningCallback: MattyFixes.Log.LogWarning, logDebugCallback: MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
 
-                    if (ItemRotations.TryGetValue(itemType.itemName, out List<float> value))
+                    if (ItemRotations.TryGetValue(itemType.itemName, out var value))
                         itemType.restingRotation.Set(value[0], value[1], value[2]);
                     
                     UpdateItemRotation(itemType);
