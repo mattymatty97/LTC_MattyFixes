@@ -36,21 +36,20 @@ namespace MattyFixes.Patches
                 
                 if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                     return;
+
+                if (GameNetworkManager.Instance.gameHasStarted) 
+                    return;
                 
-                if (!GameNetworkManager.Instance.gameHasStarted)
-                {
-                    __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
-                }
+                __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
+
+                if (!__instance.IsServer) 
+                    return;
                 
-                if (__instance.IsServer || GameNetworkManager.Instance.gameHasStarted)
-                {
-                    if (__instance.scrapPersistedThroughRounds)
-                        __instance.transform.position -= Vector3.down * __instance.itemProperties.verticalOffset;
+                if (__instance.scrapPersistedThroughRounds)
+                    __instance.transform.position += Vector3.down * __instance.itemProperties.verticalOffset;
                     
-                    if (__instance.itemProperties.itemSpawnsOnGround)
-                        __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
-                }
-            
+                __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+
             }
         
             private static void Postfix(GrabbableObject __instance, bool __state)
