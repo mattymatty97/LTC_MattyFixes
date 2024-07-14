@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Collections;
 using UnityEngine;
+using UnityEngine.Pool;
 using UnityEngine.Rendering;
 
 namespace MattyFixes.Utils;
 
 public static class VerticesExtensions
 {
-    private static Dictionary<Mesh, Vector3[]> _verticesCache = new();
+    private static readonly Dictionary<Mesh, Vector3[]> VerticesCache = new();
     
     //GrabbableObject EXTENSIONS
     public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset,
@@ -102,6 +103,7 @@ public static class VerticesExtensions
     }
 
     //Transform Extensions
+    // ReSharper disable once MemberCanBePrivate.Global
     public static void GetChildVertexes(this Transform target, List<Vector3> outVertices, Matrix4x4 localMatrix = default,
         string path = "", Func<List<Vector3>, string> logFunc = null, Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
@@ -134,7 +136,7 @@ public static class VerticesExtensions
                                 continue;
                             }
 
-                            if (_verticesCache.TryGetValue(mesh, out var cached))
+                            if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
                                 rVertices.AddRange(cached);
                             }
@@ -150,7 +152,7 @@ public static class VerticesExtensions
                                 else
                                     tmpMesh.GetNonReadableVertices(rVertices);
 
-                                _verticesCache[mesh] = rVertices.ToArray();
+                                VerticesCache[mesh] = rVertices.ToArray();
 
                                 UnityEngine.Object.Destroy(tmpMesh);
                             }
@@ -171,11 +173,11 @@ public static class VerticesExtensions
 
                             if (mesh == null)
                             {
-                                logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                                logWarningCallback?.Invoke($"{filter.GetType()} in {path} is missing a mesh");
                                 continue;
                             }
                             
-                            if (_verticesCache.TryGetValue(mesh, out var cached))
+                            if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
                                 rVertices.AddRange(cached);
                             }
@@ -186,7 +188,7 @@ public static class VerticesExtensions
                                 else
                                     mesh.GetNonReadableVertices(rVertices);
                                 
-                                _verticesCache[mesh] = rVertices.ToArray();
+                                VerticesCache[mesh] = rVertices.ToArray();
                             }
 
                             break;
@@ -239,8 +241,6 @@ public static class VerticesExtensions
         string path = "", Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
     {
-        var renderers = target.GetComponents<Renderer>();
-
         logDebugCallback?.Invoke($"Caching {path}/{target.name}");
 
         if (target.TryGetComponent<ScanNodeProperties>(out _))
@@ -266,7 +266,7 @@ public static class VerticesExtensions
                         continue;
                     }
 
-                    if (!_verticesCache.ContainsKey(mesh))
+                    if (!VerticesCache.ContainsKey(mesh))
                     {
                         var tmpMesh = new Mesh();
 
@@ -296,11 +296,11 @@ public static class VerticesExtensions
 
                     if (mesh == null)
                     {
-                        logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                        logWarningCallback?.Invoke($"{filter.GetType()} in {path} is missing a mesh");
                         continue;
                     }
 
-                    if (!_verticesCache.ContainsKey(mesh))
+                    if (!VerticesCache.ContainsKey(mesh))
                     {
                         if (mesh.isReadable)
                             mesh.CacheVertices();
@@ -365,7 +365,7 @@ public static class VerticesExtensions
     private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null)
     {
         
-        if (_verticesCache.ContainsKey(nonReadableMesh))
+        if (VerticesCache.ContainsKey(nonReadableMesh))
             return;
         
         // Handle vertices
@@ -379,7 +379,7 @@ public static class VerticesExtensions
             MattyFixes.Log.LogWarning($"Requesting vertices for {nonReadableMesh}");
             AsyncGPUReadback.Request(verticesBuffer, totalSize, 0, request =>
             {
-                if (_verticesCache.ContainsKey(nonReadableMesh))
+                if (VerticesCache.ContainsKey(nonReadableMesh))
                     return;
                 
                 Mesh meshCopy = new();
@@ -392,7 +392,7 @@ public static class VerticesExtensions
                 {
                     meshCopy.GetVertices(tmp);
                     MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {nonReadableMesh}");
-                    _verticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
+                    VerticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
                 }
                 
                 UnityEngine.Object.Destroy(meshCopy);
@@ -404,14 +404,14 @@ public static class VerticesExtensions
     private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null)
     {
         
-        if (_verticesCache.ContainsKey(readableMesh))
+        if (VerticesCache.ContainsKey(readableMesh))
             return;
         
         using (ListPool<Vector3>.Get(out var tmp))
         {
             readableMesh.GetVertices(tmp);
             MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {readableMesh}");
-            _verticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
+            VerticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
         }
 
     }
