@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.Rendering;
 
 namespace MattyFixes.Utils;
 
 public static class VerticesExtensions
 {
+    private static Dictionary<Mesh, Vector3[]> _verticesCache = new();
+    
     //GrabbableObject EXTENSIONS
     public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset,
         Action<string> logWarningCallback = null,
@@ -119,14 +122,25 @@ public static class VerticesExtensions
                                 continue;
                             }
 
-                            var tmpMesh = new Mesh();
-
-                            skinnedMeshRenderer.BakeMesh(tmpMesh, true);
-
-                            if (tmpMesh.isReadable)
-                                tmpMesh.GetVertices(rVertices);
+                            if (_verticesCache.TryGetValue(skinnedMeshRenderer.sharedMesh, out var cached))
+                            {
+                                rVertices.AddRange(cached);
+                            }
                             else
-                                tmpMesh.GetNonReadableVertices(rVertices);
+                            {
+
+                                var tmpMesh = new Mesh();
+
+                                skinnedMeshRenderer.BakeMesh(tmpMesh, true);
+
+                                if (tmpMesh.isReadable)
+                                    tmpMesh.GetVertices(rVertices);
+                                else
+                                    tmpMesh.GetNonReadableVertices(rVertices);
+
+                                _verticesCache[skinnedMeshRenderer.sharedMesh] = rVertices.ToArray();
+                            }
+
                             break;
                         }
                         case MeshRenderer:
@@ -146,11 +160,21 @@ public static class VerticesExtensions
                                 logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
                                 continue;
                             }
-
-                            if (mesh.isReadable)
-                                mesh.GetVertices(rVertices);
+                            
+                            if (_verticesCache.TryGetValue(mesh, out var cached))
+                            {
+                                rVertices.AddRange(cached);
+                            }
                             else
-                                mesh.GetNonReadableVertices(rVertices);
+                            {
+                                if (mesh.isReadable)
+                                    mesh.GetVertices(rVertices);
+                                else
+                                    mesh.GetNonReadableVertices(rVertices);
+                                
+                                _verticesCache[mesh] = rVertices.ToArray();
+                            }
+
                             break;
                         }
                         case ParticleSystemRenderer:
@@ -187,14 +211,97 @@ public static class VerticesExtensions
                 ListPool<Vector3>.Release(childVertices);
             }
 
-            foreach (var vertex in vertices)
-            {
-                outVertices.Add(localMatrix.MultiplyPoint3x4(vertex));
-            }
+            outVertices.AddRange(vertices.Select(localMatrix.MultiplyPoint3x4));
         }
 
         logDebugCallback?.Invoke($"Found {path}/{target.name} {logFunc?.Invoke(outVertices)}");
         return outVertices;
+    }
+    
+    public static void CacheChildVertexes(this Transform target,
+        string path = "", Action<string> logWarningCallback = null,
+        Action<string> logDebugCallback = null)
+    {
+        var renderers = target.GetComponents<Renderer>();
+
+        logDebugCallback?.Invoke($"Caching {path}/{target.name}");
+
+        if (target.TryGetComponent<ScanNodeProperties>(out _))
+        {
+            logDebugCallback?.Invoke($"Skipping {path}/{target.name}!");
+            return;
+        }
+
+        foreach (var renderer in renderers.Where(r => r.enabled))
+        {
+
+            switch (renderer)
+            {
+                case SkinnedMeshRenderer skinnedMeshRenderer:
+                {
+                    var mesh = skinnedMeshRenderer.sharedMesh;
+                    if (mesh == null)
+                    {
+                        logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                        continue;
+                    }
+
+                    if (!_verticesCache.ContainsKey(skinnedMeshRenderer.sharedMesh))
+                    {
+                        var tmpMesh = new Mesh();
+
+                        skinnedMeshRenderer.BakeMesh(tmpMesh, true);
+
+                        if (tmpMesh.isReadable)
+                            tmpMesh.CacheVertices(skinnedMeshRenderer.sharedMesh);
+                        else
+                            tmpMesh.CacheNonReadableVertices(skinnedMeshRenderer.sharedMesh);
+                        
+                    }
+
+                    break;
+                }
+                case MeshRenderer:
+                {
+                    var filter = renderer.GetComponent<MeshFilter>();
+                    if (filter == null)
+                    {
+                        logWarningCallback?.Invoke(
+                            $"{renderer.GetType()} in {path} is missing a MeshFilter");
+                        continue;
+                    }
+
+                    var mesh = filter.sharedMesh;
+
+                    if (mesh == null)
+                    {
+                        logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                        continue;
+                    }
+
+                    if (!_verticesCache.ContainsKey(mesh))
+                    {
+                        if (mesh.isReadable)
+                            mesh.CacheVertices();
+                        else
+                            mesh.CacheNonReadableVertices();
+                    }
+
+                    break;
+                }
+                case ParticleSystemRenderer:
+                    break;
+            }
+
+            logDebugCallback?.Invoke(
+                    $"Caching {path}/{target.name} renderer {renderer.GetType().Name}");
+
+            foreach (Transform child in target.transform)
+            {
+                CacheChildVertexes(child, path + "/" + target.name,
+                    logWarningCallback, logDebugCallback);
+            }
+        }
     }
 
 
@@ -202,10 +309,7 @@ public static class VerticesExtensions
 
     private static void GetNonReadableVertices(this Mesh nonReadableMesh, List<Vector3> vertices)
     {
-        Mesh meshCopy = new()
-        {
-            indexFormat = nonReadableMesh.indexFormat
-        };
+        Mesh meshCopy = new();
 
         // Handle vertices
         nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
@@ -221,6 +325,59 @@ public static class VerticesExtensions
         }
 
         meshCopy.GetVertices(vertices);
+    }
+    
+    private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null)
+    {
+        
+        if (_verticesCache.ContainsKey(nonReadableMesh))
+            return;
+        
+        // Handle vertices
+        nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
+        if (nonReadableMesh.vertexBufferCount > 0)
+        {
+            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+            int totalSize = verticesBuffer.stride * verticesBuffer.count;
+            var attributes = nonReadableMesh.GetVertexAttributes();
+            var count = nonReadableMesh.vertexCount;
+            MattyFixes.Log.LogWarning($"Requesting vertices for {nonReadableMesh}");
+            AsyncGPUReadback.Request(verticesBuffer, request =>
+            {
+                if (_verticesCache.ContainsKey(nonReadableMesh))
+                    return;
+                
+                Mesh meshCopy = new();
+                var data = request.GetData<byte>();
+                meshCopy.SetVertexBufferParams(count, attributes);
+                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+                verticesBuffer.Release();
+
+                using (CollectionPool<List<Vector3>, Vector3>.Get(out var tmp))
+                {
+                    meshCopy.GetVertices(tmp);
+                    MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {nonReadableMesh}");
+                    _verticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
+                }
+                
+            });
+        }
+
+    }
+
+    private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null)
+    {
+        
+        if (_verticesCache.ContainsKey(readableMesh))
+            return;
+        
+        using (CollectionPool<List<Vector3>, Vector3>.Get(out var tmp))
+        {
+            readableMesh.GetVertices(tmp);
+            MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {readableMesh}");
+            _verticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
+        }
+
     }
 
     private static bool TryGetVerticalOffset(List<Vector3> vertices, out float offset)
@@ -239,7 +396,13 @@ public static class VerticesExtensions
         if (vertices.Count == 0)
             return false;
 
-        centroid = vertices.Aggregate(Vector3.zero, (agg, v) => agg + v, agg => agg / vertices.Count);
+        centroid = vertices.Aggregate(Vector3.zero, (agg, v) =>
+        {
+            agg.x += v.x;
+            agg.y += v.y;
+            agg.z += v.z;
+            return agg;
+        }, agg => agg / vertices.Count);
         return true;
     }
 
@@ -256,7 +419,10 @@ public static class VerticesExtensions
         maxRadius = float.MinValue;
         foreach (var vertex in vertices)
         {
-            var tVertex = vertex - centroid;
+            var tVertex = vertex;
+            tVertex.x -= centroid.x;
+            tVertex.y -= centroid.y;
+            tVertex.z -= centroid.z;
             var magnitude = tVertex.magnitude;
             if (magnitude < minRadius)
                 minRadius = magnitude;
