@@ -249,6 +249,9 @@ public static class VerticesExtensions
             return;
         }
 
+        using var pooledRenderers = ListPool<Renderer>.Get(out var renderers);
+        target.GetComponents(renderers);
+
         foreach (var renderer in renderers.Where(r => r.enabled))
         {
 
