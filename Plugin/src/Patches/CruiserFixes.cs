@@ -1,12 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using GameNetcodeStuff;
 using HarmonyLib;
 using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Pool;
 
 namespace MattyFixes.Patches;
 
@@ -85,7 +85,7 @@ internal class CruiserFixes
             physicsRegion.itemDropCollider.ClosestPoint(hit.point) != hit.point) 
             return;
         
-        var networkObject = transform.GetComponent<NetworkObject>();
+        var networkObject = transform.GetComponentInParent<NetworkObject>();
         if (networkObject == null) 
             return;
         
@@ -105,8 +105,6 @@ internal class CruiserFixes
         return MattyFixes.PluginConfig.CruiserFixes.Enabled.Value &&
                MattyFixes.PluginConfig.CruiserFixes.AlternateItemDrop.Value;
     }
-    
-    
     
 /*
     [HarmonyPostfix]

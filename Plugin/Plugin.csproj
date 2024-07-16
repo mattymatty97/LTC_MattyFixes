@@ -4,7 +4,7 @@
         <RootNamespace>MattyFixes</RootNamespace>
         <AssemblyName>$(RootNamespace)</AssemblyName>
         <Product>Matty's Fixes</Product>
-        <Version>1.1.8</Version>
+        <Version>1.1.9</Version>
         <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>Latest</LangVersion>
         <PackageId>MattyFixes</PackageId>
