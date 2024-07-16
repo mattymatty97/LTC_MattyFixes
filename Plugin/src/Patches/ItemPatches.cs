@@ -326,7 +326,7 @@ namespace MattyFixes.Patches
         [HarmonyPriority(20)]
         private static void SpawnPostfix(NetworkBehaviour __instance)
         {
-            if (!(__instance is GrabbableObject grabbable))
+            if (__instance is not GrabbableObject grabbable)
                 return;
 
             if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))

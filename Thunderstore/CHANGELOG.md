@@ -1,3 +1,6 @@
+## v1.1.8
+- tweaks for dropping items in the cruiser
+
 ## v1.1.7
 - performance of ItemClipping vertex go Brrr.. ( thx DiFFoZ )
 

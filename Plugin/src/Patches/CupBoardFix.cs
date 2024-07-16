@@ -142,7 +142,7 @@ namespace MattyFixes.Patches
             var sqrTolerance = tolerance * tolerance;
             try
             {
-                var pos = grabbable.transform.position;
+                var pos = grabbable.transform.position + Vector3.down * grabbable.itemProperties.verticalOffset;
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 

@@ -20,7 +20,7 @@ namespace MattyFixes
     {
         public const string GUID = "mattymatty.MattyFixes";
         public const string NAME = "Matty's Fixes";
-        public const string VERSION = "1.1.7";
+        public const string VERSION = "1.1.8";
 
         internal static MattyFixes INSTANCE { get; private set;}
         internal static ManualLogSource Log;
@@ -133,6 +133,11 @@ namespace MattyFixes
                 //AlternateLightningParticles
                 LightingParticle.Enabled = config.Bind("AlternateLightningParticles","enabled",true
                     ,"use sphere shape for lightning particles ");
+                //CruiserFixes
+                CruiserFixes.Enabled = config.Bind("CruiserFixes","enabled",true
+                    ,"global toggle for cruiser patches");
+                CruiserFixes.AlternateItemDrop = config.Bind("CruiserFixes","alternate_item_drop",true
+                    ,"global toggle for cruiser patches");
                 //VerboseDebug
                 Debug.Verbose = config.Bind("Debug","verbose",false
                     ,"print more logs!");
@@ -170,6 +175,8 @@ namespace MattyFixes
                     LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
                     LethalConfigProxy.AddConfig(OutOfBounds.Enabled, false);
                     LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
+                    LethalConfigProxy.AddConfig(CruiserFixes.Enabled, false);
+                    LethalConfigProxy.AddConfig(CruiserFixes.AlternateItemDrop, false);
                     LethalConfigProxy.AddConfig(Debug.Verbose, false);
                 }
                 
@@ -236,6 +243,12 @@ namespace MattyFixes
             internal static class LightingParticle
             {
                 internal static ConfigEntry<bool> Enabled;
+            }
+            
+            internal static class CruiserFixes
+            {
+                internal static ConfigEntry<bool> Enabled;
+                internal static ConfigEntry<bool> AlternateItemDrop;
             }
             
             internal static class Debug

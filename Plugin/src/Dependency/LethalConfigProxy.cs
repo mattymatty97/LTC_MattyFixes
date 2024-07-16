@@ -1,5 +1,7 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Globalization;
+using System.Runtime.CompilerServices;
 using BepInEx.Configuration;
+using JetBrains.Annotations;
 using LethalConfig;
 using LethalConfig.ConfigItems;
 using LethalConfig.ConfigItems.Options;
@@ -25,7 +27,8 @@ namespace MattyFixes.Dependency
         {
             LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(entry, new TextInputFieldOptions()
             {
-                RequiresRestart = requiresRestart
+                RequiresRestart = requiresRestart,
+                Name = GetPrettyConfigName(entry)
             }));
         }
         
@@ -34,7 +37,8 @@ namespace MattyFixes.Dependency
         {
             LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(entry, new BoolCheckBoxOptions()
             {
-                RequiresRestart = requiresRestart
+                RequiresRestart = requiresRestart,
+                Name = GetPrettyConfigName(entry)
             }));
         }
         
@@ -43,7 +47,8 @@ namespace MattyFixes.Dependency
         {
             LethalConfigManager.AddConfigItem(new FloatInputFieldConfigItem(entry, new FloatInputFieldOptions()
             {
-                RequiresRestart = requiresRestart
+                RequiresRestart = requiresRestart,
+                Name = GetPrettyConfigName(entry)
             }));
         }
         
@@ -52,8 +57,14 @@ namespace MattyFixes.Dependency
         {
             LethalConfigManager.AddConfigItem(new IntInputFieldConfigItem(entry, new IntInputFieldOptions()
             {
-                RequiresRestart = requiresRestart
+                RequiresRestart = requiresRestart,
+                Name = GetPrettyConfigName(entry)
             }));
+        }
+
+        private static string GetPrettyConfigName<T>(ConfigEntry<T> entry)
+        {
+            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(entry.Definition.Key.Replace("_", " "));
         }
         
     }
