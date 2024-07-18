@@ -1,3 +1,6 @@
+## v1.1.10
+- apply OutOfBounds vertical offset on save instead of load
+
 ## v1.1.8
 - tweaks for dropping items in the cruiser
 
