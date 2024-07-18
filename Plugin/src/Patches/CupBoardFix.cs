@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -56,35 +55,6 @@ namespace MattyFixes.Patches
         private static void ResetOnDisconnect()
         {
             _closet = null;
-        }
-        
-        [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-        internal class ObjectCreationPatch
-        {
-            private static void Prefix(GrabbableObject __instance, out bool __state)
-            {
-                __state = __instance.itemProperties.itemSpawnsOnGround;
-                
-                if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
-                    return;
-                //do not run twice if OutOfBounds is active too
-                if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
-                    return;
-
-                if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
-                    return;
-                
-                if (!GameNetworkManager.Instance.gameHasStarted)
-                {
-                    __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
-                }
-                
-            }
-        
-            private static void Postfix(GrabbableObject __instance, bool __state)
-            {
-                __instance.itemProperties.itemSpawnsOnGround = __state;
-            }
         }
 
         [HarmonyPostfix]
@@ -147,7 +117,11 @@ namespace MattyFixes.Patches
         private static void ShelfCheck(GrabbableObject grabbable, float offset = 0f)
         {
             MattyFixes.Log.LogDebug(
-                $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard Triggered!");
+                $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Cupboard Triggered!");
+            
+            if (grabbable is ClipboardItem || (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
+                return;
+            
             var tolerance = MattyFixes.PluginConfig.CupBoard.Tolerance.Value;
             var sqrTolerance = tolerance * tolerance;
             try
@@ -156,7 +130,7 @@ namespace MattyFixes.Patches
                 var pos = grabbable.transform.position + Vector3.down * offset;
                 
                 MattyFixes.Log.LogDebug(
-                    $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
+                    $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Item pos {pos}!");
 
                 var closet = GetCloset();
                 
@@ -165,7 +139,7 @@ namespace MattyFixes.Patches
                 Vector3? closest = null;
                 
                 MattyFixes.Log.LogDebug(
-                    $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard pos {closet.Collider.bounds.min}!");
+                    $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Cupboard pos {closet.Collider.bounds.min}!");
 
                 var closetCollider = closet.Collider;
                 if (pos.y < closetCollider.bounds.max.y && closetCollider.bounds.SqrDistance(pos) <= sqrTolerance)
@@ -175,7 +149,7 @@ namespace MattyFixes.Patches
                         var hitPoint = shelfHolder.Collider.ClosestPoint(pos);
                         var tmp = pos.y - hitPoint.y;
                         
-                        MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Shelve is {tmp} away!");
+                        MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Shelve is {tmp} away!");
                         
                         if (tmp >= 0 && tmp < distance)
                         {
@@ -185,9 +159,9 @@ namespace MattyFixes.Patches
                         }
                     }
                     
-                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Chosen Shelve is {distance} away!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Chosen Shelve is {distance} away!");
 
-                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With hitpoint at {closest}!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - With hitpoint at {closest}!");
                 }
                 
                 var transform = grabbable.transform;
@@ -202,12 +176,12 @@ namespace MattyFixes.Patches
                     {
                         newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
                     }
-                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - With newPos at {newPos}!");
+                    MattyFixes.VerboseLog($"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - With newPos at {newPos}!");
                     transform.parent = closet.gameObject.transform;
                     transform.position = newPos;
                     grabbable.targetFloorPosition = transform.localPosition;
                     MattyFixes.Log.LogDebug(
-                        $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Pos on shelf {newPos}!");
+                        $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Pos on shelf {newPos}!");
 
                 }
             }

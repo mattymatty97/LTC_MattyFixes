@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using BepInEx;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.Utils;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -14,7 +12,6 @@ namespace MattyFixes.Patches
     [HarmonyPatch]
     internal class OutOfBoundsItemsFix
     {
-
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
@@ -37,7 +34,7 @@ namespace MattyFixes.Patches
                 __state = __instance.itemProperties.itemSpawnsOnGround;
                 
                 
-                if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+                if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                     return;
                 
                 if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
@@ -45,8 +42,9 @@ namespace MattyFixes.Patches
                 
                 if(MattyFixes.PluginConfig.Debug.Verbose.Value)
                     MattyFixes.Log.LogDebug($"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing OutOfBounds");
-
-                if (GameNetworkManager.Instance.gameHasStarted) 
+                
+                //only run patch on join ( playerObject not yet assigned )
+                if (GameNetworkManager.Instance.localPlayerController != null) 
                     return;
                 
                 __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
@@ -54,10 +52,9 @@ namespace MattyFixes.Patches
                 if (!__instance.IsServer) 
                     return;
                 
-                
                 if (__instance.transform.parent == CupBoardFix.GetCloset().gameObject.transform)
                     __instance.itemProperties.itemSpawnsOnGround = false;
-                else
+                else if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                     __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
 
             }
