@@ -362,14 +362,17 @@ namespace MattyFixes.Patches
         }
 
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
+        [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
         [HarmonyPriority(900)]
-        private static void StartPrefix(GrabbableObject __instance)
+        private static void StartPrefix(NetworkBehaviour __instance)
         {
             if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
                 return;
+            
+            if (__instance is not GrabbableObject grabbable)
+                return;
 
-            var itemType = __instance.itemProperties;
+            var itemType = grabbable.itemProperties;
 
             if (ComputedItems.Contains(itemType))
                 return;
@@ -402,9 +405,9 @@ namespace MattyFixes.Patches
                     if (targetObject == null)
                         targetObject = __instance.gameObject;
 
-                    var grabbable = targetObject.GetComponent<GrabbableObject>();
+                    var prefabGrabbable = targetObject.GetComponent<GrabbableObject>();
 
-                    if (grabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning,
+                    if (prefabGrabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning,
                             MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
                         offset += +MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                     else
@@ -420,7 +423,7 @@ namespace MattyFixes.Patches
                 MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
             }
 
-            ComputedItems.Add(__instance.itemProperties);
+            ComputedItems.Add(grabbable.itemProperties);
         }
 
         private static void MakeMeshReadable(GameObject go, bool updateOriginal = false,

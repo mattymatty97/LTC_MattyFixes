@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
-using MattyFixes.Dependency;
+using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -97,6 +97,9 @@ namespace MattyFixes.Patches
             if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client || !networkManager.IsClient && !networkManager.IsHost)
                 return;
             
+            if (__instance.IsServer)
+                return;
+            
             var closet = GetCloset();
             
             if (closet.Unlockable.inStorage) 
@@ -109,7 +112,10 @@ namespace MattyFixes.Patches
             var grabbables = Object.FindObjectsOfType<GrabbableObject>();
             foreach (var grabbable in grabbables.Where(g => g.isInShipRoom))
             {
-                ShelfCheck(grabbable);
+                var offset = 0f;
+                if (grabbable.hasHitGround)
+                    offset = grabbable.itemProperties.verticalOffset;
+                ShelfCheck(grabbable, offset);
             }
         }
         
@@ -130,11 +136,15 @@ namespace MattyFixes.Patches
             var grabbables = Object.FindObjectsOfType<GrabbableObject>();
             foreach (var grabbable in grabbables.Where(g => g.isInShipRoom))
             {
-                ShelfCheck(grabbable);
+                var offset = 0f;
+                if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+                    if (grabbable.hasHitGround)
+                        offset = grabbable.itemProperties.verticalOffset;
+                ShelfCheck(grabbable, offset);
             }
         }
         
-        private static void ShelfCheck(GrabbableObject grabbable)
+        private static void ShelfCheck(GrabbableObject grabbable, float offset = 0f)
         {
             MattyFixes.Log.LogDebug(
                 $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Cupboard Triggered!");
@@ -142,7 +152,9 @@ namespace MattyFixes.Patches
             var sqrTolerance = tolerance * tolerance;
             try
             {
-                var pos = grabbable.transform.position + Vector3.down * grabbable.itemProperties.verticalOffset;
+                
+                var pos = grabbable.transform.position + Vector3.down * offset;
+                
                 MattyFixes.Log.LogDebug(
                     $"{grabbable.itemProperties.itemName}({grabbable.gameObject.GetInstanceID()}) - Item pos {pos}!");
 

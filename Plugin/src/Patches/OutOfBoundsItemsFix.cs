@@ -1,6 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
+using BepInEx;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Utils;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -31,11 +36,15 @@ namespace MattyFixes.Patches
             {
                 __state = __instance.itemProperties.itemSpawnsOnGround;
                 
+                
                 if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
                     return;
                 
                 if (__instance is ClipboardItem || (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                     return;
+                
+                if(MattyFixes.PluginConfig.Debug.Verbose.Value)
+                    MattyFixes.Log.LogDebug($"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing OutOfBounds");
 
                 if (GameNetworkManager.Instance.gameHasStarted) 
                     return;
@@ -45,10 +54,11 @@ namespace MattyFixes.Patches
                 if (!__instance.IsServer) 
                     return;
                 
-                if (__instance.scrapPersistedThroughRounds)
-                    __instance.transform.position += Vector3.down * __instance.itemProperties.verticalOffset;
-                    
-                __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+                
+                if (__instance.transform.parent == CupBoardFix.GetCloset().gameObject.transform)
+                    __instance.itemProperties.itemSpawnsOnGround = false;
+                else
+                    __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
 
             }
         
@@ -89,6 +99,53 @@ namespace MattyFixes.Patches
                 item.targetFloorPosition = transform.localPosition;
                 item.FallToGround();
             }
+        }
+
+        [HarmonyTranspiler]
+        [HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.SaveItemsInShip))]
+        private static IEnumerable<CodeInstruction> SaveItemsCorrectly(IEnumerable<CodeInstruction> instructions,
+            ILGenerator ilGenerator)
+        {
+            var codes = instructions.ToList();
+            var newOffsetMethod = AccessTools.Method(typeof(OutOfBoundsItemsFix), nameof(ApplyVerticalOffset));
+            var getTransformMethod = AccessTools.Property(typeof(Component), nameof(Component.transform)).GetMethod;
+            var getPositionMethod = AccessTools.Property(typeof(Transform), nameof(Transform.position)).GetMethod;
+
+            var matcher = new CodeMatcher(codes, ilGenerator);
+
+            matcher.MatchForward(false,
+                new CodeMatch(OpCodes.Ldloc_2),
+                new CodeMatch(OpCodes.Ldloc_0),
+                new CodeMatch(OpCodes.Ldloc_S),
+                new CodeMatch(OpCodes.Ldelem_Ref),
+                new CodeMatch(OpCodes.Callvirt, getTransformMethod),
+                new CodeMatch(OpCodes.Callvirt, getPositionMethod)
+            );
+
+            if (matcher.IsInvalid)
+            {
+                MattyFixes.Log.LogError("Cannot patch SaveItemsInShip");
+                MattyFixes.Log.LogDebug(string.Join("\n", codes));
+                return codes;
+            }
+
+            matcher.Advance(4);
+            matcher.Insert(new CodeInstruction(OpCodes.Dup));
+            matcher.Advance(3);
+            matcher.Insert(new CodeInstruction(OpCodes.Call, newOffsetMethod));
+            
+            MattyFixes.Log.LogInfo("SaveItemsInShip Patched");
+            return matcher.Instructions();
+        }
+
+        private static Vector3 ApplyVerticalOffset(GrabbableObject grabbable, Vector3 position)
+        {
+            if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+                return position;
+            var newPos = position + Vector3.down * grabbable.itemProperties.verticalOffset;
+            if (MattyFixes.PluginConfig.Debug.Verbose.Value)
+                MattyFixes.Log.LogDebug($"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) fixing saved position pos:{position} newpos:{newPos}");
+            return newPos;
         }
     }
 }

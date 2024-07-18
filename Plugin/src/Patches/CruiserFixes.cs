@@ -6,7 +6,6 @@ using HarmonyLib;
 using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Pool;
 
 namespace MattyFixes.Patches;
 
