@@ -21,6 +21,9 @@ namespace MattyFixes.Patches
             {
                 if (!__runOriginal)
                     return;
+                
+                if (!MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
+                    return;
 
                 if (__instance.radarIcon != null && __instance.radarIcon.gameObject != null && __instance.isInShipRoom)
                     Object.Destroy(__instance.radarIcon.gameObject);

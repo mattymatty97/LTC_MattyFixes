@@ -1,3 +1,7 @@
+## v1.1.11
+- Fix Apparatus spawning as plugged on lobby load
+- only apply OOB and ItemFixes if we just joined ( localPlayer still null )
+
 ## v1.1.10
 - apply OutOfBounds vertical offset on save instead of load
 

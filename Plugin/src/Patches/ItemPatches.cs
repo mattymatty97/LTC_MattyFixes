@@ -328,24 +328,26 @@ namespace MattyFixes.Patches
         {
             if (__instance is not GrabbableObject grabbable)
                 return;
+            
+            if (grabbable is ClipboardItem ||
+                (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
+                return;
 
-            if (!StartOfRound.Instance.shipInnerRoomBounds.bounds.Contains(__instance.transform.position))
+            if (StartOfRound.Instance.localPlayerController != null)
                 return;
 
             try
             {
-                if (MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
+                grabbable.isInElevator = true;
+                grabbable.isInShipRoom = true;
+                if (grabbable is LungProp lungProp)
                 {
-                    grabbable.isInElevator = true;
-                    grabbable.isInShipRoom = true;
+                    lungProp.isLungDocked = false;
+                    lungProp.isLungPowered = false;
+                    lungProp.isLungDockedInElevator = false;
                 }
-
-
+                
                 if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
-                    return;
-
-                if (grabbable is ClipboardItem ||
-                    (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
                     return;
 
                 grabbable.transform.rotation = Quaternion.Euler(
@@ -456,8 +458,6 @@ namespace MattyFixes.Patches
 
             foreach (var meshFilter in filters)
             {
-                var mesh = meshFilter.sharedMesh;
-
                 if (meshMap.TryGetValue(meshFilter, out var newmesh))
                 {
                     meshFilter.sharedMesh = newmesh;

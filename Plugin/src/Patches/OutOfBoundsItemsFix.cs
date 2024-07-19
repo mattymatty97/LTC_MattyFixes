@@ -44,7 +44,7 @@ namespace MattyFixes.Patches
                     MattyFixes.Log.LogDebug($"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing OutOfBounds");
                 
                 //only run patch on join ( playerObject not yet assigned )
-                if (GameNetworkManager.Instance.localPlayerController != null) 
+                if (StartOfRound.Instance.localPlayerController != null) 
                     return;
                 
                 __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
