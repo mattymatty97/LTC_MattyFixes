@@ -11,7 +11,7 @@ internal partial class MattyFixes
     {
         internal static void Init()
         {
-            var config = INSTANCE.Config;
+            var config = Instance.Config;
             ;
             //Initialize Configs
             //ReadableMeshes
@@ -116,7 +116,7 @@ internal partial class MattyFixes
 
         internal static void RemoveOrphans()
         {
-            var config = INSTANCE.Config;
+            var config = Instance.Config;
             //remove unused options
             var orphanedEntriesProp = config.GetType()
                 .GetProperty("OrphanedEntries", BindingFlags.NonPublic | BindingFlags.Instance);

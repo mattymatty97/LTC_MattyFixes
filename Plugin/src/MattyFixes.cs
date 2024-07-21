@@ -19,13 +19,12 @@ internal partial class MattyFixes : BaseUnityPlugin
     public const string VERSION = "1.1.12";
     internal static ManualLogSource Log;
     
-    internal static readonly Random Random = new();
-    
-    internal static MattyFixes INSTANCE { get; private set; }
+    internal static MattyFixes Instance { get; private set; }
 
     private void Awake()
     {
-        INSTANCE = this;
+        if (Instance == null)
+            Instance = this;
         Log = Logger;
         try
         {

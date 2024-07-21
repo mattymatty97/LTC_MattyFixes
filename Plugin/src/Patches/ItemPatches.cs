@@ -263,7 +263,7 @@ internal static class ItemPatches
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var configEntry))
         {
             var ogRotation = item.restingRotation;
-            configEntry = MattyFixes.INSTANCE.Config.Bind(
+            configEntry = MattyFixes.Instance.Config.Bind(
                 $"ItemClipping.Rotations{(modName != null ? "." : "")}{modName}",
                 item.itemName
                     .Replace('\n', ' ')
