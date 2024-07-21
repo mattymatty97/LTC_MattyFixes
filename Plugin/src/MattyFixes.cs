@@ -1,14 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using BepInEx;
-using BepInEx.Bootstrap;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.PopUp;
-using PluginInfo = BepInEx.PluginInfo;
 
 namespace MattyFixes;
 
