@@ -2,26 +2,32 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using MattyFixes.Patches;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace MattyFixes.Utils;
 
 public static class VerticesExtensions
 {
     private static readonly Dictionary<Mesh, Vector3[]> VerticesCache = new();
-    
+
     //GrabbableObject EXTENSIONS
     public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset,
         Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
     {
-        string Logfunc(List<Vector3> vertices) => TryGetVerticalOffset(vertices, out var min) ? $"min {min}" : "";
+        string Logfunc(List<Vector3> vertices)
+        {
+            return TryGetVerticalOffset(vertices, out var min) ? $"min {min}" : "";
+        }
+
         var transform = target.transform;
         var localMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(
-            target.itemProperties.restingRotation.x, (150 + target.itemProperties.floorYOffset) + 90f,
+            target.itemProperties.restingRotation.x, target.itemProperties.floorYOffset + 90f,
             target.itemProperties.restingRotation.z), transform.localScale);
         var vertices = ListPool<Vector3>.Get();
 
@@ -39,8 +45,10 @@ public static class VerticesExtensions
         Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
     {
-        string Logfunc(List<Vector3> vertices) =>
-            TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+        string Logfunc(List<Vector3> vertices)
+        {
+            return TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+        }
 
         var transform = target.transform;
         var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
@@ -57,13 +65,16 @@ public static class VerticesExtensions
         Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
     {
-        string Logfunc(List<Vector3> vertices) =>
-            TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+        string Logfunc(List<Vector3> vertices)
+        {
+            return TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+        }
 
         var transform = target.transform;
         var vertices = ListPool<Vector3>.Get();
 
-        transform.GetChildVertexes(vertices, Matrix4x4.identity, logFunc: Logfunc, logWarningCallback: logWarningCallback,
+        transform.GetChildVertexes(vertices, Matrix4x4.identity, logFunc: Logfunc,
+            logWarningCallback: logWarningCallback,
             logDebugCallback: logDebugCallback);
 
         using var nativeVertices = vertices.ToNativeArray(AllocatorManager.Temp);
@@ -104,7 +115,8 @@ public static class VerticesExtensions
 
     //Transform Extensions
     // ReSharper disable once MemberCanBePrivate.Global
-    public static void GetChildVertexes(this Transform target, List<Vector3> outVertices, Matrix4x4 localMatrix = default,
+    public static void GetChildVertexes(this Transform target, List<Vector3> outVertices,
+        Matrix4x4 localMatrix = default,
         string path = "", Func<List<Vector3>, string> logFunc = null, Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
     {
@@ -119,11 +131,10 @@ public static class VerticesExtensions
         using var pooledRenderers = ListPool<Renderer>.Get(out var renderers);
         target.GetComponents(renderers);
 
-        using (ListPool<Vector3>.Get(out List<Vector3> vertices))
+        using (ListPool<Vector3>.Get(out var vertices))
         {
             foreach (var renderer in renderers.Where(r => r.enabled))
-            {
-                using (ListPool<Vector3>.Get(out List<Vector3> rVertices))
+                using (ListPool<Vector3>.Get(out var rVertices))
                 {
                     switch (renderer)
                     {
@@ -142,7 +153,6 @@ public static class VerticesExtensions
                             }
                             else
                             {
-
                                 var tmpMesh = new Mesh();
 
                                 skinnedMeshRenderer.BakeMesh(tmpMesh, true);
@@ -154,7 +164,7 @@ public static class VerticesExtensions
 
                                 VerticesCache[mesh] = rVertices.ToArray();
 
-                                UnityEngine.Object.Destroy(tmpMesh);
+                                Object.Destroy(tmpMesh);
                             }
 
                             break;
@@ -176,7 +186,7 @@ public static class VerticesExtensions
                                 logWarningCallback?.Invoke($"{filter.GetType()} in {path} is missing a mesh");
                                 continue;
                             }
-                            
+
                             if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
                                 rVertices.AddRange(cached);
@@ -187,7 +197,7 @@ public static class VerticesExtensions
                                     mesh.GetVertices(rVertices);
                                 else
                                     mesh.GetNonReadableVertices(rVertices);
-                                
+
                                 VerticesCache[mesh] = rVertices.ToArray();
                             }
 
@@ -214,7 +224,6 @@ public static class VerticesExtensions
 
                     vertices.AddRange(rVertices);
                 }
-            }
 
             foreach (Transform child in target.transform)
             {
@@ -236,7 +245,7 @@ public static class VerticesExtensions
 
         logDebugCallback?.Invoke($"Found {path}/{target.name} {logFunc?.Invoke(outVertices)}");
     }
-    
+
     public static void CacheChildVertexes(this Transform target,
         string path = "", Action<string> logWarningCallback = null,
         Action<string> logDebugCallback = null)
@@ -254,7 +263,6 @@ public static class VerticesExtensions
 
         foreach (var renderer in renderers.Where(r => r.enabled))
         {
-
             switch (renderer)
             {
                 case SkinnedMeshRenderer skinnedMeshRenderer:
@@ -276,8 +284,8 @@ public static class VerticesExtensions
                             tmpMesh.CacheVertices(mesh);
                         else
                             tmpMesh.CacheNonReadableVertices(mesh);
-                        
-                        UnityEngine.Object.Destroy(tmpMesh);
+
+                        Object.Destroy(tmpMesh);
                     }
 
                     break;
@@ -315,13 +323,11 @@ public static class VerticesExtensions
             }
 
             logDebugCallback?.Invoke(
-                    $"Caching {path}/{target.name} renderer {renderer.GetType().Name}");
+                $"Caching {path}/{target.name} renderer {renderer.GetType().Name}");
 
             foreach (Transform child in target.transform)
-            {
                 CacheChildVertexes(child, path + "/" + target.name,
                     logWarningCallback, logDebugCallback);
-            }
         }
     }
 
@@ -330,24 +336,22 @@ public static class VerticesExtensions
 
     private static void GetNonReadableVertices(this Mesh nonReadableMesh, List<Vector3> vertices)
     {
+       
         Mesh meshCopy = new();
 
         // Handle vertices
         nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
         if (nonReadableMesh.vertexBufferCount > 0)
         {
-            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
-            int totalSize = verticesBuffer.stride * verticesBuffer.count;
+            var verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+            var totalSize = verticesBuffer.stride * verticesBuffer.count;
 
-            byte[] data = ArrayPool<byte>.Shared.Rent(totalSize);
+            var data = ArrayPool<byte>.Shared.Rent(totalSize);
             verticesBuffer.GetData(data, 0, 0, totalSize);
 
-            int vertexAttributeCount = nonReadableMesh.vertexAttributeCount;
-            NativeArray<VertexAttributeDescriptor> vertexAttributes = new NativeArray<VertexAttributeDescriptor>(vertexAttributeCount, Allocator.Temp);
-            for (var i = 0; i < vertexAttributeCount; i++)
-            {
-                vertexAttributes[i] = nonReadableMesh.GetVertexAttribute(i);
-            }
+            var vertexAttributeCount = nonReadableMesh.vertexAttributeCount;
+            var vertexAttributes = new NativeArray<VertexAttributeDescriptor>(vertexAttributeCount, Allocator.Temp);
+            for (var i = 0; i < vertexAttributeCount; i++) vertexAttributes[i] = nonReadableMesh.GetVertexAttribute(i);
 
             meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, vertexAttributes);
             meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
@@ -359,34 +363,33 @@ public static class VerticesExtensions
 
         meshCopy.GetVertices(vertices);
 
-        UnityEngine.Object.Destroy(meshCopy);
+        Object.Destroy(meshCopy);
     }
-    
+
     private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null)
     {
-        
         if (VerticesCache.ContainsKey(nonReadableMesh))
             return;
-        
+
         // Handle vertices
         nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
         if (nonReadableMesh.vertexBufferCount > 0)
         {
-            GraphicsBuffer verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
-            int totalSize = verticesBuffer.stride * verticesBuffer.count;
+            var verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+            var totalSize = verticesBuffer.stride * verticesBuffer.count;
             var attributes = nonReadableMesh.GetVertexAttributes();
             var count = nonReadableMesh.vertexCount;
             MattyFixes.Log.LogWarning($"Requesting vertices for {nonReadableMesh}");
             AsyncGPUReadback.Request(verticesBuffer, totalSize, 0, request =>
             {
+                verticesBuffer.Release();
                 if (VerticesCache.ContainsKey(nonReadableMesh))
                     return;
-                
+
                 Mesh meshCopy = new();
                 var data = request.GetData<byte>();
                 meshCopy.SetVertexBufferParams(count, attributes);
                 meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
-                verticesBuffer.Release();
 
                 using (ListPool<Vector3>.Get(out var tmp))
                 {
@@ -394,26 +397,23 @@ public static class VerticesExtensions
                     MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {nonReadableMesh}");
                     VerticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
                 }
-                
-                UnityEngine.Object.Destroy(meshCopy);
+
+                Object.Destroy(meshCopy);
             });
         }
-
     }
 
     private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null)
     {
-        
         if (VerticesCache.ContainsKey(readableMesh))
             return;
-        
+
         using (ListPool<Vector3>.Get(out var tmp))
         {
             readableMesh.GetVertices(tmp);
             MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {readableMesh}");
             VerticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
         }
-
     }
 
     private static bool TryGetVerticalOffset(List<Vector3> vertices, out float offset)
@@ -425,12 +425,8 @@ public static class VerticesExtensions
         var minOffset = float.MaxValue;
 
         foreach (var v in vertices)
-        {
             if (v.y < minOffset)
-            {
                 minOffset = v.y;
-            }
-        }
 
         offset = -minOffset;
         return true;
@@ -444,10 +440,7 @@ public static class VerticesExtensions
 
         var sum = Vector3.zero;
 
-        foreach (var v in vertices)
-        {
-            sum += v;
-        }
+        foreach (var v in vertices) sum += v;
 
         centroid = sum / vertices.Count;
         return true;
@@ -468,7 +461,7 @@ public static class VerticesExtensions
         {
             var tVertex = vertex - centroid;
             var magnitude = tVertex.sqrMagnitude;
-            
+
             if (magnitude < minRadius)
                 minRadius = magnitude;
             if (magnitude > maxRadius)

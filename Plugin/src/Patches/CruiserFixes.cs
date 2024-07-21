@@ -34,7 +34,7 @@ internal class CruiserFixes
 
         if (!matcher.IsValid)
         {
-            MattyFixes.Log.LogError($"Failed to patch DiscardHeldObject for Cruiser!");
+            MattyFixes.Log.LogError("Failed to patch DiscardHeldObject for Cruiser!");
             MattyFixes.Log.LogWarning("DiscardHeldObject:\n" + string.Join("\n", matcher.Instructions()));
             return codes;
         }
@@ -53,7 +53,7 @@ internal class CruiserFixes
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PlayerControllerB), nameof(PlayerControllerB.DiscardHeldObject))]
-    private static void PreventCruiserDrop(PlayerControllerB __instance, 
+    private static void PreventCruiserDrop(PlayerControllerB __instance,
         ref bool placeObject,
         ref NetworkObject parentObjectTo,
         ref Vector3 placePosition,
@@ -61,7 +61,7 @@ internal class CruiserFixes
     {
         if (!AlternateCruiserParenting())
             return;
-        
+
         if (placeObject)
             return;
 
@@ -75,21 +75,21 @@ internal class CruiserFixes
         if (Physics.Raycast(center, -__instance.transform.up, out hit, 4f, 1342179585, QueryTriggerInteraction.Ignore))
             transform = hit.collider.gameObject.transform;
 
-        if (transform == null) 
+        if (transform == null)
             return;
-        
+
         var physicsRegion = transform.GetComponentInChildren<PlayerPhysicsRegion>();
         if (physicsRegion == null ||
             !physicsRegion.allowDroppingItems ||
-            physicsRegion.itemDropCollider.ClosestPoint(hit.point) != hit.point) 
+            physicsRegion.itemDropCollider.ClosestPoint(hit.point) != hit.point)
             return;
-        
+
         var networkObject = transform.GetComponentInParent<NetworkObject>();
-        if (networkObject == null) 
+        if (networkObject == null)
             return;
-        
+
         var verticalOffset = 0.04f + grabbable.itemProperties.verticalOffset;
-                    
+
         MattyFixes.Log.LogInfo("parenting item to Cruiser");
         placePosition = networkObject.transform.InverseTransformPoint(
             hit.point + hit.transform.up * verticalOffset);
@@ -97,14 +97,14 @@ internal class CruiserFixes
         placeObject = true;
         matchRotationOfParent = false;
     }
-    
+
 
     private static bool AlternateCruiserParenting()
     {
         return MattyFixes.PluginConfig.CruiserFixes.Enabled.Value &&
                MattyFixes.PluginConfig.CruiserFixes.AlternateItemDrop.Value;
     }
-    
+
 /*
     [HarmonyPostfix]
     [HarmonyPatch(typeof(VehicleCollisionTrigger), nameof(VehicleCollisionTrigger.OnTriggerEnter))]

@@ -1,71 +1,68 @@
 ﻿using System.Globalization;
 using System.Runtime.CompilerServices;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
-using JetBrains.Annotations;
 using LethalConfig;
 using LethalConfig.ConfigItems;
 using LethalConfig.ConfigItems.Options;
-using UnityEngine;
 
-namespace MattyFixes.Dependency
+namespace MattyFixes.Dependency;
+
+public static class LethalConfigProxy
 {
-    public static class LethalConfigProxy
+    private static bool? _enabled;
+
+    public static bool Enabled
     {
-        private static bool? _enabled;
+        get
+        {
+            _enabled ??= Chainloader.PluginInfos.ContainsKey("ainavt.lc.lethalconfig");
+            return _enabled.Value;
+        }
+    }
 
-        public static bool Enabled
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void AddConfig(ConfigEntry<string> entry, bool requiresRestart = false)
+    {
+        LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(entry, new TextInputFieldOptions
         {
-            get
-            {
-                _enabled ??= BepInEx.Bootstrap.Chainloader.PluginInfos.ContainsKey("ainavt.lc.lethalconfig");
-                return _enabled.Value;
-            }
-        }
+            RequiresRestart = requiresRestart,
+            Name = GetPrettyConfigName(entry)
+        }));
+    }
 
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static void AddConfig(ConfigEntry<string> entry, bool requiresRestart = false)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void AddConfig(ConfigEntry<bool> entry, bool requiresRestart = false)
+    {
+        LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(entry, new BoolCheckBoxOptions
         {
-            LethalConfigManager.AddConfigItem(new TextInputFieldConfigItem(entry, new TextInputFieldOptions()
-            {
-                RequiresRestart = requiresRestart,
-                Name = GetPrettyConfigName(entry)
-            }));
-        }
-        
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static void AddConfig(ConfigEntry<bool> entry, bool requiresRestart = false)
-        {
-            LethalConfigManager.AddConfigItem(new BoolCheckBoxConfigItem(entry, new BoolCheckBoxOptions()
-            {
-                RequiresRestart = requiresRestart,
-                Name = GetPrettyConfigName(entry)
-            }));
-        }
-        
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static void AddConfig(ConfigEntry<float> entry, bool requiresRestart = false)
-        {
-            LethalConfigManager.AddConfigItem(new FloatInputFieldConfigItem(entry, new FloatInputFieldOptions()
-            {
-                RequiresRestart = requiresRestart,
-                Name = GetPrettyConfigName(entry)
-            }));
-        }
-        
-        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        public static void AddConfig(ConfigEntry<int> entry, bool requiresRestart = false)
-        {
-            LethalConfigManager.AddConfigItem(new IntInputFieldConfigItem(entry, new IntInputFieldOptions()
-            {
-                RequiresRestart = requiresRestart,
-                Name = GetPrettyConfigName(entry)
-            }));
-        }
+            RequiresRestart = requiresRestart,
+            Name = GetPrettyConfigName(entry)
+        }));
+    }
 
-        private static string GetPrettyConfigName<T>(ConfigEntry<T> entry)
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void AddConfig(ConfigEntry<float> entry, bool requiresRestart = false)
+    {
+        LethalConfigManager.AddConfigItem(new FloatInputFieldConfigItem(entry, new FloatInputFieldOptions
         {
-            return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(entry.Definition.Key.Replace("_", " "));
-        }
-        
+            RequiresRestart = requiresRestart,
+            Name = GetPrettyConfigName(entry)
+        }));
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    public static void AddConfig(ConfigEntry<int> entry, bool requiresRestart = false)
+    {
+        LethalConfigManager.AddConfigItem(new IntInputFieldConfigItem(entry, new IntInputFieldOptions
+        {
+            RequiresRestart = requiresRestart,
+            Name = GetPrettyConfigName(entry)
+        }));
+    }
+
+    private static string GetPrettyConfigName<T>(ConfigEntry<T> entry)
+    {
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(entry.Definition.Key.Replace("_", " "));
     }
 }

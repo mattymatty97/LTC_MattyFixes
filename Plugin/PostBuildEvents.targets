@@ -5,7 +5,7 @@
         <GameDirTargetsFile>GameDirectory.targets</GameDirTargetsFile>
         <GameDirTargetsFullPath>$(ProjectDir)..\$(GameDirTargetsFile)</GameDirTargetsFullPath>
     </PropertyGroup>
-    
+
     <!-- Ensure the user (you!) has actually set everything up properly. -->
     <Target Name="EnsureGameDirectoryDefined" BeforeTargets="PrepareForBuild">
         <PropertyGroup>
