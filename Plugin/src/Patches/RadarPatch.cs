@@ -9,14 +9,6 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal class RadarPatch
 {
-    [HarmonyFinalizer]
-    [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-    private static Exception GracefullyHandleExceptionsFromMods(GrabbableObject __instance, Exception __exception)
-    {
-        if (__exception != null) Debug.LogException(__exception);
-        return null;
-    }
-
     [HarmonyPatch]
     internal class ItemInShipPatch
     {
@@ -31,7 +23,7 @@ internal class RadarPatch
             if (!MattyFixes.PluginConfig.Radar.RemoveOnShip.Value)
                 return;
 
-            if (__instance.radarIcon != null && __instance.radarIcon.gameObject != null && __instance.isInShipRoom)
+            if (__instance.isInShipRoom && __instance.radarIcon != null)
                 Object.Destroy(__instance.radarIcon.gameObject);
         }
     }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using MattyFixes.Utils;
@@ -272,7 +273,7 @@ internal static class ItemPatches
                     .Replace("\'", "")
                     .Replace("[", "")
                     .Replace("]", ""),
-                $"{ogRotation.x},{ogRotation.y},{ogRotation.z}",
+                $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{item.floorYOffset.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}",
                 "Comma separated Vector3 rotation");
             MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = configEntry;
             configEntry.SettingChanged += (sender, args) => { UpdateItemRotation(modName, item); };
@@ -282,11 +283,15 @@ internal static class ItemPatches
 
         var rotation = configEntry.Value.Split(",");
 
-        if (rotation.Length == 3)
-            item.restingRotation.Set(
-                float.Parse(rotation[0]),
-                float.Parse(rotation[1]),
-                float.Parse(rotation[2]));
+        if (rotation.Length != 3)
+            return;
+        
+        item.restingRotation.Set(
+            float.Parse(rotation[0], CultureInfo.InvariantCulture),
+            float.Parse(rotation[1], CultureInfo.InvariantCulture),
+            float.Parse(rotation[2], CultureInfo.InvariantCulture));
+
+        item.floorYOffset = (int)Math.Round(item.restingRotation.y);
     }
 
     [HarmonyPostfix]

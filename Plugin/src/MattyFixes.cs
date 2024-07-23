@@ -16,7 +16,7 @@ internal partial class MattyFixes : BaseUnityPlugin
 {
     public const string GUID = "mattymatty.MattyFixes";
     public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.12";
+    public const string VERSION = "1.1.13";
     internal static ManualLogSource Log;
     
     internal static MattyFixes Instance { get; private set; }

@@ -1,3 +1,10 @@
+## v1.1.13
+- apply/store yRotation too
+
+## v1.1.12
+- Fix GraphicsBuffer leak
+- add Compatibility config for GI and SIS
+
 ## v1.1.11
 - Fix Apparatus spawning as plugged on lobby load
 - only apply OOB and ItemFixes if we just joined ( localPlayer still null )
