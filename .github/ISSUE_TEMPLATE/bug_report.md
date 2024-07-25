@@ -28,5 +28,8 @@ If applicable, add screenshots to help explain your problem.
  - Mod: [e.g. v1.4.4]
  - Experimental: [yes/no]
 
+**Logs**
+Please attach logs of the issue where applicable
+
 **Additional context**
 Add any other context about the problem here.
