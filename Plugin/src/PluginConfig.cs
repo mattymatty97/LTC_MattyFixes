@@ -48,8 +48,8 @@ internal partial class MattyFixes
                 , "fix rotation of newly spawned items");
             ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0.01f
                 , "additional y offset for items on the ground");
-            ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", "Comedy:0.085,Tragedy:0.085"
-                , "y offset for items on the ground");
+            ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", ""
+                , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
                 , "prevent items from falling below the ship");
