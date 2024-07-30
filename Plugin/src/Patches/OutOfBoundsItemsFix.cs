@@ -96,6 +96,10 @@ internal class OutOfBoundsItemsFix
     {
         if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             return position;
+        
+        if (grabbable.isHeld || grabbable.isHeldByEnemy || !grabbable.hasHitGround)
+            return position;
+        
         var newPos = position + Vector3.down * grabbable.itemProperties.verticalOffset;
         if (MattyFixes.PluginConfig.Debug.Verbose.Value)
             MattyFixes.Log.LogDebug(

@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
+using System.Globalization;
 using System.Reflection;
 using BepInEx.Configuration;
 using MattyFixes.Dependency;
+using UnityEngine;
 
 namespace MattyFixes;
 
@@ -83,13 +85,17 @@ internal partial class MattyFixes
                     continue;
 
                 var name = parts[0];
-                if (float.TryParse(parts[1], out var value))
+                if (float.TryParse(parts[1], 
+                        NumberStyles.Float | NumberStyles.AllowThousands, 
+                        NumberFormatInfo.InvariantInfo, 
+                        out var value))
                     ItemClipping.ManualOffsetMap.Add(name, value);
             }
 
 
             if (LethalConfigProxy.Enabled)
             {
+                LethalConfigProxy.AddButton("Cleanup", "Clear old entries", "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)", "Clean&Save", RemoveOrphans);
                 LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                 LethalConfigProxy.AddConfig(ReadableMeshes.FixLightning);
                 LethalConfigProxy.AddConfig(NameFixes.Enabled);
@@ -164,7 +170,7 @@ internal partial class MattyFixes
             internal static ConfigEntry<float> VerticalOffset;
             internal static ConfigEntry<string> ManualOffsets;
             internal static readonly Dictionary<string, float> ManualOffsetMap = new();
-            internal static readonly Dictionary<Item, ConfigEntry<string>> ItemRotations = new();
+            internal static readonly Dictionary<Item, ItemRotationConfig> ItemRotations = new();
         }
 
         internal static class OutOfBounds
@@ -201,5 +207,11 @@ internal partial class MattyFixes
                 internal static ConfigEntry<bool> SaveItemRotation;
             }
         }
+    }
+    
+    internal readonly struct ItemRotationConfig(Vector3 original, ConfigEntry<string> config)
+    {
+        public Vector3 Original { get; } = original;
+        public ConfigEntry<string> Config { get; } = config;
     }
 }

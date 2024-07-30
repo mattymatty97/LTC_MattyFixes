@@ -8,7 +8,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Rendering;
-using Random = System.Random;
 
 namespace MattyFixes.Patches;
 
@@ -261,10 +260,17 @@ internal static class ItemPatches
 
     private static void UpdateItemRotation(string modName, Item item)
     {
-        if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var configEntry))
+        if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
             var ogRotation = item.restingRotation;
-            configEntry = MattyFixes.Instance.Config.Bind(
+            ogRotation.y = item.floorYOffset;
+            
+            var vanillaDefault =
+                $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
+            
+            rotationConfig = new MattyFixes.ItemRotationConfig(
+                ogRotation,
+                MattyFixes.Instance.Config.Bind(
                 $"ItemClipping.Rotations{(modName != null ? "." : "")}{modName}",
                 item.itemName
                     .Replace('\n', ' ')
@@ -273,23 +279,27 @@ internal static class ItemPatches
                     .Replace("\'", "")
                     .Replace("[", "")
                     .Replace("]", ""),
-                $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{item.floorYOffset.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}",
-                "Comma separated Vector3 rotation");
-            MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = configEntry;
-            configEntry.SettingChanged += (sender, args) => { UpdateItemRotation(modName, item); };
+                "default",
+                $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
+            );
+            
+            MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
+            rotationConfig.Config.SettingChanged += (sender, args) => { UpdateItemRotation(modName, item); };
             if (LethalConfigProxy.Enabled)
-                LethalConfigProxy.AddConfig(configEntry);
+                LethalConfigProxy.AddConfig(rotationConfig.Config);
         }
 
-        var rotation = configEntry.Value.Split(",");
-
-        if (rotation.Length != 3)
-            return;
+        var parsedRotation = rotationConfig.Original;
         
-        item.restingRotation.Set(
-            float.Parse(rotation[0], CultureInfo.InvariantCulture),
-            float.Parse(rotation[1], CultureInfo.InvariantCulture),
-            float.Parse(rotation[2], CultureInfo.InvariantCulture));
+        var rotation = rotationConfig.Config.Value.Split(",");
+
+        if (rotation.Length == 3)
+            parsedRotation = new Vector3(
+                float.Parse(rotation[0], CultureInfo.InvariantCulture),
+                float.Parse(rotation[1], CultureInfo.InvariantCulture),
+                float.Parse(rotation[2], CultureInfo.InvariantCulture));
+
+        item.restingRotation = parsedRotation;
 
         item.floorYOffset = (int)Math.Round(item.restingRotation.y);
     }
@@ -313,7 +323,8 @@ internal static class ItemPatches
             if (LethalLevelLoaderProxy.Enabled)
                 LethalLevelLoaderProxy.GetModdedItems(in itemDict);
 
-            foreach (var itemType in __instance.allItemsList.itemsList) itemDict.TryAdd(itemType, null);
+            foreach (var itemType in __instance.allItemsList.itemsList) 
+                itemDict.TryAdd(itemType, null);
 
             foreach (var (item, mod) in itemDict)
                 try
@@ -335,16 +346,13 @@ internal static class ItemPatches
                 }
         }
 
-
-        MattyFixes.PluginConfig.RemoveOrphans();
-
         if (AsyncLoggerProxy.Enabled)
             AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", "Finished");
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
-    [HarmonyPriority(20)]
+    [HarmonyPriority(0)]
     private static void SpawnPostfix(NetworkBehaviour __instance)
     {
         if (__instance is not GrabbableObject grabbable)
