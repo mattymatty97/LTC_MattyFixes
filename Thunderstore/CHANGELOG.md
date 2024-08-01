@@ -1,3 +1,6 @@
+## v1.1.15
+- fix items slowly clipping into the floor on lobby reload
+
 ## v1.1.14
 - better handling of config values
 
