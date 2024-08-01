@@ -31,9 +31,9 @@ internal partial class MattyFixes
             CupBoard.Enabled = config.Bind("CupBoard", "enabled", true
                 , "prevent items inside or above the Storage Closet from falling to the ground");
             CupBoard.Tolerance = config.Bind("CupBoard", "tolerance", 0.05f
-                , "how loosely \"close\" the items have to be to the top of the closet for them to count X/Z");
+                , new ConfigDescription("how loosely \"close\" the items have to be to the top of the closet for them to count X/Z", new AcceptableValueRange<float>(0f, 0.5f)));
             CupBoard.Shift = config.Bind("CupBoard", "shift", 0.1f
-                , "how much move the items inside the closet on load ( only if ItemClippingFix disabled )");
+                , new ConfigDescription("how much move the items inside the closet on load ( only if ItemClippingFix disabled )", new AcceptableValueRange<float>(0f,0.5f)));
             //Radar
             Radar.Enabled = config.Bind("Radar", "enabled", true
                 , "remove orphan radar icons from deleted/collected scrap");
@@ -47,14 +47,14 @@ internal partial class MattyFixes
             ItemClipping.RotateOnSpawn = config.Bind("ItemClipping", "rotate_on_spawn", true
                 , "fix rotation of newly spawned items");
             ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0.01f
-                , "additional y offset for items on the ground");
+                , new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(0f,0.5f)));
             ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", ""
                 , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
                 , "prevent items from falling below the ship");
-            OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.2f
-                , "vertical offset to apply to objects on load");
+            OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.1f
+                , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.0001f,1f)));
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");

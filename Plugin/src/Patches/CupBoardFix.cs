@@ -13,26 +13,13 @@ internal class CupBoardFix
 {
     private static ClosetHolder? _closet;
 
-    internal static ClosetHolder GetCloset()
+    internal static ClosetHolder Closet
     {
-        if (!_closet.HasValue)
+        get
         {
-            ClosetHolder holder;
-            holder = new ClosetHolder();
-            holder.Unlockable = StartOfRound.Instance.unlockablesList.unlockables
-                .Find(u => u.unlockableName == "Cupboard");
-            holder.gameObject = GameObject.Find("/Environment/HangarShip/StorageCloset");
-            holder.Collider = holder.gameObject.GetComponent<Collider>();
-            holder.Shelves = holder.gameObject.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s =>
-                new ShelfHolder
-                {
-                    Shelf = s,
-                    Collider = s.GetComponent<Collider>()
-                }).ToList();
-            _closet = holder;
+            _closet ??= new ClosetHolder();
+            return _closet.Value;
         }
-
-        return _closet.Value;
     }
 
     [HarmonyPostfix]
@@ -57,7 +44,7 @@ internal class CupBoardFix
         if (__instance.IsServer)
             return;
 
-        var closet = GetCloset();
+        var closet = Closet;
 
         if (closet.Unlockable.inStorage)
             return;
@@ -80,7 +67,7 @@ internal class CupBoardFix
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadShipGrabbableItems))]
     private static void OnServerSpawn(GrabbableObject __instance)
     {
-        var closet = GetCloset();
+        var closet = Closet;
 
         if (closet.Unlockable.inStorage)
             return;
@@ -118,7 +105,7 @@ internal class CupBoardFix
             MattyFixes.Log.LogDebug(
                 $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Item pos {pos}!");
 
-            var closet = GetCloset();
+            var closet = Closet;
 
             var distance = float.MaxValue;
             PlaceableObjectsSurface found = null;
@@ -178,10 +165,24 @@ internal class CupBoardFix
 
     internal struct ClosetHolder
     {
-        public UnlockableItem Unlockable;
-        public GameObject gameObject;
-        public List<ShelfHolder> Shelves;
-        public Collider Collider;
+        public readonly UnlockableItem Unlockable;
+        public readonly GameObject gameObject;
+        public readonly List<ShelfHolder> Shelves;
+        public readonly Collider Collider;
+
+        public ClosetHolder()
+        {
+            Unlockable = StartOfRound.Instance.unlockablesList.unlockables
+                .Find(u => u.unlockableName == "Cupboard");
+            gameObject = GameObject.Find("/Environment/HangarShip/StorageCloset");
+            Collider = gameObject.GetComponent<Collider>();
+            Shelves = gameObject.GetComponentsInChildren<PlaceableObjectsSurface>().Select(s =>
+                new ShelfHolder
+                {
+                    Shelf = s,
+                    Collider = s.GetComponent<Collider>()
+                }).ToList();
+        }
     }
 
     internal struct ShelfHolder

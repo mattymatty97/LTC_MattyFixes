@@ -101,6 +101,8 @@ internal class OutOfBoundsItemsFix
             return position;
         
         var newPos = position + Vector3.down * grabbable.itemProperties.verticalOffset;
+        newPos += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+        
         if (MattyFixes.PluginConfig.Debug.Verbose.Value)
             MattyFixes.Log.LogDebug(
                 $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) fixing saved position pos:{position} newpos:{newPos}");
@@ -108,40 +110,43 @@ internal class OutOfBoundsItemsFix
     }
 
     [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-    [HarmonyPriority(Priority.Last)]
     internal class ObjectCreationPatch
     {
+        [HarmonyPriority(Priority.Last)]
         private static void Prefix(GrabbableObject __instance, out bool __state)
         {
             __state = __instance.itemProperties.itemSpawnsOnGround;
 
-
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                 return;
 
+            //only run patch on join ( playerObject not yet assigned )
+            if (StartOfRound.Instance.localPlayerController)
+                return;
+            
             if (__instance is ClipboardItem ||
                 (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                 return;
 
             if (MattyFixes.PluginConfig.Debug.Verbose.Value)
                 MattyFixes.Log.LogDebug(
-                    $"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing OutOfBounds");
+                    $"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing GrabbableObject Prefix");
 
-            //only run patch on join ( playerObject not yet assigned )
-            if (StartOfRound.Instance.localPlayerController != null)
-                return;
 
-            __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
+            if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+            {
+                __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
+            }
 
-            if (!__instance.IsServer)
-                return;
-
-            if (__instance.transform.parent == CupBoardFix.GetCloset().gameObject.transform)
-                __instance.itemProperties.itemSpawnsOnGround = false;
-            else if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
-                __instance.transform.position += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
+            if (MattyFixes.PluginConfig.CupBoard.Enabled.Value)
+            {
+                if (CupBoardFix.Closet.gameObject &&
+                    __instance.transform.parent == CupBoardFix.Closet.gameObject.transform)
+                    __instance.itemProperties.itemSpawnsOnGround = false;
+            }
         }
 
+        [HarmonyPriority(Priority.First)]
         private static void Postfix(GrabbableObject __instance, bool __state)
         {
             __instance.itemProperties.itemSpawnsOnGround = __state;

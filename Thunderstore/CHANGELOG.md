@@ -1,3 +1,6 @@
+## v1.1.14
+- better handling of config values
+
 ## v1.1.13
 - apply/store yRotation too
 

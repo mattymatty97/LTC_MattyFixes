@@ -26,10 +26,10 @@ public static class LethalLevelLoaderProxy
         MattyFixes.Log.LogWarning("LethalLevelLoader found, reading PatchedContent.ExtendedItems");
         foreach (var extendedItem in PatchedContent.ExtendedItems)
         {
-            if (extendedItem.ExtendedMod == PatchedContent.VanillaMod)
+            if (extendedItem.ContentType == ContentType.Vanilla)
                 continue;
 
-            items.TryAdd(extendedItem.Item, extendedItem.ModName);
+            items.TryAdd(extendedItem.Item, $"LethalLevelLoader|{extendedItem.ModName}");
         }
     }
 }

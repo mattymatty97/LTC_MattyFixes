@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using MattyFixes.Utils;
@@ -235,7 +237,7 @@ internal static class ItemPatches
             return true;
 
         //only tweak if we're placing inside the CupBoard
-        if (__instance.transform.parent?.parent != CupBoardFix.GetCloset().gameObject.transform)
+        if (__instance.transform.parent.parent != CupBoardFix.Closet.gameObject?.transform)
             return true;
 
         try
@@ -271,7 +273,7 @@ internal static class ItemPatches
             rotationConfig = new MattyFixes.ItemRotationConfig(
                 ogRotation,
                 MattyFixes.Instance.Config.Bind(
-                $"ItemClipping.Rotations{(modName != null ? "." : "")}{modName}",
+                $"ItemClipping.Rotations|{modName}",
                 item.itemName
                     .Replace('\n', ' ')
                     .Replace('\t', ' ')
@@ -324,7 +326,7 @@ internal static class ItemPatches
                 LethalLevelLoaderProxy.GetModdedItems(in itemDict);
 
             foreach (var itemType in __instance.allItemsList.itemsList) 
-                itemDict.TryAdd(itemType, null);
+                itemDict.TryAdd(itemType, "Vanilla");
 
             foreach (var (item, mod) in itemDict)
                 try

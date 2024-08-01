@@ -23,6 +23,6 @@ public static class LethalLibProxy
     public static void GetModdedItems([NotNull] in Dictionary<Item, string> items)
     {
         MattyFixes.Log.LogWarning("LethalLib found, reading Items.scrapItems");
-        foreach (var scrapItem in Items.scrapItems) items.TryAdd(scrapItem.item, scrapItem.modName);
+        foreach (var scrapItem in Items.scrapItems) items.TryAdd(scrapItem.item, $"LethalLib|{scrapItem.modName}");
     }
 }
