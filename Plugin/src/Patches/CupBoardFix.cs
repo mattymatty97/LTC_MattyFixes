@@ -64,6 +64,7 @@ internal class CupBoardFix
     }
 
     [HarmonyPostfix]
+    [HarmonyPriority(0)]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadShipGrabbableItems))]
     private static void OnServerSpawn(GrabbableObject __instance)
     {
@@ -148,8 +149,6 @@ internal class CupBoardFix
                     newPos = ItemPatches.FixPlacement(closest.Value, found.transform, grabbable);
                 else
                     newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
-                MattyFixes.VerboseLog(
-                    $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - With newPos at {newPos}!");
                 transform.parent = closet.gameObject.transform;
                 transform.position = newPos;
                 grabbable.targetFloorPosition = transform.localPosition;

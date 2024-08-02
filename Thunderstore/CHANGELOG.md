@@ -1,3 +1,6 @@
+## v1.1.16
+- make OutOfBound load patch actually work ( hopefully )
+
 ## v1.1.15
 - fix items slowly clipping into the floor on lobby reload
 

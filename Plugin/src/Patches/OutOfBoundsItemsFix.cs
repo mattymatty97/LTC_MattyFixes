@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
@@ -12,6 +13,24 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal class OutOfBoundsItemsFix
 {
+    private static bool _isInitializingGame = false;
+    
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
+    private static void MarkServerStart(StartOfRound __instance)
+    {
+        _isInitializingGame = true;
+        __instance.StartCoroutine(WaitCoupleOfFrames());
+    }
+
+    private static IEnumerator WaitCoupleOfFrames()
+    {
+        yield return new WaitForEndOfFrame();
+        yield return new WaitForEndOfFrame();
+        yield return new WaitForEndOfFrame();
+        _isInitializingGame = false;
+    }
+    
     [HarmonyPostfix]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
     private static void CorrectlyPlaceAllUnlockables(StartOfRound __instance)
@@ -120,8 +139,8 @@ internal class OutOfBoundsItemsFix
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                 return;
 
-            //only run patch on join ( playerObject not yet assigned )
-            if (StartOfRound.Instance.localPlayerController)
+            //only run patch on join
+            if (!_isInitializingGame)
                 return;
             
             if (__instance is ClipboardItem ||
