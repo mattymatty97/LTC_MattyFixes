@@ -139,8 +139,8 @@ internal class OutOfBoundsItemsFix
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                 return;
 
-            //only run patch on join
-            if (!_isInitializingGame)
+            //only run patch on join ( playerObject not yet assigned ) or if server is loading
+            if (StartOfRound.Instance.localPlayerController && !_isInitializingGame)
                 return;
             
             if (__instance is ClipboardItem ||
