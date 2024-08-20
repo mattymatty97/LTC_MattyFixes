@@ -47,14 +47,14 @@ internal partial class MattyFixes
             ItemClipping.RotateOnSpawn = config.Bind("ItemClipping", "rotate_on_spawn", true
                 , "fix rotation of newly spawned items");
             ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0.01f
-                , new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(0f,0.5f)));
+                , new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(-0.5f,0.5f)));
             ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", ""
                 , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
                 , "prevent items from falling below the ship");
             OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.1f
-                , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.0001f,1f)));
+                , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.001f,1f)));
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");
@@ -66,15 +66,6 @@ internal partial class MattyFixes
             //VerboseDebug
             Debug.Verbose = config.Bind("Debug", "verbose", false
                 , "print more logs!");
-            
-            //Compatibility
-            //GeneralImprovements
-            Compatibility.GeneralImprovements.FixItemsLoadingSameRotation = config.Bind("Compatibility.GeneralImprovements", "FixItemsLoadingSameRotation", false
-                , "maintain restored rotation from GeneralImprovements");
-            //SmartItemSaving
-            Compatibility.SmartItemSaving.SaveItemRotation = config.Bind("Compatibility.SmartItemSaving", "SaveItemRotation", false
-                , "maintain restored rotation from SmartItemSaving");
-            
 
 
             var offsetString = ItemClipping.ManualOffsets.Value;
@@ -115,8 +106,6 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(CruiserFixes.Enabled);
                 LethalConfigProxy.AddConfig(CruiserFixes.AlternateItemDrop);
                 LethalConfigProxy.AddConfig(Debug.Verbose);
-                LethalConfigProxy.AddConfig(Compatibility.GeneralImprovements.FixItemsLoadingSameRotation);
-                LethalConfigProxy.AddConfig(Compatibility.SmartItemSaving.SaveItemRotation);
             }
         }
 
@@ -193,19 +182,6 @@ internal partial class MattyFixes
         internal static class Debug
         {
             internal static ConfigEntry<bool> Verbose;
-        }
-        
-        internal static class Compatibility
-        {
-            internal static class GeneralImprovements
-            {
-                internal static ConfigEntry<bool> FixItemsLoadingSameRotation;
-            }
-            
-            internal static class SmartItemSaving
-            {
-                internal static ConfigEntry<bool> SaveItemRotation;
-            }
         }
     }
     

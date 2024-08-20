@@ -135,7 +135,7 @@ internal class OutOfBoundsItemsFix
         private static void Prefix(GrabbableObject __instance, out bool __state)
         {
             __state = __instance.itemProperties.itemSpawnsOnGround;
-
+            
             if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
                 return;
 
@@ -146,11 +146,6 @@ internal class OutOfBoundsItemsFix
             if (__instance is ClipboardItem ||
                 (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
                 return;
-
-            if (MattyFixes.PluginConfig.Debug.Verbose.Value)
-                MattyFixes.Log.LogDebug(
-                    $"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing GrabbableObject Prefix");
-
 
             if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             {
@@ -163,6 +158,12 @@ internal class OutOfBoundsItemsFix
                     __instance.transform.parent == CupBoardFix.Closet.gameObject.transform)
                     __instance.itemProperties.itemSpawnsOnGround = false;
             }
+            
+            if (MattyFixes.PluginConfig.Debug.Verbose.Value)
+                MattyFixes.Log.LogDebug(
+                    $"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing GrabbableObject Prefix\n" +
+                    $"OnGround - was: {__state} is:{__instance.itemProperties.itemSpawnsOnGround}");
+
         }
 
         [HarmonyPriority(Priority.First)]

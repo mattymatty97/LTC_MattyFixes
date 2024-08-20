@@ -281,9 +281,9 @@ public static class VerticesExtensions
                         skinnedMeshRenderer.BakeMesh(tmpMesh, true);
 
                         if (tmpMesh.isReadable)
-                            tmpMesh.CacheVertices(mesh);
+                            tmpMesh.CacheVertices(mesh, logWarningCallback, logDebugCallback);
                         else
-                            tmpMesh.CacheNonReadableVertices(mesh);
+                            tmpMesh.CacheNonReadableVertices(mesh, logWarningCallback, logDebugCallback);
 
                         Object.Destroy(tmpMesh);
                     }
@@ -366,7 +366,8 @@ public static class VerticesExtensions
         Object.Destroy(meshCopy);
     }
 
-    private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null)
+    private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null, Action<string> logWarningCallback = null,
+    Action<string> logDebugCallback = null)
     {
         if (VerticesCache.ContainsKey(nonReadableMesh))
             return;
@@ -379,7 +380,7 @@ public static class VerticesExtensions
             var totalSize = verticesBuffer.stride * verticesBuffer.count;
             var attributes = nonReadableMesh.GetVertexAttributes();
             var count = nonReadableMesh.vertexCount;
-            MattyFixes.Log.LogWarning($"Requesting vertices for {nonReadableMesh}");
+            logDebugCallback?.Invoke($"Requesting vertices for {nonReadableMesh} from GPU");
             AsyncGPUReadback.Request(verticesBuffer, totalSize, 0, request =>
             {
                 verticesBuffer.Release();
@@ -394,7 +395,7 @@ public static class VerticesExtensions
                 using (ListPool<Vector3>.Get(out var tmp))
                 {
                     meshCopy.GetVertices(tmp);
-                    MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {nonReadableMesh}");
+                    logDebugCallback?.Invoke($"Cached {tmp.Count} vertices for {nonReadableMesh}");
                     VerticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
                 }
 
@@ -403,7 +404,8 @@ public static class VerticesExtensions
         }
     }
 
-    private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null)
+    private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null, Action<string> logWarningCallback = null,
+        Action<string> logDebugCallback = null)
     {
         if (VerticesCache.ContainsKey(readableMesh))
             return;
@@ -411,7 +413,7 @@ public static class VerticesExtensions
         using (ListPool<Vector3>.Get(out var tmp))
         {
             readableMesh.GetVertices(tmp);
-            MattyFixes.Log.LogDebug($"Cached {tmp.Count} vertices for {readableMesh}");
+            logDebugCallback?.Invoke($"Cached {tmp.Count} vertices for {readableMesh}");
             VerticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
         }
     }

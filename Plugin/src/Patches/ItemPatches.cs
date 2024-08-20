@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
+using System.Text.RegularExpressions;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using MattyFixes.Utils;
@@ -270,17 +269,14 @@ internal static class ItemPatches
             var vanillaDefault =
                 $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
             
+            var filteredModName = Regex.Replace(modName,@"[\n\t\\\'\[\]]", "").Trim();
+            var filteredItemName = Regex.Replace(item.itemName,@"[\n\t\\\'\[\]]", "").Trim();
+            
             rotationConfig = new MattyFixes.ItemRotationConfig(
                 ogRotation,
                 MattyFixes.Instance.Config.Bind(
-                $"ItemClipping.Rotations|{modName}",
-                item.itemName
-                    .Replace('\n', ' ')
-                    .Replace('\t', ' ')
-                    .Replace("\\", "")
-                    .Replace("\'", "")
-                    .Replace("[", "")
-                    .Replace("]", ""),
+                $"ItemClipping.Rotations|{filteredModName}",
+                filteredItemName,
                 "default",
                 $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
             );
@@ -382,14 +378,11 @@ internal static class ItemPatches
             if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                 return;
 
-            if (MattyFixes.PluginConfig.Compatibility.GeneralImprovements.FixItemsLoadingSameRotation.Value || 
-                MattyFixes.PluginConfig.Compatibility.SmartItemSaving.SaveItemRotation.Value)
-                grabbable.floorYRot = (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - grabbable.itemProperties.floorYOffset);
+            grabbable.floorYRot = (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - grabbable.itemProperties.floorYOffset);
 
             grabbable.transform.rotation = Quaternion.Euler(
                 grabbable.itemProperties.restingRotation.x,
-                grabbable.floorYRot == -1 ? grabbable.transform.eulerAngles.y :
-                grabbable.floorYRot + grabbable.itemProperties.floorYOffset + 90f,
+                grabbable.transform.eulerAngles.y,
                 grabbable.itemProperties.restingRotation.z);
         }
         catch (Exception ex)
@@ -446,7 +439,7 @@ internal static class ItemPatches
 
                 if (prefabGrabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning,
                         MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
-                    offset += +MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+                    offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                 else
                     offset = itemType.verticalOffset;
             }

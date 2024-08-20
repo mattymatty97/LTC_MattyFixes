@@ -4,7 +4,7 @@
         <RootNamespace>MattyFixes</RootNamespace>
         <AssemblyName>$(RootNamespace)</AssemblyName>
         <Product>Matty's Fixes</Product>
-        <Version>1.1.16</Version>
+        <Version>1.1.17</Version>
         <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
         <TargetFramework>netstandard2.1</TargetFramework>
         <LangVersion>Latest</LangVersion>
