@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
+using BepInEx.Logging;
 using MattyFixes.Patches;
 using Unity.Collections;
 using UnityEngine;
@@ -16,9 +17,7 @@ public static class VerticesExtensions
     private static readonly Dictionary<Mesh, Vector3[]> VerticesCache = new();
 
     //GrabbableObject EXTENSIONS
-    public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset,
-        Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset)
     {
         string Logfunc(List<Vector3> vertices)
         {
@@ -31,9 +30,7 @@ public static class VerticesExtensions
             target.itemProperties.restingRotation.z), transform.localScale);
         var vertices = ListPool<Vector3>.Get();
 
-        transform.GetChildVertexes(vertices, localMatrix,
-            logFunc: Logfunc, logWarningCallback: logWarningCallback,
-            logDebugCallback: logDebugCallback);
+        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
         var retcode = TryGetVerticalOffset(vertices, out offset);
         ListPool<Vector3>.Release(vertices);
         return retcode;
@@ -41,9 +38,7 @@ public static class VerticesExtensions
 
 
     //GameObject EXTENSIONS
-    public static bool TryGetLocalCentroid(this GameObject target, out Vector3 centroid,
-        Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    public static bool TryGetLocalCentroid(this GameObject target, out Vector3 centroid)
     {
         string Logfunc(List<Vector3> vertices)
         {
@@ -54,16 +49,13 @@ public static class VerticesExtensions
         var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
         var vertices = ListPool<Vector3>.Get();
 
-        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc, logWarningCallback: logWarningCallback,
-            logDebugCallback: logDebugCallback);
+        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
         var retcode = TryGetCentroid(vertices, out centroid);
         ListPool<Vector3>.Release(vertices);
         return retcode;
     }
 
-    public static bool TryGetWorldCentroid(this GameObject target, out Vector3 centroid,
-        Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    public static bool TryGetWorldCentroid(this GameObject target, out Vector3 centroid)
     {
         string Logfunc(List<Vector3> vertices)
         {
@@ -73,9 +65,7 @@ public static class VerticesExtensions
         var transform = target.transform;
         var vertices = ListPool<Vector3>.Get();
 
-        transform.GetChildVertexes(vertices, Matrix4x4.identity, logFunc: Logfunc,
-            logWarningCallback: logWarningCallback,
-            logDebugCallback: logDebugCallback);
+        transform.GetChildVertexes(vertices, Matrix4x4.identity, logFunc: Logfunc);
 
         using var nativeVertices = vertices.ToNativeArray(AllocatorManager.Temp);
         transform.TransformPoints(nativeVertices);
@@ -88,9 +78,7 @@ public static class VerticesExtensions
         return retcode;
     }
 
-    public static bool TryGetRadius(this GameObject target, out float minRadius, out float maxRadius,
-        Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    public static bool TryGetRadius(this GameObject target, out float minRadius, out float maxRadius)
     {
         string Logfunc(List<Vector3> vertices)
         {
@@ -105,8 +93,7 @@ public static class VerticesExtensions
         var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
         var vertices = ListPool<Vector3>.Get();
 
-        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc, logWarningCallback: logWarningCallback,
-            logDebugCallback: logDebugCallback);
+        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
 
         var retcode = TryGetRadius(vertices, out minRadius, out maxRadius);
         ListPool<Vector3>.Release(vertices);
@@ -117,14 +104,14 @@ public static class VerticesExtensions
     // ReSharper disable once MemberCanBePrivate.Global
     public static void GetChildVertexes(this Transform target, List<Vector3> outVertices,
         Matrix4x4 localMatrix = default,
-        string path = "", Func<List<Vector3>, string> logFunc = null, Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+        string path = "", Func<List<Vector3>, string> logFunc = null)
     {
-        logDebugCallback?.Invoke($"Processing {path}/{target.name}");
+        
+        MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Processing {path}/{target.name}");
 
         if (target.TryGetComponent<ScanNodeProperties>(out _))
         {
-            logDebugCallback?.Invoke($"Skipping {path}/{target.name}!");
+            MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Skipping {path}/{target.name}!");
             return;
         }
 
@@ -143,7 +130,7 @@ public static class VerticesExtensions
                             var mesh = skinnedMeshRenderer.sharedMesh;
                             if (mesh == null)
                             {
-                                logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                                MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a mesh");
                                 continue;
                             }
 
@@ -174,8 +161,7 @@ public static class VerticesExtensions
                             var filter = renderer.GetComponent<MeshFilter>();
                             if (filter == null)
                             {
-                                logWarningCallback?.Invoke(
-                                    $"{renderer.GetType()} in {path} is missing a MeshFilter");
+                                MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a MeshFilter");
                                 continue;
                             }
 
@@ -183,7 +169,7 @@ public static class VerticesExtensions
 
                             if (mesh == null)
                             {
-                                logWarningCallback?.Invoke($"{filter.GetType()} in {path} is missing a mesh");
+                                MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a mesh");
                                 continue;
                             }
 
@@ -219,9 +205,8 @@ public static class VerticesExtensions
                         }
                     }
 
-                    logDebugCallback?.Invoke(
-                        $"Processing {path}/{target.name} renderer {renderer.GetType().Name} {logFunc?.Invoke(rVertices)}");
-
+                    MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Processing {path}/{target.name} renderer {renderer.GetType().Name} {logFunc?.Invoke(rVertices)}");
+                    
                     vertices.AddRange(rVertices);
                 }
 
@@ -233,8 +218,7 @@ public static class VerticesExtensions
                 var childMatrix = Matrix4x4.TRS(child.localPosition, child.localRotation, child.localScale);
 
                 var childVertices = ListPool<Vector3>.Get();
-                GetChildVertexes(child, childVertices, childMatrix, path + "/" + target.name, logFunc,
-                    logWarningCallback, logDebugCallback);
+                GetChildVertexes(child, childVertices, childMatrix, path + "/" + target.name, logFunc);
 
                 vertices.AddRange(childVertices);
                 ListPool<Vector3>.Release(childVertices);
@@ -243,18 +227,16 @@ public static class VerticesExtensions
             outVertices.AddRange(vertices.Select(localMatrix.MultiplyPoint3x4));
         }
 
-        logDebugCallback?.Invoke($"Found {path}/{target.name} {logFunc?.Invoke(outVertices)}");
+        MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Found {path}/{target.name} {logFunc?.Invoke(outVertices)}");
     }
 
-    public static void CacheChildVertexes(this Transform target,
-        string path = "", Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    public static void CacheChildVertexes(this Transform target, string path = "")
     {
-        logDebugCallback?.Invoke($"Caching {path}/{target.name}");
+        MattyFixes.VerboseMeshLog(LogLevel.Info, () => $"Caching {path}/{target.name}");
 
         if (target.TryGetComponent<ScanNodeProperties>(out _))
         {
-            logDebugCallback?.Invoke($"Skipping {path}/{target.name}!");
+            MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Skipping {path}/{target.name}!");
             return;
         }
 
@@ -270,7 +252,7 @@ public static class VerticesExtensions
                     var mesh = skinnedMeshRenderer.sharedMesh;
                     if (mesh == null)
                     {
-                        logWarningCallback?.Invoke($"{renderer.GetType()} in {path} is missing a mesh");
+                        MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a mesh");
                         continue;
                     }
 
@@ -281,9 +263,9 @@ public static class VerticesExtensions
                         skinnedMeshRenderer.BakeMesh(tmpMesh, true);
 
                         if (tmpMesh.isReadable)
-                            tmpMesh.CacheVertices(mesh, logWarningCallback, logDebugCallback);
+                            tmpMesh.CacheVertices(mesh);
                         else
-                            tmpMesh.CacheNonReadableVertices(mesh, logWarningCallback, logDebugCallback);
+                            tmpMesh.CacheNonReadableVertices(mesh);
 
                         Object.Destroy(tmpMesh);
                     }
@@ -295,8 +277,7 @@ public static class VerticesExtensions
                     var filter = renderer.GetComponent<MeshFilter>();
                     if (filter == null)
                     {
-                        logWarningCallback?.Invoke(
-                            $"{renderer.GetType()} in {path} is missing a MeshFilter");
+                        MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a MeshFilter");
                         continue;
                     }
 
@@ -304,7 +285,7 @@ public static class VerticesExtensions
 
                     if (mesh == null)
                     {
-                        logWarningCallback?.Invoke($"{filter.GetType()} in {path} is missing a mesh");
+                        MattyFixes.VerboseMeshLog(LogLevel.Warning, () => $"{renderer.GetType()} in {path} is missing a mesh");
                         continue;
                     }
 
@@ -322,12 +303,11 @@ public static class VerticesExtensions
                     break;
             }
 
-            logDebugCallback?.Invoke(
-                $"Caching {path}/{target.name} renderer {renderer.GetType().Name}");
+            
+            MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Caching {path}/{target.name} renderer {renderer.GetType().Name}");
 
             foreach (Transform child in target.transform)
-                CacheChildVertexes(child, path + "/" + target.name,
-                    logWarningCallback, logDebugCallback);
+                CacheChildVertexes(child, path + "/" + target.name);
         }
     }
 
@@ -366,8 +346,7 @@ public static class VerticesExtensions
         Object.Destroy(meshCopy);
     }
 
-    private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null, Action<string> logWarningCallback = null,
-    Action<string> logDebugCallback = null)
+    private static void CacheNonReadableVertices(this Mesh nonReadableMesh, Mesh cacheKey = null)
     {
         if (VerticesCache.ContainsKey(nonReadableMesh))
             return;
@@ -380,7 +359,8 @@ public static class VerticesExtensions
             var totalSize = verticesBuffer.stride * verticesBuffer.count;
             var attributes = nonReadableMesh.GetVertexAttributes();
             var count = nonReadableMesh.vertexCount;
-            logDebugCallback?.Invoke($"Requesting vertices for {nonReadableMesh} from GPU");
+            
+            MattyFixes.VerboseMeshLog(LogLevel.Message, () => $"Requesting vertices for {nonReadableMesh} from GPU");
             AsyncGPUReadback.Request(verticesBuffer, totalSize, 0, request =>
             {
                 verticesBuffer.Release();
@@ -395,7 +375,7 @@ public static class VerticesExtensions
                 using (ListPool<Vector3>.Get(out var tmp))
                 {
                     meshCopy.GetVertices(tmp);
-                    logDebugCallback?.Invoke($"Cached {tmp.Count} vertices for {nonReadableMesh}");
+                    MattyFixes.VerboseMeshLog(LogLevel.Info, () => $"Cached {tmp.Count} vertices for {nonReadableMesh}");
                     VerticesCache[cacheKey != null ? cacheKey : nonReadableMesh] = tmp.ToArray();
                 }
 
@@ -404,8 +384,7 @@ public static class VerticesExtensions
         }
     }
 
-    private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null, Action<string> logWarningCallback = null,
-        Action<string> logDebugCallback = null)
+    private static void CacheVertices(this Mesh readableMesh, Mesh cacheKey = null)
     {
         if (VerticesCache.ContainsKey(readableMesh))
             return;
@@ -413,7 +392,7 @@ public static class VerticesExtensions
         using (ListPool<Vector3>.Get(out var tmp))
         {
             readableMesh.GetVertices(tmp);
-            logDebugCallback?.Invoke($"Cached {tmp.Count} vertices for {readableMesh}");
+            MattyFixes.VerboseMeshLog(LogLevel.Info, () => $"Cached {tmp.Count} vertices for {readableMesh}");
             VerticesCache[cacheKey != null ? cacheKey : readableMesh] = tmp.ToArray();
         }
     }

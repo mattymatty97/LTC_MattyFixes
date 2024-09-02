@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Reflection;
 using BepInEx.Configuration;
+using BepInEx.Logging;
 using MattyFixes.Dependency;
 using UnityEngine;
 
@@ -53,7 +54,7 @@ internal partial class MattyFixes
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
                 , "prevent items from falling below the ship");
-            OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.1f
+            OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.01f
                 , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.001f,1f)));
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
@@ -64,8 +65,12 @@ internal partial class MattyFixes
             CruiserFixes.AlternateItemDrop = config.Bind("CruiserFixes", "alternate_item_drop", true
                 , "global toggle for cruiser patches");
             //VerboseDebug
-            Debug.Verbose = config.Bind("Debug", "verbose", false
-                , "print more logs!");
+            Debug.VerboseMeshes = config.Bind("Debug", "Mesh Verbosity Level", LogLevel.None,
+                "Print A LOT more logs about Meshes");
+            Debug.VerboseCupboard = config.Bind("Debug", "Cupboard Verbosity Level", LogLevel.None,
+                "Print A LOT more logs about Cupboard detection");
+            Debug.VerboseItems = config.Bind("Debug", "Item Verbosity Level", LogLevel.None,
+                "Print A LOT more logs about Cupboard detection");
 
 
             var offsetString = ItemClipping.ManualOffsets.Value;
@@ -105,7 +110,9 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
                 LethalConfigProxy.AddConfig(CruiserFixes.Enabled);
                 LethalConfigProxy.AddConfig(CruiserFixes.AlternateItemDrop);
-                LethalConfigProxy.AddConfig(Debug.Verbose);
+                LethalConfigProxy.AddConfig(Debug.VerboseMeshes);
+                LethalConfigProxy.AddConfig(Debug.VerboseCupboard);
+                LethalConfigProxy.AddConfig(Debug.VerboseItems);
             }
         }
 
@@ -181,7 +188,9 @@ internal partial class MattyFixes
 
         internal static class Debug
         {
-            internal static ConfigEntry<bool> Verbose;
+            internal static ConfigEntry<LogLevel> VerboseMeshes;
+            internal static ConfigEntry<LogLevel> VerboseCupboard;
+            internal static ConfigEntry<LogLevel> VerboseItems;
         }
     }
     

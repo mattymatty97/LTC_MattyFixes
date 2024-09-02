@@ -105,43 +105,4 @@ internal class CruiserFixes
                MattyFixes.PluginConfig.CruiserFixes.AlternateItemDrop.Value;
     }
 
-/*
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(VehicleCollisionTrigger), nameof(VehicleCollisionTrigger.OnTriggerEnter))]
-    private static void OnCruiserTrigger(VehicleCollisionTrigger __instance, Collider other)
-    {
-        if (!ShouldSkipCruiserParenting())
-            return;
-
-        if (!other.CompareTag("PhysicProp"))
-            return;
-
-        if (!other.TryGetComponent<GrabbableObject>(out var grabbable))
-        {
-            grabbable = other.GetComponentInChildren<GrabbableObject>();
-            if (grabbable == null)
-                return;
-        }
-
-        if (grabbable.hasHitGround)
-            return;
-
-        var cruiserT = __instance.transform.root;
-        if (grabbable.transform.parent == cruiserT)
-            return;
-
-        var startPos = grabbable.transform.parent.TransformPoint(grabbable.startFallingPosition);
-        var targetPos = grabbable.transform.parent.TransformPoint(grabbable.targetFloorPosition);
-        var direction = (targetPos - startPos).normalized;
-
-        var ray = new Ray(startPos, direction);
-        if (Physics.Raycast(ray, out var hit, 80f, 1342179585, QueryTriggerInteraction.Ignore))
-        {
-            var pos = hit.point + hit.transform.up * (0.04f + grabbable.itemProperties.verticalOffset);
-            var localpos = cruiserT.InverseTransformPoint(pos);
-
-            StartOfRound.Instance.localPlayerController.ThrowObjectServerRpc();
-
-        }
-    }*/
 }

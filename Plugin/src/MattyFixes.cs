@@ -16,7 +16,7 @@ internal partial class MattyFixes : BaseUnityPlugin
 {
     public const string GUID = "mattymatty.MattyFixes";
     public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.17";
+    public const string VERSION = "1.1.18";
     internal static ManualLogSource Log;
     
     internal static MattyFixes Instance { get; private set; }
@@ -32,8 +32,6 @@ internal partial class MattyFixes : BaseUnityPlugin
             if (LobbyCompatibilityChecker.Enabled)
                 LobbyCompatibilityChecker.Init();
 
-            if (AsyncLoggerProxy.Enabled)
-                AsyncLoggerProxy.WriteEvent(NAME, "Awake", "Started");
 
             Log.LogInfo("Initializing Configs");
 
@@ -44,9 +42,6 @@ internal partial class MattyFixes : BaseUnityPlugin
             harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             Log.LogInfo(NAME + " v" + VERSION + " Loaded!");
-
-            if (AsyncLoggerProxy.Enabled)
-                AsyncLoggerProxy.WriteEvent(NAME, "Awake", "Finished");
             
         }
         catch (Exception ex)
@@ -55,9 +50,22 @@ internal partial class MattyFixes : BaseUnityPlugin
         }
     }
 
-    internal static void VerboseLog(string logmessage)
+
+    internal static void VerboseMeshLog(LogLevel logLevel, Func<string> message)
     {
-        if (PluginConfig.Debug.Verbose.Value)
-            Log.LogDebug(logmessage);
+        if ((PluginConfig.Debug.VerboseMeshes.Value & logLevel) != 0)
+            Log.Log(logLevel, message());
+    }
+    
+    internal static void VerboseCupboardLog(LogLevel logLevel, Func<string> message)
+    {
+        if ((PluginConfig.Debug.VerboseCupboard.Value & logLevel) != 0)
+            Log.Log(logLevel, message());
+    }
+    
+    internal static void VerboseItemsLog(LogLevel logLevel, Func<string> message)
+    {
+        if ((PluginConfig.Debug.VerboseItems.Value & logLevel) != 0)
+            Log.Log(logLevel, message());
     }
 }

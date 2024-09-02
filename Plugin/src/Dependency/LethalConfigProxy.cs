@@ -62,6 +62,16 @@ namespace MattyFixes.Dependency
         }
         
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        public static void AddConfig<T>(ConfigEntry<T> entry, bool requiresRestart = false) where T : Enum
+        {
+            LethalConfigManager.AddConfigItem(new EnumDropDownConfigItem<T>(entry, new EnumDropDownOptions()
+            {
+                RequiresRestart = requiresRestart,
+                CanModifyCallback = () => (false, "THIS IS A FLAG TYPE ENUM, EDITING CURRENTLY NOT SUPPORTED!")
+            }));
+        }
+        
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public static void AddButton(string section, string name, string description, string buttonText, Action callback)
         {
             LethalConfigManager.AddConfigItem(new GenericButtonConfigItem(

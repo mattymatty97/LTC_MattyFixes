@@ -9,13 +9,14 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Rendering;
+using LogLevel = BepInEx.Logging.LogLevel;
+using Object = UnityEngine.Object;
 
 namespace MattyFixes.Patches;
 
 [HarmonyPatch]
 internal static class ItemPatches
 {
-    
     private static readonly HashSet<Item> ComputedItems = [];
 
     private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new();
@@ -265,22 +266,22 @@ internal static class ItemPatches
         {
             var ogRotation = item.restingRotation;
             ogRotation.y = item.floorYOffset;
-            
+
             var vanillaDefault =
                 $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
-            
-            var filteredModName = Regex.Replace(modName,@"[\n\t\\\'\[\]]", "").Trim();
-            var filteredItemName = Regex.Replace(item.itemName,@"[\n\t\\\'\[\]]", "").Trim();
-            
+
+            var filteredModName = Regex.Replace(modName, @"[\n\t\\\'\[\]]", "").Trim();
+            var filteredItemName = Regex.Replace(item.itemName, @"[\n\t\\\'\[\]]", "").Trim();
+
             rotationConfig = new MattyFixes.ItemRotationConfig(
                 ogRotation,
                 MattyFixes.Instance.Config.Bind(
-                $"ItemClipping.Rotations|{filteredModName}",
-                filteredItemName,
-                "default",
-                $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
+                    $"ItemClipping.Rotations|{filteredModName}",
+                    filteredItemName,
+                    "default",
+                    $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
             );
-            
+
             MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
             rotationConfig.Config.SettingChanged += (sender, args) => { UpdateItemRotation(modName, item); };
             if (LethalConfigProxy.Enabled)
@@ -288,7 +289,7 @@ internal static class ItemPatches
         }
 
         var parsedRotation = rotationConfig.Original;
-        
+
         var rotation = rotationConfig.Config.Value.Split(",");
 
         if (rotation.Length == 3)
@@ -302,14 +303,12 @@ internal static class ItemPatches
         item.floorYOffset = (int)Math.Round(item.restingRotation.y);
     }
 
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
     [HarmonyPriority(0)]
-    private static void AwakePatch(StartOfRound __instance, bool __runOriginal)
+    private static void RegisterItems(StartOfRound __instance, bool __runOriginal)
     {
-        if (AsyncLoggerProxy.Enabled)
-            AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", "Post");
-
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
             return;
 
@@ -321,7 +320,7 @@ internal static class ItemPatches
             if (LethalLevelLoaderProxy.Enabled)
                 LethalLevelLoaderProxy.GetModdedItems(in itemDict);
 
-            foreach (var itemType in __instance.allItemsList.itemsList) 
+            foreach (var itemType in __instance.allItemsList.itemsList)
                 itemDict.TryAdd(itemType, "Vanilla");
 
             foreach (var (item, mod) in itemDict)
@@ -330,8 +329,7 @@ internal static class ItemPatches
                     if (item.spawnPrefab == null)
                         continue;
 
-                    item.spawnPrefab.transform.CacheChildVertexes(logWarningCallback: MattyFixes.Log.LogWarning,
-                        logDebugCallback: MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
+                    item.spawnPrefab.transform.CacheChildVertexes();
 
                     if (ItemRotations.TryGetValue(item.itemName, out var value))
                         item.restingRotation.Set(value[0], value[1], value[2]);
@@ -343,117 +341,133 @@ internal static class ItemPatches
                     MattyFixes.Log.LogError($"{mod}{(mod != null ? "." : "")}{item.itemName} crashed badly ! {ex}");
                 }
         }
-
-        if (AsyncLoggerProxy.Enabled)
-            AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "StartOfRound.Awake", "Finished");
     }
 
-    [HarmonyPostfix]
+
     [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
-    [HarmonyPriority(0)]
-    private static void SpawnPostfix(NetworkBehaviour __instance)
+    internal static class NetworkSpawnPatch
     {
-        if (__instance is not GrabbableObject grabbable)
-            return;
-
-        if (grabbable is ClipboardItem ||
-            (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
-            return;
-
-        if (StartOfRound.Instance.localPlayerController != null)
-            return;
-
-        try
+        [HarmonyPrefix]
+        [HarmonyPriority(900)]
+        private static void Prefix(NetworkBehaviour __instance)
         {
-            grabbable.isInElevator = true;
-            grabbable.isInShipRoom = true;
-            if (grabbable is LungProp lungProp)
-            {
-                lungProp.isLungDocked = false;
-                lungProp.isLungPowered = false;
-                lungProp.isLungDockedInElevator = false;
-                lungProp.GetComponent<AudioSource>()?.Stop();
-            }
-
-            if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
+            if (__instance is not GrabbableObject grabbable)
                 return;
 
-            grabbable.floorYRot = (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - grabbable.itemProperties.floorYOffset);
+            var itemType = grabbable.itemProperties;
 
-            grabbable.transform.rotation = Quaternion.Euler(
-                grabbable.itemProperties.restingRotation.x,
-                grabbable.transform.eulerAngles.y,
-                grabbable.itemProperties.restingRotation.z);
-        }
-        catch (Exception ex)
-        {
-            MattyFixes.Log.LogError($"Exception while setting rotation :{ex}");
-        }
-    }
+            if (!ComputedItems.Add(itemType))
+                return;
 
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
-    [HarmonyPriority(900)]
-    private static void StartPrefix(NetworkBehaviour __instance)
-    {
+            if (itemType.isConductiveMetal &&
+                MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
+                MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value &&
+                !MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
+                try
+                {
+                    if (itemType.spawnPrefab != null)
+                    {
+                        MakeMeshReadable(itemType.spawnPrefab);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                    BrokenMeshItems.Add(itemType);
+                    MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                }
 
-        if (__instance is not GrabbableObject grabbable)
-            return;
+            if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
+                return;
 
-        var itemType = grabbable.itemProperties;
-
-        if (!ComputedItems.Add(itemType))
-            return;
-
-        if (itemType.isConductiveMetal && 
-            MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
-            MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value && 
-            !MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
             try
             {
-                if (itemType.spawnPrefab != null)
+                if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
+                        out var offset))
                 {
-                    MakeMeshReadable(itemType.spawnPrefab);
+                    var targetObject = itemType.spawnPrefab;
+                    if (targetObject == null)
+                        targetObject = __instance.gameObject;
+
+                    var prefabGrabbable = targetObject.GetComponentInChildren<GrabbableObject>();
+
+                    if (!prefabGrabbable)
+                        throw new ArgumentNullException(nameof(GrabbableObject),
+                            "Cannot find GrabbableObject on prefab!");
+
+                    if (prefabGrabbable.TryGetVerticalOffset(out offset))
+                        offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+                    else
+                        offset = itemType.verticalOffset;
                 }
+
+                itemType.verticalOffset = offset;
+
+                MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
-                BrokenMeshItems.Add(itemType);
-                MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
             }
+        }
 
+        [HarmonyPostfix]
+        [HarmonyPriority(-900)]
+        private static void Postfix(NetworkBehaviour __instance)
+        {
+            if (__instance is not GrabbableObject grabbable)
+                return;
+
+            if (grabbable is ClipboardItem ||
+                (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
+                return;
+
+            if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch._isInitializingGame)
+                return;
+
+            try
+            {
+                grabbable.isInElevator = true;
+                grabbable.isInShipRoom = true;
+                if (grabbable is LungProp lungProp)
+                {
+                    lungProp.isLungDocked = false;
+                    lungProp.isLungPowered = false;
+                    lungProp.isLungDockedInElevator = false;
+                    lungProp.GetComponent<AudioSource>()?.Stop();
+                }
+
+                if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
+                    return;
+
+                grabbable.floorYRot =
+                    (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - grabbable.itemProperties.floorYOffset);
+
+                grabbable.transform.rotation = Quaternion.Euler(
+                    grabbable.itemProperties.restingRotation.x,
+                    grabbable.transform.eulerAngles.y,
+                    grabbable.itemProperties.restingRotation.z);
+            }
+            catch (Exception ex)
+            {
+                MattyFixes.Log.LogError($"Exception while setting rotation :{ex}");
+            }
+        }
+    }
+
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
+    private static void CorrectlyPlaceAllUnlockables(StartOfRound __instance)
+    {
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
             return;
-        
-        try
-        {
-            if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
-                    out var offset))
-            {
-                var targetObject = itemType.spawnPrefab;
-                if (targetObject == null)
-                    targetObject = __instance.gameObject;
 
-                var prefabGrabbable = targetObject.GetComponent<GrabbableObject>();
+        foreach (var placeableObject in Object.FindObjectsOfType<AutoParentToShip>()) placeableObject.MoveToOffset();
 
-                if (prefabGrabbable.TryGetVerticalOffset(out offset, MattyFixes.Log.LogWarning,
-                        MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
-                    offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
-                else
-                    offset = itemType.verticalOffset;
-            }
-
-            itemType.verticalOffset = offset;
-
-            MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
-        }
-        catch (Exception ex)
-        {
-            MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
-        }
-
+        Physics.SyncTransforms();
     }
+
 
     private static void MakeMeshReadable(GameObject go, bool updateOriginal = false,
         Dictionary<MeshFilter, Mesh> reverseMap = null)
@@ -465,9 +479,9 @@ internal static class ItemPatches
         {
             var mesh = meshFilter.sharedMesh;
 
-            if (mesh.isReadable) 
+            if (mesh.isReadable)
                 continue;
-            
+
             if (!ReadableMeshMap.TryGetValue(mesh, out var readableMesh))
                 readableMesh = MakeReadableMeshCopy(mesh);
             ReadableMeshMap[mesh] = readableMesh;
@@ -549,16 +563,13 @@ internal static class ItemPatches
                 {
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
-                    if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius,
-                            MattyFixes.Log.LogWarning,
-                            MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null))
+                    if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius))
                         return;
 
                     shapeModule.radius = maxRadius;
                     shapeModule.radiusThickness = 1 - minRadius / maxRadius;
 
-                    warningObject.gameObject.TryGetWorldCentroid(out var centroid, MattyFixes.Log.LogWarning,
-                        MattyFixes.PluginConfig.Debug.Verbose.Value ? MattyFixes.Log.LogDebug : null);
+                    warningObject.gameObject.TryGetWorldCentroid(out var centroid);
                     _staticElectricityParticleOffset =
                         centroid - warningObject.transform.position + Vector3.up * 0.5f;
                 }

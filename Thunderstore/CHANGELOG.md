@@ -1,3 +1,11 @@
+## v1.1.18
+- more small tweaks
+- reduced logging
+
+## v1.1.17
+- just a bunch of small tweaks
+- some more exception handling
+
 ## v1.1.16
 - make OutOfBound load patch actually work ( hopefully )
 

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
+using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using UnityEngine;
@@ -13,33 +14,7 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal class OutOfBoundsItemsFix
 {
-    private static bool _isInitializingGame = false;
     
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
-    private static void MarkServerStart(StartOfRound __instance)
-    {
-        _isInitializingGame = true;
-        __instance.StartCoroutine(WaitCoupleOfFrames());
-    }
-
-    private static IEnumerator WaitCoupleOfFrames()
-    {
-        yield return new WaitForEndOfFrame();
-        yield return new WaitForEndOfFrame();
-        yield return new WaitForEndOfFrame();
-        _isInitializingGame = false;
-    }
-    
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.LoadUnlockables))]
-    private static void CorrectlyPlaceAllUnlockables(StartOfRound __instance)
-    {
-        foreach (var placeableObject in Object.FindObjectsOfType<AutoParentToShip>()) placeableObject.MoveToOffset();
-
-        Physics.SyncTransforms();
-    }
-
     [HarmonyPostfix]
     [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.DespawnPropsAtEndOfRound))]
     private static void ShipLeave(RoundManager __instance, bool despawnAllItems)
@@ -47,30 +22,39 @@ internal class OutOfBoundsItemsFix
         if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             return;
 
-        if (AsyncLoggerProxy.Enabled)
-            AsyncLoggerProxy.WriteEvent(MattyFixes.NAME, "ShipLeave", "Called");
+        MattyFixes.VerboseItemsLog(LogLevel.Info, () => "Ship left the planet: starting check for OOB items!");
 
         var objectsOfType = Object.FindObjectsOfType<GrabbableObject>();
 
         var shipCollider = StartOfRound.Instance.shipInnerRoomBounds;
         var vehicleCollider = Object.FindObjectOfType<VehicleController>()?.boundsCollider;
+        
+        MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"Cruiser? {vehicleCollider != null}");
 
         var miny = vehicleCollider == null
             ? shipCollider.bounds.min.y
             : Math.Min(shipCollider.bounds.min.y, vehicleCollider.bounds.min.y);
-
+        
+        MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"Bottom Ship is at y? {miny}");
+        
         foreach (var item in objectsOfType)
         {
+            
+            MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) in ship room? {item.isInShipRoom}");
             if (!item.isInShipRoom)
                 continue;
 
             var transform = item.transform;
+            MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) y position? {transform.position.y}");
             if (transform.position.y >= miny)
                 continue;
+
+            MattyFixes.VerboseItemsLog(LogLevel.Info, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) was found OutOfBounds, teleporting inside!");
 
             transform.position = shipCollider.bounds.center;
             item.targetFloorPosition = transform.localPosition;
             item.FallToGround();
+            MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) new pos: {item.targetFloorPosition}");
         }
     }
 
@@ -107,7 +91,7 @@ internal class OutOfBoundsItemsFix
         matcher.Advance(3);
         matcher.Insert(new CodeInstruction(OpCodes.Call, newOffsetMethod));
 
-        MattyFixes.Log.LogInfo("SaveItemsInShip Patched");
+        MattyFixes.Log.LogDebug("SaveItemsInShip Patched");
         return matcher.Instructions();
     }
 
@@ -122,54 +106,9 @@ internal class OutOfBoundsItemsFix
         var newPos = position + Vector3.down * grabbable.itemProperties.verticalOffset;
         newPos += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
         
-        if (MattyFixes.PluginConfig.Debug.Verbose.Value)
-            MattyFixes.Log.LogDebug(
+        
+        MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>
                 $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) fixing saved position pos:{position} newpos:{newPos}");
         return newPos;
-    }
-
-    [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-    internal class ObjectCreationPatch
-    {
-        [HarmonyPriority(Priority.Last)]
-        private static void Prefix(GrabbableObject __instance, out bool __state)
-        {
-            __state = __instance.itemProperties.itemSpawnsOnGround;
-            
-            if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
-                return;
-
-            //only run patch on join ( playerObject not yet assigned ) or if server is loading
-            if (StartOfRound.Instance.localPlayerController && !_isInitializingGame)
-                return;
-            
-            if (__instance is ClipboardItem ||
-                (__instance is PhysicsProp && __instance.itemProperties.itemName == "Sticky note"))
-                return;
-
-            if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
-            {
-                __instance.itemProperties.itemSpawnsOnGround = __instance.IsServer;
-            }
-
-            if (MattyFixes.PluginConfig.CupBoard.Enabled.Value)
-            {
-                if (CupBoardFix.Closet.gameObject &&
-                    __instance.transform.parent == CupBoardFix.Closet.gameObject.transform)
-                    __instance.itemProperties.itemSpawnsOnGround = false;
-            }
-            
-            if (MattyFixes.PluginConfig.Debug.Verbose.Value)
-                MattyFixes.Log.LogDebug(
-                    $"{__instance.itemProperties.itemName}({__instance.NetworkObjectId}) processing GrabbableObject Prefix\n" +
-                    $"OnGround - was: {__state} is:{__instance.itemProperties.itemSpawnsOnGround}");
-
-        }
-
-        [HarmonyPriority(Priority.First)]
-        private static void Postfix(GrabbableObject __instance, bool __state)
-        {
-            __instance.itemProperties.itemSpawnsOnGround = __state;
-        }
     }
 }
