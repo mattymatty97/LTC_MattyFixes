@@ -24,7 +24,8 @@ internal class OutOfBoundsItemsFix
 
         MattyFixes.VerboseItemsLog(LogLevel.Info, () => "Ship left the planet: starting check for OOB items!");
 
-        var objectsOfType = Object.FindObjectsOfType<GrabbableObject>();
+        var shipTransform = StartOfRound.Instance.elevatorTransform;
+        var grabbableObjects = shipTransform.GetComponentsInChildren<GrabbableObject>();
 
         var shipCollider = StartOfRound.Instance.shipInnerRoomBounds;
         var vehicleCollider = Object.FindObjectOfType<VehicleController>()?.boundsCollider;
@@ -37,8 +38,13 @@ internal class OutOfBoundsItemsFix
         
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"Bottom Ship is at y? {miny}");
         
-        foreach (var item in objectsOfType)
+        foreach (var item in grabbableObjects)
         {
+            if (item.NetworkObject.transform.parent != shipTransform)
+            {
+                MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) was not parented to the ship. SKIPPING!");
+                continue;
+            }
             
             MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"{item.itemProperties.itemName}({item.NetworkObjectId}) in ship room? {item.isInShipRoom}");
             if (!item.isInShipRoom)
@@ -102,13 +108,14 @@ internal class OutOfBoundsItemsFix
         
         if (grabbable.isHeld || grabbable.isHeldByEnemy || !grabbable.hasHitGround)
             return position;
-        
-        var newPos = position + Vector3.down * grabbable.itemProperties.verticalOffset;
-        newPos += Vector3.up * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
-        
+
+        var newPos = position;
+        newPos += Vector3.down * grabbable.itemProperties.verticalOffset;
+        newPos += Vector3.up   * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
         
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>
                 $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) fixing saved position pos:{position} newpos:{newPos}");
+        
         return newPos;
     }
 }

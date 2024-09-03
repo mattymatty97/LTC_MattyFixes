@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using MonoMod.Utils;
@@ -7,21 +8,25 @@ namespace MattyFixes.Preloader;
 
 public static class CecilHelper
 {
-    public static bool AddField(this TypeDefinition self, FieldAttributes fieldAttributes, string name, TypeReference type, Action<bool, string> logCallback = default)
+    public static bool AddField(this TypeDefinition self, FieldAttributes fieldAttributes, string name, TypeReference type, out FieldDefinition fieldDefinition, Action<bool, string> logCallback = default)
     {
         logCallback?.Invoke(false, $"Adding field '{name}' to {self.FullName}");
-        if (self.FindField(name) != null)
+        fieldDefinition = self.FindField(name);
+        if (fieldDefinition != null)
         {
             logCallback?.Invoke(true, $"Field '{name}' already exists in {self.FullName}");
             return false;
         }
-        self.Fields.Add(new FieldDefinition(name, fieldAttributes, type));
+
+        fieldDefinition = new FieldDefinition(name, fieldAttributes, type);
+        self.Fields.Add(fieldDefinition);
         return true;
     }
     
-    public static bool AddGetter(this TypeDefinition self, string name, Action<bool, string> logCallback = default)
+    public static bool AddGetter(this TypeDefinition self, string name, out MethodDefinition methodDefinition,  Action<bool, string> logCallback = default)
     {
         var methodName = $"Get{name}";
+        methodDefinition = null;
         logCallback?.Invoke(false, $"Adding getter for field '{name}' to {self.FullName}");
         var field = self.FindField(name);
         if (field == null)
@@ -30,7 +35,8 @@ public static class CecilHelper
             return false;
         }
 
-        if (self.FindMethod(methodName) != null)
+        methodDefinition = self.FindMethod(methodName);
+        if (methodDefinition != null)
         {
             logCallback?.Invoke(true, $"Method '{methodName}' already exists in {self.FullName}");
             return false;
@@ -48,7 +54,7 @@ public static class CecilHelper
             methodAttributes |= MethodAttributes.Private;
         }
         
-        var methodDefinition = new MethodDefinition(methodName, methodAttributes, field.FieldType);
+        methodDefinition = new MethodDefinition(methodName, methodAttributes, field.FieldType);
         self.Methods.Add(methodDefinition);
         methodDefinition.Body.Instructions.InsertRange(0, [
             Instruction.Create(isStatic ? OpCodes.Nop : OpCodes.Ldarg_0),
@@ -59,9 +65,10 @@ public static class CecilHelper
         return true;
     }
         
-    public static bool AddRaise(this TypeDefinition self, string eventName, Action<bool, string> logCallback = default)
+    public static bool AddRaise(this TypeDefinition self, string eventName, out MethodDefinition methodDefinition, Action<bool, string> logCallback = default)
     {
         var methodName = $"Get{eventName}";
+        methodDefinition = null;
         logCallback?.Invoke(false, $"Adding caller for event '{eventName}' to {self.FullName}");
         var eventDefinition = self.FindEvent(eventName);
         if (eventDefinition == null)
@@ -77,7 +84,8 @@ public static class CecilHelper
             return false;
         }
 
-        if (self.FindMethod(methodName) != null)
+        methodDefinition = self.FindMethod(methodName);
+        if (methodDefinition != null)
         {
             logCallback?.Invoke(true, $"Method '{methodName}' already exists in {self.FullName}");
             return false;
@@ -98,7 +106,7 @@ public static class CecilHelper
             methodAttributes |= MethodAttributes.Private;
         }
         
-        var methodDefinition = new MethodDefinition(methodName, methodAttributes, field.FieldType);
+        methodDefinition = new MethodDefinition(methodName, methodAttributes, field.FieldType);
         self.Methods.Add(methodDefinition);
         methodDefinition.Parameters.AddRange(fieldInvokerReference.Parameters);
 
@@ -128,6 +136,42 @@ public static class CecilHelper
             pop,
             ret
         ]);
+        return true;
+    }
+    
+    public static bool AddMethod(this TypeDefinition self, string methodName, out MethodDefinition methodDefinition, MethodAttributes attributes = MethodAttributes.Private, TypeReference returnType = null, ParameterDefinition[] parameters = null, Action<bool, string> logCallback = default)
+    {
+        returnType ??= self.Module.TypeSystem.Void;
+        parameters ??= [];
+        
+        logCallback?.Invoke(false, $"Adding method {returnType.FullName} {methodName}({string.Join(",", parameters.Select(p => p.ParameterType.FullName))}) to {self.FullName}");
+        methodDefinition = self.FindMethod(methodName);
+        if (methodDefinition != null)
+        {
+            logCallback?.Invoke(true, $"Method '{methodName}' already exists in {self.FullName}");
+            return false;
+        }
+        
+        methodDefinition = new MethodDefinition(methodName, attributes | MethodAttributes.HideBySig, returnType);
+        self.Methods.Add(methodDefinition);
+        
+        methodDefinition.Parameters.AddRange(parameters);
+
+        var processor = methodDefinition.Body.GetILProcessor();
+
+
+        var ret = processor.Create(OpCodes.Ret);
+
+        if (returnType.MetadataType != MetadataType.Void)
+        {
+            var constructorInfo = typeof(NotImplementedException).GetConstructor([typeof(string)]);
+            var constructorReference = self.Module.ImportReference(constructorInfo);
+            processor.Emit(OpCodes.Ldstr, "This is a Stub");
+            processor.Emit(OpCodes.Newobj, constructorReference);
+            processor.Emit(OpCodes.Throw);
+        }
+        
+        processor.Append(ret);
         return true;
     }
     

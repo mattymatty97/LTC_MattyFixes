@@ -9,7 +9,6 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Rendering;
-using LogLevel = BepInEx.Logging.LogLevel;
 using Object = UnityEngine.Object;
 
 namespace MattyFixes.Patches;
@@ -20,198 +19,6 @@ internal static class ItemPatches
     private static readonly HashSet<Item> ComputedItems = [];
 
     private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new();
-
-    private static readonly Dictionary<string, List<float>> ItemRotations = new()
-    {
-        {
-            "Flashlight",
-            [90f, 0f, 90f]
-        },
-        {
-            "Jetpack",
-            [45f, 0f, 0f]
-        },
-        {
-            "Key",
-            [180f, 0f, 90f]
-        },
-        {
-            "Apparatus",
-            [0f, 0f, 135f]
-        },
-        {
-            "Pro-flashlight",
-            [90f, 0f, 90f]
-        },
-        {
-            "Shovel",
-            [0f, -90f, -90f]
-        },
-        {
-            "Stun grenade",
-            [0f, 0f, 90f]
-        },
-        {
-            "Extension ladder",
-            [0f, 0f, 0f]
-        },
-        {
-            "TZP-Inhalant",
-            [0f, 0f, -90f]
-        },
-        {
-            "Zap gun",
-            [95f, 0f, 90f]
-        },
-        {
-            "Magic 7 ball",
-            [0f, 0f, 0f]
-        },
-        {
-            "Airhorn",
-            [0f, 90f, 270f]
-        },
-        {
-            "Big bolt",
-            [-21f, 0f, 0f]
-        },
-        {
-            "Bottles",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Brush",
-            [90f, 0f, 0f]
-        },
-        {
-            "Candy",
-            [90f, 0f, 0f]
-        },
-        {
-            "Chemical jug",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Clown horn",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Large axle",
-            [7f, 0f, 0f]
-        },
-        {
-            "Teeth",
-            [-90f, 0f, 0f]
-        },
-        {
-            "V-type engine",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Plastic fish",
-            [-45f, 0f, 90f]
-        },
-        {
-            "Laser pointer",
-            [0f, 0f, 0f]
-        },
-        {
-            "Gold bar",
-            [-90f, 0f, -90f]
-        },
-        {
-            "Magnifying glass",
-            [0f, 90f, -90f]
-        },
-        {
-            "Cookie mold pan",
-            [-90f, 0f, 90f]
-        },
-        {
-            "Mug",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Perfume bottle",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Old phone",
-            [-90f, 0f, -90f]
-        },
-        {
-            "Jar of pickles",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Pill bottle",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Ring",
-            [0f, -90f, 90f]
-        },
-        {
-            "Toy robot",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Rubber Ducky",
-            [-90f, 0f, -90f]
-        },
-        {
-            "Steering wheel",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Toothpaste",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Hive",
-            [7f, 0f, 0f]
-        },
-        {
-            "Radar-booster",
-            [0f, 0f, 0f]
-        },
-        {
-            "Shotgun",
-            [180f, 0f, -5f]
-        },
-        {
-            "Ammo",
-            [0f, 0f, 90f]
-        },
-        {
-            "Spray paint",
-            [0f, 0f, 195f]
-        },
-        {
-            "Homemade flashbang",
-            [0f, 0f, 90f]
-        },
-        {
-            "Gift",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Flask",
-            [25f, 0f, 0f]
-        },
-        {
-            "Tragedy",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Comedy",
-            [-90f, 0f, 0f]
-        },
-        {
-            "Whoopie cushion",
-            [-90f, 0f, 0f]
-        }
-    };
 
     private static readonly HashSet<Item> BrokenMeshItems = [];
 
@@ -402,6 +209,7 @@ internal static class ItemPatches
                 }
 
                 itemType.verticalOffset = offset;
+                //grabbable.MattyFixes_localVerticalOffset = offset;
 
                 MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
             }
@@ -623,4 +431,196 @@ internal static class ItemPatches
                 __instance.staticElectricityParticle.transform.position += _staticElectricityParticleOffset;
         }
     }
+    
+    private static readonly Dictionary<string, List<float>> ItemRotations = new()
+    {
+        {
+            "Flashlight",
+            [90f, 0f, 90f]
+        },
+        {
+            "Jetpack",
+            [45f, 0f, 0f]
+        },
+        {
+            "Key",
+            [180f, 0f, 90f]
+        },
+        {
+            "Apparatus",
+            [0f, 0f, 135f]
+        },
+        {
+            "Pro-flashlight",
+            [90f, 0f, 90f]
+        },
+        {
+            "Shovel",
+            [0f, -90f, -90f]
+        },
+        {
+            "Stun grenade",
+            [0f, 0f, 90f]
+        },
+        {
+            "Extension ladder",
+            [0f, 0f, 0f]
+        },
+        {
+            "TZP-Inhalant",
+            [0f, 0f, -90f]
+        },
+        {
+            "Zap gun",
+            [95f, 0f, 90f]
+        },
+        {
+            "Magic 7 ball",
+            [0f, 0f, 0f]
+        },
+        {
+            "Airhorn",
+            [0f, 90f, 270f]
+        },
+        {
+            "Big bolt",
+            [-21f, 0f, 0f]
+        },
+        {
+            "Bottles",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Brush",
+            [90f, 0f, 0f]
+        },
+        {
+            "Candy",
+            [90f, 0f, 0f]
+        },
+        {
+            "Chemical jug",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Clown horn",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Large axle",
+            [7f, 0f, 0f]
+        },
+        {
+            "Teeth",
+            [-90f, 0f, 0f]
+        },
+        {
+            "V-type engine",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Plastic fish",
+            [-45f, 0f, 90f]
+        },
+        {
+            "Laser pointer",
+            [0f, 0f, 0f]
+        },
+        {
+            "Gold bar",
+            [-90f, 0f, -90f]
+        },
+        {
+            "Magnifying glass",
+            [0f, 90f, -90f]
+        },
+        {
+            "Cookie mold pan",
+            [-90f, 0f, 90f]
+        },
+        {
+            "Mug",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Perfume bottle",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Old phone",
+            [-90f, 0f, -90f]
+        },
+        {
+            "Jar of pickles",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Pill bottle",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Ring",
+            [0f, -90f, 90f]
+        },
+        {
+            "Toy robot",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Rubber Ducky",
+            [-90f, 0f, -90f]
+        },
+        {
+            "Steering wheel",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Toothpaste",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Hive",
+            [7f, 0f, 0f]
+        },
+        {
+            "Radar-booster",
+            [0f, 0f, 0f]
+        },
+        {
+            "Shotgun",
+            [180f, 0f, -5f]
+        },
+        {
+            "Ammo",
+            [0f, 0f, 90f]
+        },
+        {
+            "Spray paint",
+            [0f, 0f, 195f]
+        },
+        {
+            "Homemade flashbang",
+            [0f, 0f, 90f]
+        },
+        {
+            "Gift",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Flask",
+            [25f, 0f, 0f]
+        },
+        {
+            "Tragedy",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Comedy",
+            [-90f, 0f, 0f]
+        },
+        {
+            "Whoopie cushion",
+            [-90f, 0f, 0f]
+        }
+    };
 }

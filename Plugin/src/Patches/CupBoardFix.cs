@@ -46,6 +46,14 @@ internal class CupBoardFix
             return;
 
         var closet = Closet;
+        
+        if (closet.IsInitialized)
+        {
+            MattyFixes.VerboseCupboardLog(LogLevel.Warning, () => "SyncShipUnlockablesClientRpc Cupboard Triggered but was already Initialized!");
+            return;
+        }
+
+        closet.IsInitialized = true;
 
         if (closet.Unlockable.inStorage)
             return;
@@ -70,6 +78,14 @@ internal class CupBoardFix
     private static void OnServerSpawn(GrabbableObject __instance)
     {
         var closet = Closet;
+        
+        if (closet.IsInitialized)
+        {
+            MattyFixes.VerboseCupboardLog(LogLevel.Warning, () => "LoadShipGrabbableItems Cupboard Triggered but was already Initialized!");
+            return;
+        }
+
+        closet.IsInitialized = true;
 
         if (closet.Unlockable.inStorage)
             return;
@@ -166,6 +182,7 @@ internal class CupBoardFix
         public readonly GameObject gameObject;
         public readonly List<ShelfHolder> Shelves;
         public readonly Collider Collider;
+        public bool IsInitialized;
 
         public ClosetHolder()
         {
