@@ -47,7 +47,7 @@ internal partial class MattyFixes
                 , "fix rotation and height of various items when on the Ground");
             ItemClipping.RotateOnSpawn = config.Bind("ItemClipping", "rotate_on_spawn", true
                 , "fix rotation of newly spawned items");
-            ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0.01f
+            ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0f
                 , new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(-0.5f,0.5f)));
             ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", ""
                 , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'");
@@ -80,7 +80,7 @@ internal partial class MattyFixes
                 if (parts.Length <= 1)
                     continue;
 
-                var name = parts[0];
+                var name = parts[0].Trim();
                 if (float.TryParse(parts[1], 
                         NumberStyles.Float | NumberStyles.AllowThousands, 
                         NumberFormatInfo.InvariantInfo, 

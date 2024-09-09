@@ -3,7 +3,6 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx.Logging;
-using MattyFixes.Patches;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -21,13 +20,14 @@ public static class VerticesExtensions
     {
         string Logfunc(List<Vector3> vertices)
         {
-            return TryGetVerticalOffset(vertices, out var min) ? $"min {min}" : "";
+            return TryGetVerticalOffset(vertices, out var offset) ? $"offset {offset}" : "";
         }
 
         var transform = target.transform;
         var localMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(
             target.itemProperties.restingRotation.x, target.itemProperties.floorYOffset + 90f,
             target.itemProperties.restingRotation.z), transform.localScale);
+
         var vertices = ListPool<Vector3>.Get();
 
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
@@ -134,25 +134,32 @@ public static class VerticesExtensions
                                 continue;
                             }
 
+
                             if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
                                 rVertices.AddRange(cached);
                             }
                             else
                             {
-                                var tmpMesh = new Mesh();
+                                var matrix = Matrix4x4.TRS(target.localPosition, target.localRotation, target.localScale).inverse;
+                                using (ListPool<Vector3>.Get(out var tmpVertices))
+                                {
+                                    var tmpMesh = new Mesh();
 
-                                skinnedMeshRenderer.BakeMesh(tmpMesh, true);
+                                    skinnedMeshRenderer.BakeMesh(tmpMesh, false);
 
-                                if (tmpMesh.isReadable)
-                                    tmpMesh.GetVertices(rVertices);
-                                else
-                                    tmpMesh.GetNonReadableVertices(rVertices);
-
+                                    if (tmpMesh.isReadable)
+                                        tmpMesh.GetVertices(tmpVertices);
+                                    else
+                                        tmpMesh.GetNonReadableVertices(tmpVertices);
+                                    
+                                    rVertices.AddRange(tmpVertices.Select(matrix.MultiplyPoint3x4));
+                                    
+                                    Object.Destroy(tmpMesh);
+                                }
                                 VerticesCache[mesh] = rVertices.ToArray();
-
-                                Object.Destroy(tmpMesh);
                             }
+                                
 
                             break;
                         }

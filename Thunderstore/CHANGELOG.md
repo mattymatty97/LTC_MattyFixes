@@ -1,3 +1,9 @@
+## v1.1.20
+- Improve offset detection from SkinnedMeshRenders
+
+## v1.1.19
+- Fix OOB for new Bag item
+
 ## v1.1.18
 - more small tweaks
 - reduced logging
