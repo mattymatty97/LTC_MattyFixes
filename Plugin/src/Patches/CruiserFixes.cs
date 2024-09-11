@@ -65,9 +65,16 @@ internal class CruiserFixes
         if (placeObject)
             return;
 
+        Vector3 center;
         var grabbable = __instance.currentlyHeldObjectServer;
-        if (!grabbable.gameObject.TryGetWorldCentroid(out var center))
+        if (grabbable.gameObject.TryGetWorldBounds(out var bounds))
+        {
+            center = bounds.center;
+        }
+        else
+        {
             center = grabbable.transform.position;
+        }
 
         RaycastHit hit = default;
         Transform transform = null;

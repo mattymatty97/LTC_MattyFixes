@@ -16,77 +16,70 @@ public static class VerticesExtensions
     private static readonly Dictionary<Mesh, Vector3[]> VerticesCache = new();
 
     //GrabbableObject EXTENSIONS
-    public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset)
+    public static bool TryGetVerticalOffset(this GrabbableObject target, out float offset, Matrix4x4? overrideMatrix = null)
     {
         string Logfunc(List<Vector3> vertices)
         {
-            return TryGetVerticalOffset(vertices, out var offset) ? $"offset {offset}" : "";
+            return TryGetBounds(vertices, out var bounds) ? $"{bounds} Min {bounds.min} Max {bounds.max}" : "";
         }
 
         var transform = target.transform;
-        var localMatrix = Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(
+        var localMatrix = overrideMatrix ?? Matrix4x4.TRS(Vector3.zero, Quaternion.Euler(
             target.itemProperties.restingRotation.x, target.itemProperties.floorYOffset + 90f,
             target.itemProperties.restingRotation.z), transform.localScale);
 
         var vertices = ListPool<Vector3>.Get();
 
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
-        var retcode = TryGetVerticalOffset(vertices, out offset);
+        var retcode = TryGetBounds(vertices, out var bounds);
+        offset = -bounds.min.y;
         ListPool<Vector3>.Release(vertices);
         return retcode;
     }
 
 
     //GameObject EXTENSIONS
-    public static bool TryGetLocalCentroid(this GameObject target, out Vector3 centroid)
+    public static bool TryGetBounds(this GameObject target, out Bounds bounds, Matrix4x4? overrideMatrix = null)
     {
         string Logfunc(List<Vector3> vertices)
         {
-            return TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+            return TryGetBounds(vertices, out var bounds) ? $"{bounds} Min {bounds.min} Max {bounds.max}" : "";
         }
 
         var transform = target.transform;
-        var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
         var vertices = ListPool<Vector3>.Get();
+
+        var localMatrix = overrideMatrix ?? Matrix4x4.identity;
 
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
-        var retcode = TryGetCentroid(vertices, out centroid);
+        var retcode = TryGetBounds(vertices, out bounds);
         ListPool<Vector3>.Release(vertices);
         return retcode;
     }
 
-    public static bool TryGetWorldCentroid(this GameObject target, out Vector3 centroid)
+    public static bool TryGetWorldBounds(this GameObject target, out Bounds bounds)
     {
         string Logfunc(List<Vector3> vertices)
         {
-            return TryGetCentroid(vertices, out var centroid) ? $"centroid {centroid}" : "";
+            return TryGetBounds(vertices, out var bounds) ? $"{bounds} Min {bounds.min} Max {bounds.max}" : "";
         }
 
         var transform = target.transform;
         var vertices = ListPool<Vector3>.Get();
+        
+        var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
+        transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
 
-        transform.GetChildVertexes(vertices, Matrix4x4.identity, logFunc: Logfunc);
-
-        using var nativeVertices = vertices.ToNativeArray(AllocatorManager.Temp);
-        transform.TransformPoints(nativeVertices);
-
-        vertices.Clear();
-        vertices.AddRange(nativeVertices);
-
-        var retcode = TryGetCentroid(vertices, out centroid);
+        var retcode = TryGetBounds(vertices, out bounds);
         ListPool<Vector3>.Release(vertices);
         return retcode;
     }
 
-    public static bool TryGetRadius(this GameObject target, out float minRadius, out float maxRadius)
+    public static bool TryGetRadius(this GameObject target, out float radius)
     {
         string Logfunc(List<Vector3> vertices)
         {
-            if (vertices.Count == 0)
-                return "";
-            TryGetCentroid(vertices, out var centroid);
-            TryGetRadius(vertices, out var minRadius, out var maxRadius);
-            return $"centroid {centroid} minR {minRadius} maxR {maxRadius}";
+            return TryGetBounds(vertices, out var bounds) ? $"{bounds} Min {bounds.min} Max {bounds.max}" : "";
         }
 
         var transform = target.transform;
@@ -95,7 +88,10 @@ public static class VerticesExtensions
 
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
 
-        var retcode = TryGetRadius(vertices, out minRadius, out maxRadius);
+        var retcode = TryGetBounds(vertices, out var bounds);
+
+        radius = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+        
         ListPool<Vector3>.Release(vertices);
         return retcode;
     }
@@ -134,9 +130,9 @@ public static class VerticesExtensions
                                 continue;
                             }
 
-
                             if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
+                                MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Cache hit {path}/{target.name} renderer {renderer.GetType().Name}");
                                 rVertices.AddRange(cached);
                             }
                             else
@@ -146,7 +142,7 @@ public static class VerticesExtensions
                                 {
                                     var tmpMesh = new Mesh();
 
-                                    skinnedMeshRenderer.BakeMesh(tmpMesh, false);
+                                    skinnedMeshRenderer.BakeMesh(tmpMesh, true);
 
                                     if (tmpMesh.isReadable)
                                         tmpMesh.GetVertices(tmpVertices);
@@ -159,7 +155,6 @@ public static class VerticesExtensions
                                 }
                                 VerticesCache[mesh] = rVertices.ToArray();
                             }
-                                
 
                             break;
                         }
@@ -182,6 +177,7 @@ public static class VerticesExtensions
 
                             if (VerticesCache.TryGetValue(mesh, out var cached))
                             {
+                                MattyFixes.VerboseMeshLog(LogLevel.Debug, () => $"Cache hit {path}/{target.name} renderer {renderer.GetType().Name}");
                                 rVertices.AddRange(cached);
                             }
                             else
@@ -404,6 +400,18 @@ public static class VerticesExtensions
         }
     }
 
+    private static bool TryGetBounds(List<Vector3> vertices, out Bounds bounds)
+    {
+        bounds = new Bounds();
+        if (vertices.Count == 0)
+            return false;
+
+        foreach (var v in vertices)
+            bounds.Encapsulate(v);
+
+        return true;
+    }
+    
     private static bool TryGetVerticalOffset(List<Vector3> vertices, out float offset)
     {
         offset = 0;
@@ -419,46 +427,5 @@ public static class VerticesExtensions
         offset = -minOffset;
         return true;
     }
-
-    private static bool TryGetCentroid(List<Vector3> vertices, out Vector3 centroid)
-    {
-        centroid = Vector3.zero;
-        if (vertices.Count == 0)
-            return false;
-
-        var sum = Vector3.zero;
-
-        foreach (var v in vertices) sum += v;
-
-        centroid = sum / vertices.Count;
-        return true;
-    }
-
-    private static bool TryGetRadius(List<Vector3> vertices, out float minRadius, out float maxRadius)
-    {
-        minRadius = 0;
-        maxRadius = 0;
-        if (vertices.Count == 0)
-            return false;
-
-        TryGetCentroid(vertices, out var centroid);
-
-        minRadius = float.MaxValue;
-        maxRadius = float.MinValue;
-        foreach (var vertex in vertices)
-        {
-            var tVertex = vertex - centroid;
-            var magnitude = tVertex.sqrMagnitude;
-
-            if (magnitude < minRadius)
-                minRadius = magnitude;
-            if (magnitude > maxRadius)
-                maxRadius = magnitude;
-        }
-
-        minRadius = Mathf.Sqrt(minRadius);
-        maxRadius = Mathf.Sqrt(maxRadius);
-
-        return true;
-    }
+    
 }

@@ -371,15 +371,15 @@ internal static class ItemPatches
                 {
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
-                    if (!warningObject.gameObject.TryGetRadius(out var minRadius, out var maxRadius))
+                    if (!warningObject.gameObject.TryGetRadius(out var radius))
                         return;
 
-                    shapeModule.radius = maxRadius;
-                    shapeModule.radiusThickness = 1 - minRadius / maxRadius;
+                    shapeModule.radius = radius;
+                    //shapeModule.radiusThickness = 1;
 
-                    warningObject.gameObject.TryGetWorldCentroid(out var centroid);
+                    warningObject.gameObject.TryGetWorldBounds(out var bounds);
                     _staticElectricityParticleOffset =
-                        centroid - warningObject.transform.position + Vector3.up * 0.5f;
+                        bounds.center - warningObject.transform.position + Vector3.up * 0.5f;
                 }
                 else
                 {
