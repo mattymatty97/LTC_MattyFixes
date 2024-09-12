@@ -59,11 +59,6 @@ internal partial class MattyFixes
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");
-            //CruiserFixes
-            CruiserFixes.Enabled = config.Bind("CruiserFixes", "enabled", true
-                , "global toggle for cruiser patches");
-            CruiserFixes.AlternateItemDrop = config.Bind("CruiserFixes", "alternate_item_drop", true
-                , "global toggle for cruiser patches");
             //VerboseDebug
             Debug.VerboseMeshes = config.Bind("Debug", "Mesh Verbosity Level", LogLevel.None,
                 "Print A LOT more logs about Meshes");
@@ -108,8 +103,6 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.Enabled);
                 LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
-                LethalConfigProxy.AddConfig(CruiserFixes.Enabled);
-                LethalConfigProxy.AddConfig(CruiserFixes.AlternateItemDrop);
                 LethalConfigProxy.AddConfig(Debug.VerboseMeshes);
                 LethalConfigProxy.AddConfig(Debug.VerboseCupboard);
                 LethalConfigProxy.AddConfig(Debug.VerboseItems);
@@ -178,12 +171,6 @@ internal partial class MattyFixes
         internal static class LightingParticle
         {
             internal static ConfigEntry<bool> Enabled;
-        }
-
-        internal static class CruiserFixes
-        {
-            internal static ConfigEntry<bool> Enabled;
-            internal static ConfigEntry<bool> AlternateItemDrop;
         }
 
         internal static class Debug

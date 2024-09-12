@@ -1,3 +1,9 @@
+## v1.1.22
+- remove CruiserFixes
+
+## v1.1.21
+- change a boolean to actually fix the SkinnedMeshRenders
+
 ## v1.1.20
 - Improve offset detection from SkinnedMeshRenders
 

@@ -67,7 +67,7 @@ public static class VerticesExtensions
         var transform = target.transform;
         var vertices = ListPool<Vector3>.Get();
         
-        var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
+        var localMatrix = Matrix4x4.TRS(transform.position, transform.rotation, transform.lossyScale);
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);
 
         var retcode = TryGetBounds(vertices, out bounds);

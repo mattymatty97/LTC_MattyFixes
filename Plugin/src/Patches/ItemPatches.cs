@@ -366,20 +366,23 @@ internal static class ItemPatches
         {
             try
             {
+                var matrix = Matrix4x4.TRS(Vector3.zero, warningObject.transform.rotation,
+                    warningObject.transform.localScale);
+                
                 var shapeModule = __instance.staticElectricityParticle.shape;
                 if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                 {
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
+                    
                     if (!warningObject.gameObject.TryGetRadius(out var radius))
                         return;
 
                     shapeModule.radius = radius;
                     //shapeModule.radiusThickness = 1;
 
-                    warningObject.gameObject.TryGetWorldBounds(out var bounds);
-                    _staticElectricityParticleOffset =
-                        bounds.center - warningObject.transform.position + Vector3.up * 0.5f;
+                    warningObject.gameObject.TryGetBounds(out var bounds, matrix);
+                    _staticElectricityParticleOffset = bounds.center + Vector3.up * 0.5f;
                 }
                 else
                 {
