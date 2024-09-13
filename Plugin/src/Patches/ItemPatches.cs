@@ -100,10 +100,10 @@ internal static class ItemPatches
         var rotation = rotationConfig.Config.Value.Split(",");
 
         if (rotation.Length == 3)
-            parsedRotation = new Vector3(
-                float.Parse(rotation[0], CultureInfo.InvariantCulture),
-                float.Parse(rotation[1], CultureInfo.InvariantCulture),
-                float.Parse(rotation[2], CultureInfo.InvariantCulture));
+            if (float.TryParse(rotation[0],NumberStyles.Float, CultureInfo.InvariantCulture, out var x))
+                if (float.TryParse(rotation[1],NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+                    if (float.TryParse(rotation[2],NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
+                        parsedRotation = new Vector3(x,y,z);
 
         item.restingRotation = parsedRotation;
 
@@ -139,7 +139,10 @@ internal static class ItemPatches
                     item.spawnPrefab.transform.CacheChildVertexes();
 
                     if (ItemRotations.TryGetValue(item.itemName, out var value))
+                    {
                         item.restingRotation.Set(value[0], value[1], value[2]);
+                        item.floorYOffset = (int)Math.Round(value[1]);
+                    }
 
                     UpdateItemRotation(mod, item);
                 }
@@ -467,7 +470,7 @@ internal static class ItemPatches
         },
         {
             "Extension ladder",
-            [0f, 0f, 0f]
+            [0f, 90f, 0f]
         },
         {
             "TZP-Inhalant",
@@ -495,7 +498,7 @@ internal static class ItemPatches
         },
         {
             "Brush",
-            [90f, 0f, 0f]
+            [90f, 180f, 0f]
         },
         {
             "Candy",
@@ -511,7 +514,7 @@ internal static class ItemPatches
         },
         {
             "Large axle",
-            [7f, 0f, 0f]
+            [7f, 180f, 0f]
         },
         {
             "Teeth",
@@ -591,7 +594,7 @@ internal static class ItemPatches
         },
         {
             "Shotgun",
-            [180f, 0f, -5f]
+            [180f, 90f, -5f]
         },
         {
             "Ammo",
@@ -615,15 +618,23 @@ internal static class ItemPatches
         },
         {
             "Tragedy",
-            [-90f, 0f, 0f]
+            [-90f, 90f, 0f]
         },
         {
             "Comedy",
-            [-90f, 0f, 0f]
+            [-90f, 90f, 0f]
         },
         {
             "Whoopie cushion",
-            [-90f, 0f, 0f]
+            [-90f, 180f, 0f]
+        },
+        {
+            "Hairdryer",
+            [0,-90,-90]
+        },
+        {
+            "Remote",
+            [-90,180,0]
         }
     };
 }

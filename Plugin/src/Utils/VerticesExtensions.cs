@@ -83,7 +83,7 @@ public static class VerticesExtensions
         }
 
         var transform = target.transform;
-        var localMatrix = Matrix4x4.TRS(transform.localPosition, transform.localRotation, transform.localScale);
+        var localMatrix = Matrix4x4.TRS(Vector3.zero, transform.rotation, transform.lossyScale);
         var vertices = ListPool<Vector3>.Get();
 
         transform.GetChildVertexes(vertices, localMatrix, logFunc: Logfunc);

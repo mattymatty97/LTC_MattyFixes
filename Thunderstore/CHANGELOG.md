@@ -1,3 +1,6 @@
+## v1.1.23
+- added some rotation values to the list
+
 ## v1.1.22
 - remove CruiserFixes
 
