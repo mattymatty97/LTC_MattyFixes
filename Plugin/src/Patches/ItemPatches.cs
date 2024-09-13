@@ -630,11 +630,15 @@ internal static class ItemPatches
         },
         {
             "Hairdryer",
-            [0,-90,-90]
+            [0,-45,-90]
         },
         {
             "Remote",
             [-90,180,0]
+        },
+        {
+            "Tea kettle",
+            [-90,90,-90]
         }
     };
 }
