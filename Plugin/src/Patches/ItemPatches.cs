@@ -486,7 +486,7 @@ internal static class ItemPatches
         },
         {
             "Airhorn",
-            [0f, 90f, 270f]
+            [0f, -90f, 270f]
         },
         {
             "Big bolt",
@@ -502,7 +502,7 @@ internal static class ItemPatches
         },
         {
             "Candy",
-            [90f, 0f, 0f]
+            [90f, -135f, 0f]
         },
         {
             "Chemical jug",
@@ -554,7 +554,7 @@ internal static class ItemPatches
         },
         {
             "Old phone",
-            [-90f, 0f, -90f]
+            [-90f, 135f, -90f]
         },
         {
             "Jar of pickles",
@@ -637,8 +637,8 @@ internal static class ItemPatches
             [-90,180,0]
         },
         {
-            "Tea kettle",
-            [-90,90,-90]
+            "Magnifying glass",
+            [0,-45,-90]
         }
     };
 }

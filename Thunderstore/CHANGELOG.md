@@ -1,3 +1,6 @@
+## v1.1.24
+- even more item rotations!
+
 ## v1.1.23
 - added some rotation values to the list
 
