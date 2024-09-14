@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using BepInEx.Logging;
+using Discord;
 using HarmonyLib;
+using LogLevel = BepInEx.Logging.LogLevel;
 
 namespace MattyFixes.Patches;
 
@@ -67,7 +68,7 @@ internal class GrabbableStartPatch
         {
             if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             {
-                ret = grabbableObject.IsServer;
+                ret = StartOfRound.Instance.IsServer;
             }
             
             if (MattyFixes.PluginConfig.CupBoard.Enabled.Value)

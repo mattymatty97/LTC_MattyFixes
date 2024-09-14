@@ -137,22 +137,17 @@ public static class VerticesExtensions
                             }
                             else
                             {
-                                var matrix = Matrix4x4.TRS(target.localPosition, target.localRotation, target.localScale).inverse;
-                                using (ListPool<Vector3>.Get(out var tmpVertices))
-                                {
-                                    var tmpMesh = new Mesh();
+                                
+                                var tmpMesh = new Mesh();
 
-                                    skinnedMeshRenderer.BakeMesh(tmpMesh, true);
+                                skinnedMeshRenderer.BakeMesh(tmpMesh, true);
 
-                                    if (tmpMesh.isReadable)
-                                        tmpMesh.GetVertices(tmpVertices);
-                                    else
-                                        tmpMesh.GetNonReadableVertices(tmpVertices);
-                                    
-                                    rVertices.AddRange(tmpVertices.Select(matrix.MultiplyPoint3x4));
-                                    
-                                    Object.Destroy(tmpMesh);
-                                }
+                                if (tmpMesh.isReadable)
+                                    tmpMesh.GetVertices(rVertices);
+                                else
+                                    tmpMesh.GetNonReadableVertices(rVertices);
+                                
+                                Object.Destroy(tmpMesh);
                                 VerticesCache[mesh] = rVertices.ToArray();
                             }
 

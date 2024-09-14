@@ -195,17 +195,7 @@ internal static class ItemPatches
                 if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
                         out var offset))
                 {
-                    var targetObject = itemType.spawnPrefab;
-                    if (targetObject == null)
-                        targetObject = __instance.gameObject;
-
-                    var prefabGrabbable = targetObject.GetComponentInChildren<GrabbableObject>();
-
-                    if (!prefabGrabbable)
-                        throw new ArgumentNullException(nameof(GrabbableObject),
-                            "Cannot find GrabbableObject on prefab!");
-
-                    if (prefabGrabbable.TryGetVerticalOffset(out offset))
+                    if (grabbable.TryGetVerticalOffset(out offset))
                         offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
                     else
                         offset = itemType.verticalOffset;
@@ -538,7 +528,7 @@ internal static class ItemPatches
         },
         {
             "Magnifying glass",
-            [0f, 90f, -90f]
+            [0f, -45f, -90f]
         },
         {
             "Cookie mold pan",
@@ -635,10 +625,6 @@ internal static class ItemPatches
         {
             "Remote",
             [-90,180,0]
-        },
-        {
-            "Magnifying glass",
-            [0,-45,-90]
         }
     };
 }
