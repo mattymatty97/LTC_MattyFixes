@@ -5,6 +5,7 @@ using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using UnityEngine;
+using LogType = VertexLibrary.LogType;
 
 namespace MattyFixes;
 
@@ -53,23 +54,18 @@ internal partial class MattyFixes : BaseUnityPlugin
     }
 
 
-    internal static void VerboseMeshLog(LogType logLevel, Func<string> message)
+    internal static void VerboseMeshLog(VertexLibrary.LogType logLevel, Func<string> message)
     {
-        LogLevel level;
-        switch (logLevel)
+        var level = logLevel switch
         {
-            case LogType.Error:
-            case LogType.Assert:
-            case LogType.Exception:
-                level = LogLevel.Error;
-                break;
-            case LogType.Warning:
-                level = LogLevel.Warning;
-                break;
-            default:
-                level = LogLevel.Info;
-                break;
-        } 
+            LogType.Fatal => LogLevel.Fatal,
+            LogType.Error => LogLevel.Error,
+            LogType.Warning => LogLevel.Warning,
+            LogType.Info1 or LogType.Info2 or LogType.Info3 or LogType.Info4 or LogType.Info=> LogLevel.Info,
+            LogType.Debug1 or LogType.Debug2 or LogType.Debug3 or LogType.Debug4 or LogType.Debug=> LogLevel.Debug,
+            LogType.All => LogLevel.All,
+            _ => LogLevel.None
+        };
         VerboseMeshLog(level, message);
     }
     
