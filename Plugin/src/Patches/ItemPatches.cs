@@ -4,11 +4,11 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Pool;
 using UnityEngine.Rendering;
+using VertexLibrary;
 using Object = UnityEngine.Object;
 
 namespace MattyFixes.Patches;
@@ -135,8 +135,13 @@ internal static class ItemPatches
                 {
                     if (item.spawnPrefab == null)
                         continue;
-
-                    item.spawnPrefab.transform.CacheChildVertexes();
+                    
+                    item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
+                    {
+                        CullingMask = ~LayerMask.GetMask("ScanNode"),
+                        LogHandler = MattyFixes.VerboseMeshLog,
+                        VertexCache = VertexesExtensions.GlobalPartialCache
+                    });
 
                     if (ItemRotations.TryGetValue(item.itemName, out var value))
                     {
@@ -195,8 +200,23 @@ internal static class ItemPatches
                 if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
                         out var offset))
                 {
-                    if (grabbable.TryGetVerticalOffset(out offset))
+                    var executionOptions = new ExecutionOptions()
+                    {
+                        VertexCache = VertexesExtensions.GlobalPartialCache,
+                        CullingMask = ~LayerMask.GetMask("ScanNode"),
+                        LogHandler = MattyFixes.VerboseMeshLog,
+                        OverrideMatrix = Matrix4x4.TRS(Vector3.zero, 
+                            Quaternion.Euler(
+                                grabbable.itemProperties.restingRotation.x, grabbable.itemProperties.floorYOffset + 90f,
+                                grabbable.itemProperties.restingRotation.z)
+                            ,grabbable.transform.lossyScale)
+                    };
+
+                    if (grabbable.transform.TryGetBounds(out var bounds, executionOptions))
+                    {
+                        offset = -bounds.min.y;
                         offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+                    }
                     else
                         offset = itemType.verticalOffset;
                 }
@@ -360,7 +380,7 @@ internal static class ItemPatches
             try
             {
                 var matrix = Matrix4x4.TRS(Vector3.zero, warningObject.transform.rotation,
-                    warningObject.transform.localScale);
+                    warningObject.transform.lossyScale);
                 
                 var shapeModule = __instance.staticElectricityParticle.shape;
                 if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
@@ -368,13 +388,22 @@ internal static class ItemPatches
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
                     
-                    if (!warningObject.gameObject.TryGetRadius(out var radius))
-                        return;
+                    var executionOptions = new ExecutionOptions()
+                    {
+                        VertexCache = VertexesExtensions.GlobalPartialCache,
+                        CullingMask = ~LayerMask.GetMask("ScanNode"),
+                        LogHandler = MattyFixes.VerboseMeshLog,
+                        OverrideMatrix = matrix
+                    };
+
+                    var vertexes = warningObject.transform.GetVertexes(executionOptions);
+
+                    var bounds = vertexes.GetBounds();
+                    
+                    var (_ , radius) = vertexes.GetFarthestPoint(bounds.center);
 
                     shapeModule.radius = radius;
-                    //shapeModule.radiusThickness = 1;
 
-                    warningObject.gameObject.TryGetBounds(out var bounds, matrix);
                     _staticElectricityParticleOffset = bounds.center + Vector3.up * 0.5f;
                 }
                 else
@@ -452,7 +481,7 @@ internal static class ItemPatches
         },
         {
             "Shovel",
-            [0f, -90f, -90f]
+            [0f, 0f, -90f]
         },
         {
             "Stun grenade",
@@ -500,7 +529,7 @@ internal static class ItemPatches
         },
         {
             "Clown horn",
-            [-90f, 0f, 0f]
+            [-90f, -30f, 0f]
         },
         {
             "Large axle",

@@ -38,6 +38,7 @@
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AnimationModule.dll" Publicize="false"/>
         <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
         <Reference Include="$(SolutionDir)\Dependencies\AsyncLoggers.dll" Publicize="false"/>
+        <Reference Include="$(SolutionDir)\Dependencies\VertexLibrary.dll" Publicize="false"/>
         <Reference Include="$(SolutionDir)\Dependencies\LethalConfig.dll" Publicize="false"/>
         <Reference Include="$(SolutionDir)\Dependencies\LethalLevelLoader.dll" Publicize="false"/>
         <Reference Include="$(SolutionDir)\Dependencies\LethalLib.dll" Publicize="false"/>

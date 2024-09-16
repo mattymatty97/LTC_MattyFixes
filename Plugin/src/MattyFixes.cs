@@ -4,10 +4,12 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using UnityEngine;
 
 namespace MattyFixes;
 
 [BepInPlugin(GUID, NAME, VERSION)]
+[BepInDependency("VertexLibrary", "0.0.1")]
 [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("ainavt.lc.lethalconfig", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
@@ -51,6 +53,26 @@ internal partial class MattyFixes : BaseUnityPlugin
     }
 
 
+    internal static void VerboseMeshLog(LogType logLevel, Func<string> message)
+    {
+        LogLevel level;
+        switch (logLevel)
+        {
+            case LogType.Error:
+            case LogType.Assert:
+            case LogType.Exception:
+                level = LogLevel.Error;
+                break;
+            case LogType.Warning:
+                level = LogLevel.Warning;
+                break;
+            default:
+                level = LogLevel.Info;
+                break;
+        } 
+        VerboseMeshLog(level, message);
+    }
+    
     internal static void VerboseMeshLog(LogLevel logLevel, Func<string> message)
     {
         if ((PluginConfig.Debug.VerboseMeshes.Value & logLevel) != 0)
