@@ -400,11 +400,14 @@ internal static class ItemPatches
 
                     var bounds = vertexes.GetBounds();
                     
-                    var (_ , radius) = vertexes.GetFarthestPoint(bounds.center);
+                    if (bounds.HasValue)
+                    {
+                        var (_, radius) = vertexes.GetFarthestPoint(bounds.Value.center);
 
-                    shapeModule.radius = radius;
+                        shapeModule.radius = radius;
 
-                    _staticElectricityParticleOffset = bounds.center + Vector3.up * 0.5f;
+                        _staticElectricityParticleOffset = bounds.Value.center + Vector3.up * 0.5f;
+                    }
                 }
                 else
                 {
