@@ -547,6 +547,14 @@ internal static class ItemPatches
             [-90f, 0f, 0f]
         },
         {
+            "Dust pan",
+            [-90f, 180f, 0f]
+        },
+        {
+            "Egg beater",
+            [90f, 180f, 0f]
+        },
+        {
             "V-type engine",
             [-90f, 0f, 0f]
         },
