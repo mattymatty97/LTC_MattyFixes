@@ -10,7 +10,7 @@ using LogType = VertexLibrary.LogType;
 namespace MattyFixes;
 
 [BepInPlugin(GUID, NAME, VERSION)]
-[BepInDependency("VertexLibrary", "0.0.1")]
+[BepInDependency("com.github.lethalcompanymodding.vertexlibrary", "0.0.2")]
 [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("ainavt.lc.lethalconfig", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]

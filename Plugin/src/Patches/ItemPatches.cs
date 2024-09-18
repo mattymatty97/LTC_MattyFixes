@@ -100,10 +100,10 @@ internal static class ItemPatches
         var rotation = rotationConfig.Config.Value.Split(",");
 
         if (rotation.Length == 3)
-            if (float.TryParse(rotation[0],NumberStyles.Float, CultureInfo.InvariantCulture, out var x))
-                if (float.TryParse(rotation[1],NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
-                    if (float.TryParse(rotation[2],NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
-                        parsedRotation = new Vector3(x,y,z);
+            if (float.TryParse(rotation[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x))
+                if (float.TryParse(rotation[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
+                    if (float.TryParse(rotation[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
+                        parsedRotation = new Vector3(x, y, z);
 
         item.restingRotation = parsedRotation;
 
@@ -135,7 +135,7 @@ internal static class ItemPatches
                 {
                     if (item.spawnPrefab == null)
                         continue;
-                    
+
                     item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
                     {
                         CullingMask = ~LayerMask.GetMask("ScanNode"),
@@ -205,11 +205,11 @@ internal static class ItemPatches
                         VertexCache = VertexesExtensions.GlobalPartialCache,
                         CullingMask = ~LayerMask.GetMask("ScanNode"),
                         LogHandler = MattyFixes.VerboseMeshLog,
-                        OverrideMatrix = Matrix4x4.TRS(Vector3.zero, 
+                        OverrideMatrix = Matrix4x4.TRS(Vector3.zero,
                             Quaternion.Euler(
                                 grabbable.itemProperties.restingRotation.x, grabbable.itemProperties.floorYOffset + 90f,
                                 grabbable.itemProperties.restingRotation.z)
-                            ,grabbable.transform.lossyScale)
+                            , grabbable.transform.lossyScale)
                     };
 
                     if (grabbable.transform.TryGetBounds(out var bounds, executionOptions))
@@ -381,13 +381,13 @@ internal static class ItemPatches
             {
                 var matrix = Matrix4x4.TRS(Vector3.zero, warningObject.transform.rotation,
                     warningObject.transform.lossyScale);
-                
+
                 var shapeModule = __instance.staticElectricityParticle.shape;
                 if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                 {
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
-                    
+
                     var executionOptions = new ExecutionOptions()
                     {
                         VertexCache = VertexesExtensions.GlobalPartialCache,
@@ -399,7 +399,7 @@ internal static class ItemPatches
                     var vertexes = warningObject.transform.GetVertexes(executionOptions);
 
                     var bounds = vertexes.GetBounds();
-                    
+
                     if (bounds.HasValue)
                     {
                         var (_, radius) = vertexes.GetFarthestPoint(bounds.Value.center);
@@ -459,7 +459,7 @@ internal static class ItemPatches
                 __instance.staticElectricityParticle.transform.position += _staticElectricityParticleOffset;
         }
     }
-    
+
     private static readonly Dictionary<string, List<float>> ItemRotations = new()
     {
         {
@@ -527,6 +527,10 @@ internal static class ItemPatches
             [90f, -135f, 0f]
         },
         {
+            "Cash register",
+            [-90f, -90f, 40f]
+        },
+        {
             "Chemical jug",
             [-90f, 0f, 0f]
         },
@@ -559,6 +563,10 @@ internal static class ItemPatches
             [-90f, 0f, -90f]
         },
         {
+            "Hairdryer",
+            [0f, -90f, -90f]
+        },
+        {
             "Magnifying glass",
             [0f, -45f, -90f]
         },
@@ -576,7 +584,7 @@ internal static class ItemPatches
         },
         {
             "Old phone",
-            [-90f, 135f, -90f]
+            [-90f, 180f, -90f]
         },
         {
             "Jar of pickles",
@@ -585,6 +593,10 @@ internal static class ItemPatches
         {
             "Pill bottle",
             [-90f, 0f, 0f]
+        },
+        {
+            "Remote",
+            [-90f, 180f, 0f]
         },
         {
             "Ring",
@@ -649,14 +661,6 @@ internal static class ItemPatches
         {
             "Whoopie cushion",
             [-90f, 180f, 0f]
-        },
-        {
-            "Hairdryer",
-            [0,-45,-90]
-        },
-        {
-            "Remote",
-            [-90,180,0]
         }
     };
 }
