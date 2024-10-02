@@ -1,9 +1,10 @@
 {
   "name": "Matty_Fixes",
-  "version_number": "1.1.24",
+  "version_number": "1.1.25",
   "website_url": "https://github.com/mattymatty97/LTC_MattyFixes",
   "description": "A collection of Fixes for the vanilla game, with focus on vanilla compatibility.",
   "dependencies": [
-    "BepInEx-BepInExPack-5.4.2100"
+    "BepInEx-BepInExPack-5.4.2100",
+    "LethalCompanyModding-VertexLibrary-1.0.0"
   ]
 }

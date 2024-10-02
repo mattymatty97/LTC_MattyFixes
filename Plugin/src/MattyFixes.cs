@@ -10,7 +10,7 @@ using LogType = VertexLibrary.LogType;
 namespace MattyFixes;
 
 [BepInPlugin(GUID, NAME, VERSION)]
-[BepInDependency("com.github.lethalcompanymodding.vertexlibrary", "0.0.2")]
+[BepInDependency("com.github.lethalcompanymodding.vertexlibrary", "1.0.0")]
 [BepInDependency("TeamBMX.LobbyCompatibility", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("ainavt.lc.lethalconfig", BepInDependency.DependencyFlags.SoftDependency)]
 [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
@@ -19,7 +19,7 @@ internal partial class MattyFixes : BaseUnityPlugin
 {
     public const string GUID = "mattymatty.MattyFixes";
     public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.24";
+    public const string VERSION = "1.1.25";
     internal static ManualLogSource Log;
     
     internal static MattyFixes Instance { get; private set; }

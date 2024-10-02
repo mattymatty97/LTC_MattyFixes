@@ -669,6 +669,10 @@ internal static class ItemPatches
         {
             "Whoopie cushion",
             [-90f, 180f, 0f]
+        },
+        {
+            "Zed Dog",
+            [0f, -90f, 0f]
         }
     };
 }
