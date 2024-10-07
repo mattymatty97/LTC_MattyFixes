@@ -1,3 +1,12 @@
+## v1.1.26
+- attempt to fix skinnedRenders again
+- removed NameFixes ( they never worked )
+- add fix for items generating inside furniture ( eg: lamps in kitchen counter )
+
+## v1.1.25
+- add VertexLibrary dependency
+- fix some wrong rotations
+
 ## v1.1.24
 - even more item rotations!
 - hopefully fix skinnedRenders

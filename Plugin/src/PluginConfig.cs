@@ -22,10 +22,7 @@ internal partial class MattyFixes
                 , "convert all meshes to readable at runtime");
             ReadableMeshes.FixLightning = config.Bind("ReadableMeshes", "fix_lightning", true
                 , "show lightning particles as dev intended! ( will have no effect if AlternateLightningParticles is active )");
-            //NameFixes
-            NameFixes.Enabled = config.Bind("NameFixes", "enabled", true
-                , "[EXPERIMENTAL] fix late joining players reading as 'Unknown' and radar with wrong names");
-            //BadgeFixes
+           //BadgeFixes
             BadgeFixes.Enabled = config.Bind("BadgeFixes", "enabled", true
                 , "show correct level tag");
             //CupBoard
@@ -56,6 +53,8 @@ internal partial class MattyFixes
                 , "prevent items from falling below the ship");
             OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.01f
                 , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.001f,1f)));
+            OutOfBounds.SpawnInFurniture = config.Bind("OutOfBounds", "spawn_in_furniture", true
+                , "Fix items generating inside furinture ( eg: lamps inside the kitchen counter )");
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");
@@ -89,7 +88,6 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddButton("Cleanup", "Clear old entries", "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)", "Clean&Save", RemoveOrphans);
                 LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                 LethalConfigProxy.AddConfig(ReadableMeshes.FixLightning);
-                LethalConfigProxy.AddConfig(NameFixes.Enabled);
                 LethalConfigProxy.AddConfig(BadgeFixes.Enabled, true);
                 LethalConfigProxy.AddConfig(CupBoard.Enabled);
                 LethalConfigProxy.AddConfig(CupBoard.Tolerance);
@@ -101,7 +99,9 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(ItemClipping.RotateOnSpawn);
                 LethalConfigProxy.AddConfig(ItemClipping.VerticalOffset);
                 LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
-                LethalConfigProxy.AddConfig(OutOfBounds.Enabled);
+                LethalConfigProxy.AddConfig(OutOfBounds.Enabled, true);
+                LethalConfigProxy.AddConfig(OutOfBounds.VerticalOffset);
+                LethalConfigProxy.AddConfig(OutOfBounds.SpawnInFurniture, true);
                 LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
                 LethalConfigProxy.AddConfig(Debug.VerboseMeshes);
                 LethalConfigProxy.AddConfig(Debug.VerboseCupboard);
@@ -126,11 +126,6 @@ internal partial class MattyFixes
         {
             internal static ConfigEntry<bool> Enabled;
             internal static ConfigEntry<bool> FixLightning;
-        }
-
-        internal static class NameFixes
-        {
-            internal static ConfigEntry<bool> Enabled;
         }
 
         internal static class BadgeFixes
@@ -166,6 +161,7 @@ internal partial class MattyFixes
         {
             internal static ConfigEntry<bool> Enabled;
             internal static ConfigEntry<float> VerticalOffset;
+            internal static ConfigEntry<bool> SpawnInFurniture;
         }
 
         internal static class LightingParticle

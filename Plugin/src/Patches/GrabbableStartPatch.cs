@@ -1,8 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using Discord;
 using HarmonyLib;
+using UnityEngine;
+using UnityEngine.Pool;
+using VertexLibrary;
 using LogLevel = BepInEx.Logging.LogLevel;
 
 namespace MattyFixes.Patches;
@@ -10,6 +14,127 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal class GrabbableStartPatch
 {
+    private static readonly HashSet<Item> ComputedOffsets = [];
+    private static readonly Dictionary<Item, List<GrabbableObject>> PendingObjects = [];
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
+    internal static void OnObjectSpawn(GrabbableObject __instance)
+    {
+        if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
+            return;
+        
+        var itemType = __instance.itemProperties;
+        
+        if (ComputedOffsets.Contains(itemType))
+            return;
+        
+        MattyFixes.Log.LogDebug($"{itemType.itemName}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
+
+        __instance.StartCoroutine(ProcessGrabbable(__instance));
+
+        if (!ShouldSpawnOnGround(__instance) && __instance.transform.parent != CupBoardFix.Closet.gameObject.transform) 
+            return;
+        
+        if (!PendingObjects.TryGetValue(itemType, out var list))
+        {
+            list = ListPool<GrabbableObject>.Get();
+            PendingObjects[itemType] = list;
+        }
+            
+        list.Add(__instance);
+        
+        MattyFixes.Log.LogDebug($"{itemType.itemName}({__instance.NetworkObjectId}) will need to update the position - enqueued");
+
+    }
+
+    private static IEnumerator ProcessGrabbable(GrabbableObject grabbable)
+    {
+        var itemType = grabbable.itemProperties;
+        //wait two frames
+        yield return null;
+        yield return null;
+        
+        //only run the code on the first coroutine that completes
+        if (!ComputedOffsets.Add(itemType))
+            yield break;
+        
+        MattyFixes.Log.LogDebug($"{itemType.itemName}({grabbable.NetworkObjectId}) is computing vertical offset");
+        
+        var oldOffset = itemType.verticalOffset;
+        itemType.verticalOffset = ComputeVerticalOffset(grabbable);
+
+        var isOriginal = Mathf.Approximately(oldOffset, itemType.verticalOffset);
+        
+        MattyFixes.Log.LogDebug($"{itemType.itemName} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
+        
+        if (isOriginal)
+            yield break;
+
+        if (!PendingObjects.TryGetValue(itemType, out var list)) 
+            yield break;
+        
+        foreach (var gObject in list)
+        {
+            if (!gObject)
+                continue;
+
+            var oldPosition = gObject.targetFloorPosition;
+            gObject.targetFloorPosition -= Vector3.up * oldOffset;
+            gObject.targetFloorPosition += Vector3.up * itemType.verticalOffset;
+            
+            MattyFixes.Log.LogDebug($"{itemType.itemName}({gObject.NetworkObjectId}) position updated [{oldPosition}] -> [{gObject.targetFloorPosition}]");
+        }
+        
+        list.Clear();
+        
+        ListPool<GrabbableObject>.Release(list);
+
+        PendingObjects.Remove(itemType);
+
+    }
+    
+    
+    private static float ComputeVerticalOffset(GrabbableObject grabbable)
+    {
+        
+        var itemType = grabbable.itemProperties;
+        
+        try
+        {
+            if (MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
+                    out var offset)) 
+                return offset;
+            
+            var executionOptions = new ExecutionOptions()
+            {
+                VertexCache = VertexesExtensions.GlobalPartialCache,
+                CullingMask = ~LayerMask.GetMask("ScanNode"),
+                LogHandler = MattyFixes.VerboseMeshLog,
+                OverrideMatrix = Matrix4x4.TRS(Vector3.zero,
+                    Quaternion.Euler(
+                        grabbable.itemProperties.restingRotation.x, grabbable.itemProperties.floorYOffset + 90f,
+                        grabbable.itemProperties.restingRotation.z)
+                    , grabbable.transform.lossyScale)
+            };
+
+            if (grabbable.transform.TryGetBounds(out var bounds, executionOptions))
+            {
+                offset = -bounds.min.y;
+                offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
+            }
+            else
+                offset = itemType.verticalOffset;
+
+            return offset;
+        }
+        catch (Exception ex)
+        {
+            MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
+        }
+
+        return itemType.verticalOffset;
+    }
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
@@ -50,10 +175,21 @@ internal class GrabbableStartPatch
 
     private static bool NewSpawnOnGroundCheck(GrabbableObject grabbableObject)
     {
-        var ret = grabbableObject.itemProperties.itemSpawnsOnGround;
-
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>
             $"{grabbableObject.itemProperties.itemName}({grabbableObject.NetworkObjectId}) processing GrabbableObject pos {grabbableObject.transform.position}");
+
+        var ret = ShouldSpawnOnGround(grabbableObject);
+        
+        MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>
+            $"{grabbableObject.itemProperties.itemName}({grabbableObject.NetworkObjectId}) processing GrabbableObject spawnState " +
+            $"OnGround - was: {grabbableObject.itemProperties.itemSpawnsOnGround} new:{ret}");
+
+        return ret;
+    }
+    
+    private static bool ShouldSpawnOnGround(GrabbableObject grabbableObject)
+    {
+        var ret = grabbableObject.itemProperties.itemSpawnsOnGround;
         
         //run normal code if settings are off
         if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value && !MattyFixes.PluginConfig.CupBoard.Enabled.Value)
@@ -63,26 +199,22 @@ internal class GrabbableStartPatch
         if (grabbableObject is ClipboardItem ||
             (grabbableObject is PhysicsProp && grabbableObject.itemProperties.itemName == "Sticky note"))
             return ret;
+
+        if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch._isInitializingGame) 
+            return ret;
         
-        if (!StartOfRound.Instance.localPlayerController || StartOfRoundPatch._isInitializingGame)
+        if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
         {
-            if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
-            {
-                ret = StartOfRound.Instance.IsServer;
-            }
-            
-            if (MattyFixes.PluginConfig.CupBoard.Enabled.Value)
-            {
-                if (CupBoardFix.Closet.gameObject &&
-                    grabbableObject.transform.parent == CupBoardFix.Closet.gameObject.transform)
-                    ret = false;
-            }
+            ret = StartOfRound.Instance.IsServer;
         }
+
+        if (!MattyFixes.PluginConfig.CupBoard.Enabled.Value) 
+            return ret;
         
-        MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>
-                $"{grabbableObject.itemProperties.itemName}({grabbableObject.NetworkObjectId}) processing GrabbableObject spawnState " +
-                $"OnGround - was: {grabbableObject.itemProperties.itemSpawnsOnGround} new:{ret}");
-        
+        if (CupBoardFix.Closet.gameObject &&
+            grabbableObject.transform.parent == CupBoardFix.Closet.gameObject.transform)
+            ret = false;
+
         return ret;
     }
 }

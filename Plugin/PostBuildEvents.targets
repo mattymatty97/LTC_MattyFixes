@@ -55,4 +55,10 @@
         <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ZipDir)$(ZipStructure)"/>
         <Copy SourceFiles="@(Assets)" DestinationFolder="$(ZipDir)$(ZipStructure)%(Assets.RelativeDir)"/>
     </Target>
+	
+	<!-- Update Root README.md. -->
+    <Target Name="UpdateREADME" AfterTargets="Build" Condition="Exists('$(ZipDir)\README.md')">
+        <Message Importance="high" Text="updating README.md"/>
+        <Copy SourceFiles="$(ZipDir)\README.md" DestinationFolder="$(SolutionDir)"/>
+    </Target>
 </Project>

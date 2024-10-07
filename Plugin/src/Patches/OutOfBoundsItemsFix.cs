@@ -118,4 +118,55 @@ internal class OutOfBoundsItemsFix
         
         return newPos;
     }
+
+
+    [HarmonyTranspiler]
+    [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnScrapInLevel))]
+    private static IEnumerable<CodeInstruction> FixSpawns(IEnumerable<CodeInstruction> instructions,
+        ILGenerator ilGenerator)
+    {
+        var codes = instructions.ToList();
+        
+        if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+            return codes;
+        
+        if (!MattyFixes.PluginConfig.OutOfBounds.SpawnInFurniture.Value)
+            return codes;
+        
+        var getUpMethod = AccessTools.Property(typeof(Vector3), nameof(Vector3.up)).GetMethod;
+        var navmeshPosMethod = AccessTools.Method(typeof(RoundManager), "GetRandomNavMeshPositionInBoxPredictable");
+        var verticalOffset = AccessTools.Field(typeof(Item), nameof(Item.verticalOffset));
+        var multiplyMethod = AccessTools.Method(typeof(Vector3), "op_Multiply", new []{typeof(Vector3), typeof(float)});
+        var addMethod = AccessTools.Method(typeof(Vector3), "op_Addition", new []{typeof(Vector3), typeof(Vector3)});
+        
+        var matcher = new CodeMatcher(codes, ilGenerator);
+
+        matcher.MatchForward(false, 
+            new CodeMatch(OpCodes.Call, navmeshPosMethod),
+            new CodeMatch(OpCodes.Call, getUpMethod),
+            new CodeMatch(OpCodes.Ldloc_S),
+            new CodeMatch(OpCodes.Ldfld),
+            new CodeMatch(OpCodes.Ldfld),
+            new CodeMatch(OpCodes.Ldloc_S),
+            new CodeMatch(OpCodes.Ldfld),
+            new CodeMatch(OpCodes.Callvirt),
+            new CodeMatch(OpCodes.Ldfld, verticalOffset),
+            new CodeMatch(OpCodes.Call, multiplyMethod),
+            new CodeMatch(OpCodes.Call, addMethod),
+            new CodeMatch(OpCodes.Stloc_S)
+            );
+
+        if (matcher.IsInvalid)
+        {
+            MattyFixes.Log.LogError("RoundManager.SpawnScrapInLevel IL Not Found!");
+            return codes;
+        }
+
+        matcher.Advance(1).RemoveInstructions(10);
+        
+        MattyFixes.Log.LogDebug("RoundManager.SpawnScrapInLevel patched");
+        //MattyFixes.Log.LogError(string.Join("\n", matcher.Instructions()));
+
+        return matcher.Instructions();
+    }
 }

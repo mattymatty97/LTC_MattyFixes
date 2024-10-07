@@ -19,22 +19,21 @@ Patches:
 - ### ItemClippingFix
   - **fix rotation of some items while dropped**
   - **prevent items from clipping into the ground**
+  - **recalculate the offset from ground based on the actual item model**
 - ### RadarFixes
   - **fix orphaned radar icons from deleted scrap**  
   ( scarp sold will appear on the radar in all the maps )
   - **fix items from a newly created lobby being visible on the radar**
 - ### OutOfBounds Patch
   - prevent items from falling **below of the ship**
+  - prevent items from **generating inside furniture**  
+  ( eg: kitchen counter )
 - ### Alternate Lightning Particles
   - show particles around items in a sphere
 - ### Readable Meshes
-  - mark all meshes as readable to fix various vanilla bugs:
+  - mark conductive item meshes as readable to fix various vanilla bugs:
     - Stormy weather spamming zero_surface_area warnings
     - Lightning particle showing as a point instead of on the item model
-    - align items to the floor instead of clipping/floating
-- ### **Experimental** Name De-sync
-  - prevent "Unknown" names for late joiners
-  - correctly apply names to radar icons
 
 Differences to [ItemClippingFix](https://thunderstore.io/c/lethal-company/p/ViViKo/ItemClippingFix/)
 ------------------------

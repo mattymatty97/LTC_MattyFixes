@@ -158,6 +158,8 @@ internal static class ItemPatches
         }
     }
 
+    
+
 
     [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
     internal static class NetworkSpawnPatch
@@ -191,45 +193,6 @@ internal static class ItemPatches
                     BrokenMeshItems.Add(itemType);
                     MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
                 }
-
-            if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
-                return;
-
-            try
-            {
-                if (!MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
-                        out var offset))
-                {
-                    var executionOptions = new ExecutionOptions()
-                    {
-                        VertexCache = VertexesExtensions.GlobalPartialCache,
-                        CullingMask = ~LayerMask.GetMask("ScanNode"),
-                        LogHandler = MattyFixes.VerboseMeshLog,
-                        OverrideMatrix = Matrix4x4.TRS(Vector3.zero,
-                            Quaternion.Euler(
-                                grabbable.itemProperties.restingRotation.x, grabbable.itemProperties.floorYOffset + 90f,
-                                grabbable.itemProperties.restingRotation.z)
-                            , grabbable.transform.lossyScale)
-                    };
-
-                    if (grabbable.transform.TryGetBounds(out var bounds, executionOptions))
-                    {
-                        offset = -bounds.min.y;
-                        offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
-                    }
-                    else
-                        offset = itemType.verticalOffset;
-                }
-
-                itemType.verticalOffset = offset;
-                //grabbable.MattyFixes_localVerticalOffset = offset;
-
-                MattyFixes.Log.LogDebug($"{itemType.itemName} new offset is {itemType.verticalOffset}");
-            }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
-            }
         }
 
         [HarmonyPostfix]
