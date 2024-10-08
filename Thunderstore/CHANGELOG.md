@@ -1,3 +1,6 @@
+## v1.1.27
+- fix rubber Ducky
+
 ## v1.1.26
 - attempt to fix skinnedRenders again
 - removed NameFixes ( they never worked )

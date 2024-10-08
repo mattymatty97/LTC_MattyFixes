@@ -107,7 +107,7 @@ internal static class ItemPatches
 
         item.restingRotation = parsedRotation;
 
-        item.floorYOffset = (int)Math.Round(item.restingRotation.y);
+        item.floorYOffset = (int)Math.Round(parsedRotation.y);
     }
 
 
@@ -579,7 +579,7 @@ internal static class ItemPatches
         },
         {
             "Rubber Ducky",
-            [-90f, 0f, -90f]
+            [-90f, 0f, 90f]
         },
         {
             "Steering wheel",
