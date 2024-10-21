@@ -134,7 +134,7 @@ internal class CupBoardFix
             {
                 foreach (var shelfHolder in closet.Shelves)
                 {
-                    var hitPoint = shelfHolder.Collider.ClosestPoint(pos);
+                    var hitPoint = shelfHolder.Collider.ClosestPointOnBounds(pos);
                     var tmp = pos.y - hitPoint.y;
 
                     MattyFixes.VerboseCupboardLog(LogLevel.Debug, () =>
@@ -158,11 +158,7 @@ internal class CupBoardFix
             var transform = grabbable.transform;
             if (found != null)
             {
-                Vector3 newPos;
-                if (MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
-                    newPos = ItemPatches.FixPlacement(closest.Value, found.transform, grabbable);
-                else
-                    newPos = closest.Value + Vector3.up * MattyFixes.PluginConfig.CupBoard.Shift.Value;
+                Vector3 newPos = closest.Value + Vector3.up * grabbable.itemProperties.verticalOffset; //ItemPatches.FixPlacement(closest.Value, found.transform, grabbable);
                 transform.parent = closet.gameObject.transform;
                 transform.position = newPos;
                 grabbable.targetFloorPosition = transform.localPosition;

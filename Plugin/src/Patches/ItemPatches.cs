@@ -25,47 +25,6 @@ internal static class ItemPatches
     private static readonly Dictionary<MeshFilter, Mesh> ReverseMeshMap = new();
     private static Vector3 _staticElectricityParticleOffset;
 
-    internal static Vector3 FixPlacement(Vector3 hitPoint, Transform shelfTransform, GrabbableObject heldObject)
-    {
-        var renderer = shelfTransform.gameObject.GetComponent<Renderer>();
-        var bounds = renderer?.bounds;
-
-        var yOffset = bounds.HasValue ? bounds.Value.extents.y : shelfTransform.localScale.z / 2f;
-        hitPoint.y = shelfTransform.position.y + yOffset + heldObject.itemProperties.verticalOffset;
-        return hitPoint;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(PlaceableObjectsSurface), nameof(PlaceableObjectsSurface.itemPlacementPosition))]
-    private static bool ItemPlacementPositionPatch(PlaceableObjectsSurface __instance, ref Vector3 __result,
-        Transform gameplayCamera, GrabbableObject heldObject)
-    {
-        if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
-            return true;
-
-        //only tweak if we're placing inside the CupBoard
-        if (__instance.transform.parent.parent != CupBoardFix.Closet.gameObject?.transform)
-            return true;
-
-        try
-        {
-            if (Physics.Raycast(gameplayCamera.position, gameplayCamera.forward, out var val, 7f,
-                    1073744640, (QueryTriggerInteraction)1))
-            {
-                var hitPoint = __instance.placeableBounds.ClosestPoint(val.point);
-                __result = FixPlacement(hitPoint, __instance.transform, heldObject);
-                return false;
-            }
-
-            __result = Vector3.zero;
-            return false;
-        }
-        catch (Exception ex)
-        {
-            MattyFixes.Log.LogError($"Exception while finding the Cupboard Placement {ex}");
-            return true;
-        }
-    }
 
     private static void UpdateItemRotation(string modName, Item item)
     {
@@ -157,9 +116,6 @@ internal static class ItemPatches
                 }
         }
     }
-
-    
-
 
     [HarmonyPatch(typeof(NetworkBehaviour), nameof(NetworkBehaviour.OnNetworkSpawn))]
     internal static class NetworkSpawnPatch

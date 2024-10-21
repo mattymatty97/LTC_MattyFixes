@@ -1,3 +1,7 @@
+## v1.1.29
+- Fix animated items reading the wrong vertical offset
+- Fix alignment on most Placeable surfaces instead of limiting it to the Cupboard only
+
 ## v1.1.27
 - fix rubber Ducky
 
