@@ -42,34 +42,33 @@ namespace MattyFixes.Preloader
                 var verticalOffsetField = itemDefinition.Fields.FirstOrDefault(f => f.Name == "verticalOffset");
                 if (verticalOffsetField == null)
                     return;
-                
+
                 var grabbableType = assembly.MainModule.Types.FirstOrDefault(t => t.FullName == "GrabbableObject");
                 if (grabbableType == null)
                     return;
-                
+
                 var itemPropertiesField = grabbableType.Fields.FirstOrDefault(f => f.Name == "itemProperties");
                 if (itemPropertiesField == null)
                     return;
-                
+
                 grabbableType.AddField(FieldAttributes.Assembly, "MattyFixes_localVerticalOffset",
                     verticalOffsetField.FieldType, out var localOffsetField, logHandler);
-                
-                
+
+
                 AssemblyAnalyzer.ProcessAssembly(assembly,itemPropertiesField, verticalOffsetField, localOffsetField, out var count);
-                
+
 
                 grabbableType.AddMethod("Awake",out var awake, MethodAttributes.Private, grabbableType.Module.TypeSystem.Void, logCallback: logHandler);
 
                 awake.Body.Instructions.Clear();
                 var ilProcessor = awake.Body.GetILProcessor();
-                
+
                 ilProcessor.Emit(OpCodes.Ldarg_0);
                 ilProcessor.Emit(OpCodes.Dup);
                 ilProcessor.Emit(OpCodes.Ldfld, itemPropertiesField);
                 ilProcessor.Emit(OpCodes.Ldfld, verticalOffsetField);
                 ilProcessor.Emit(OpCodes.Stfld, localOffsetField);
                 ilProcessor.Emit(OpCodes.Ret);
-                
             }
             
             if (!PluginConfig.Enabled.Value) 

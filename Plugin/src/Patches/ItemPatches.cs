@@ -102,7 +102,7 @@ internal static class ItemPatches
                         VertexCache = VertexesExtensions.GlobalPartialCache
                     });
 
-                    if (ItemRotations.TryGetValue(item.itemName, out var value))
+                    if (mod == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
                     {
                         item.restingRotation.Set(value[0], value[1], value[2]);
                         item.floorYOffset = (int)Math.Round(value[1]);
