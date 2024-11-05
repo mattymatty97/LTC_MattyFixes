@@ -1,3 +1,9 @@
+## v1.1.31
+- use a better cullingMask for computing vertexes
+- 
+## v1.1.30
+- only apply ViViKo rotations to Vanilla items
+
 ## v1.1.29
 - Fix animated items reading the wrong vertical offset
 - Fix alignment on most Placeable surfaces instead of limiting it to the Cupboard only

@@ -97,7 +97,7 @@ internal static class ItemPatches
 
                     item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
                     {
-                        CullingMask = ~LayerMask.GetMask("ScanNode"),
+                        CullingMask = MattyFixes.VisibleLayerMask,
                         LogHandler = MattyFixes.VerboseMeshLog,
                         VertexCache = VertexesExtensions.GlobalPartialCache
                     });
@@ -310,7 +310,7 @@ internal static class ItemPatches
                     var executionOptions = new ExecutionOptions()
                     {
                         VertexCache = VertexesExtensions.GlobalPartialCache,
-                        CullingMask = ~LayerMask.GetMask("ScanNode"),
+                        CullingMask = MattyFixes.VisibleLayerMask,
                         LogHandler = MattyFixes.VerboseMeshLog,
                         OverrideMatrix = matrix
                     };

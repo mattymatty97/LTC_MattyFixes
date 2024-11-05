@@ -19,10 +19,15 @@ internal partial class MattyFixes : BaseUnityPlugin
 {
     public const string GUID = "mattymatty.MattyFixes";
     public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.30";
+    public const string VERSION = "1.1.31";
     internal static ManualLogSource Log;
     
     internal static MattyFixes Instance { get; private set; }
+    
+    public static readonly int VisibleLayerMask = LayerMask.GetMask("Default",
+        "Player", "Water",
+        "Props", "Room", "InteractableObject", "Foliage", "PhysicsObject", "Enemies", "PlayerRagdoll",
+        "MapHazards", "MiscLevelGeometry", "Terrain");
 
     private void Awake()
     {

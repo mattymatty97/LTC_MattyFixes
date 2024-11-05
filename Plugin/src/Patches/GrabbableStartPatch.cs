@@ -57,7 +57,7 @@ internal class GrabbableStartPatch
 
         //wait till animators stop
         yield return new WaitUntil(() => animators.All(
-            a => Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
+            a => !a || Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
 
         //only run the code on the first coroutine that completes
         if (!ComputedOffsets.Add(itemType))
@@ -113,7 +113,7 @@ internal class GrabbableStartPatch
             var executionOptions = new ExecutionOptions()
             {
                 VertexCache = VertexesExtensions.GlobalPartialCache,
-                CullingMask = ~LayerMask.GetMask("ScanNode"),
+                CullingMask = MattyFixes.VisibleLayerMask,
                 LogHandler = MattyFixes.VerboseMeshLog,
                 OverrideMatrix = Matrix4x4.TRS(Vector3.zero,
                     Quaternion.Euler(
