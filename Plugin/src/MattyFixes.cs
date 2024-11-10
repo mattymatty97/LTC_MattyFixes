@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Patches;
+using MonoMod.RuntimeDetour;
 using UnityEngine;
 using LogType = VertexLibrary.LogType;
 
@@ -21,18 +24,30 @@ internal partial class MattyFixes : BaseUnityPlugin
     public const string NAME = "Matty's Fixes";
     public const string VERSION = "1.1.31";
     internal static ManualLogSource Log;
-    
-    internal static MattyFixes Instance { get; private set; }
-    
-    public static readonly int VisibleLayerMask = LayerMask.GetMask("Default",
-        "Player", "Water",
-        "Props", "Room", "InteractableObject", "Foliage", "PhysicsObject", "Enemies", "PlayerRagdoll",
-        "MapHazards", "MiscLevelGeometry", "Terrain");
 
+    internal static Harmony Harmony { get; private set; }
+    internal static HashSet<Hook> Hooks { get; } = [];
+
+    internal static MattyFixes Instance { get; private set; }
+
+    private static int? _visibleLayerMask;
+    public static int VisibleLayerMask
+    {
+        get {
+            _visibleLayerMask ??= LayerMask.GetMask("Default",
+                "Player", "Water",
+                "Props", "Room", "InteractableObject", "Foliage", "PhysicsObject", "Enemies", "PlayerRagdoll",
+                "MapHazards", "MiscLevelGeometry", "Terrain");
+
+            return _visibleLayerMask.Value;
+        }
+    }
+    
     private void Awake()
     {
         if (Instance == null)
             Instance = this;
+        
         Log = Logger;
         try
         {
@@ -46,8 +61,9 @@ internal partial class MattyFixes : BaseUnityPlugin
             PluginConfig.Init();
 
             Log.LogInfo("Patching Methods");
-            var harmony = new Harmony(GUID);
-            harmony.PatchAll(Assembly.GetExecutingAssembly());
+            CategorizeItemPatch.Init();
+            Harmony = new Harmony(GUID);
+            Harmony.PatchAll(Assembly.GetExecutingAssembly());
 
             Log.LogInfo(NAME + " v" + VERSION + " Loaded!");
             

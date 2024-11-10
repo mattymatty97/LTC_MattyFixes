@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using BepInEx.Configuration;
 using BepInEx.Logging;
@@ -15,7 +17,7 @@ internal partial class MattyFixes
         internal static void Init()
         {
             var config = Instance.Config;
-            ;
+            
             //Initialize Configs
             //ReadableMeshes
             ReadableMeshes.Enabled = config.Bind("ReadableMeshes", "enabled", true
@@ -47,14 +49,14 @@ internal partial class MattyFixes
             ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0f
                 , new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(-0.5f,0.5f)));
             ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", ""
-                , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'");
+                , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'\neg: `Vanilla/Ammo:0.0`");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
                 , "prevent items from falling below the ship");
             OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.01f
                 , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.001f,1f)));
             OutOfBounds.SpawnInFurniture = config.Bind("OutOfBounds", "spawn_in_furniture", true
-                , "Fix items generating inside furinture ( eg: lamps inside the kitchen counter )");
+                , "Fix items generating inside furniture ( eg: lamps inside the kitchen counter )");
             //AlternateLightningParticles
             LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");
@@ -121,7 +123,7 @@ internal partial class MattyFixes
             orphanedEntries.Clear();
             config.Save(); // Save the config file
         }
-
+        
         internal static class ReadableMeshes
         {
             internal static ConfigEntry<bool> Enabled;
@@ -153,7 +155,7 @@ internal partial class MattyFixes
             internal static ConfigEntry<bool> RotateOnSpawn;
             internal static ConfigEntry<float> VerticalOffset;
             internal static ConfigEntry<string> ManualOffsets;
-            internal static readonly Dictionary<string, float> ManualOffsetMap = new();
+            internal static readonly Dictionary<string, float> ManualOffsetMap = new(StringComparer.InvariantCultureIgnoreCase);
             internal static readonly Dictionary<Item, ItemRotationConfig> ItemRotations = new();
         }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
@@ -28,9 +29,12 @@ internal class GrabbableStartPatch
 
         if (ComputedOffsets.Contains(itemType))
             return;
+        
+        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        key = key.Replace(Path.DirectorySeparatorChar, '/');
 
         MattyFixes.Log.LogDebug(
-            $"{itemType.itemName}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
+            $"{key}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
 
         __instance.StartCoroutine(ProcessGrabbable(__instance));
 
@@ -46,13 +50,12 @@ internal class GrabbableStartPatch
         list.Add(__instance);
 
         MattyFixes.Log.LogDebug(
-            $"{itemType.itemName}({__instance.NetworkObjectId}) will need to update the position - enqueued");
+            $"{key}({__instance.NetworkObjectId}) will need to update the position - enqueued");
     }
 
     private static IEnumerator ProcessGrabbable(GrabbableObject grabbable)
     {
         var itemType = grabbable.itemProperties;
-
         var animators = grabbable.GetComponentsInChildren<Animator>();
 
         //wait till animators stop
@@ -62,8 +65,11 @@ internal class GrabbableStartPatch
         //only run the code on the first coroutine that completes
         if (!ComputedOffsets.Add(itemType))
             yield break;
+        
+        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        key = key.Replace(Path.DirectorySeparatorChar, '/');
 
-        MattyFixes.Log.LogDebug($"{itemType.itemName}({grabbable.NetworkObjectId}) is computing vertical offset");
+        MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
 
         var oldOffset = itemType.verticalOffset;
         itemType.verticalOffset = ComputeVerticalOffset(grabbable);
@@ -71,7 +77,7 @@ internal class GrabbableStartPatch
         var isOriginal = Mathf.Approximately(oldOffset, itemType.verticalOffset);
 
         MattyFixes.Log.LogDebug(
-            $"{itemType.itemName} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
+            $"{key} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
 
         if (isOriginal)
             yield break;
@@ -89,7 +95,7 @@ internal class GrabbableStartPatch
             gObject.targetFloorPosition += Vector3.up * itemType.verticalOffset;
 
             MattyFixes.Log.LogDebug(
-                $"{itemType.itemName}({gObject.NetworkObjectId}) position updated [{oldPosition}] -> [{gObject.targetFloorPosition}]");
+                $"{key}({gObject.NetworkObjectId}) position updated [{oldPosition}] -> [{gObject.targetFloorPosition}]");
         }
 
         list.Clear();
@@ -104,9 +110,13 @@ internal class GrabbableStartPatch
     {
         var itemType = grabbable.itemProperties;
 
+        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        key = key.Replace(Path.DirectorySeparatorChar, '/');
+        
         try
         {
-            if (MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(itemType.itemName,
+            
+            if (MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(key,
                     out var offset))
                 return offset;
 
@@ -134,7 +144,7 @@ internal class GrabbableStartPatch
         }
         catch (Exception ex)
         {
-            MattyFixes.Log.LogError($"{itemType.itemName} Failed to compute vertical offset! {ex}");
+            MattyFixes.Log.LogError($"{key} Failed to compute vertical offset! {ex}");
         }
 
         return itemType.verticalOffset;

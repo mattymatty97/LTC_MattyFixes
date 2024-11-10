@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using BepInEx.Bootstrap;
@@ -20,9 +21,11 @@ public static class LethalLibProxy
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static void GetModdedItems([NotNull] in Dictionary<Item, string> items)
+    public static void GetModdedItems([NotNull] in Dictionary<Item, Tuple<string,string>> items)
     {
         MattyFixes.Log.LogWarning("LethalLib found, reading Items.scrapItems");
-        foreach (var scrapItem in Items.scrapItems) items.TryAdd(scrapItem.item, $"LethalLib|{scrapItem.modName}");
+        foreach (var scrapItem in Items.scrapItems) items.TryAdd(scrapItem.item, new Tuple<string,string>("LethalLib", scrapItem.modName));
+        foreach (var scrapItem in Items.plainItems) items.TryAdd(scrapItem.item, new Tuple<string,string>("LethalLib", scrapItem.modName));
+        foreach (var scrapItem in Items.shopItems)  items.TryAdd(scrapItem.item, new Tuple<string,string>("LethalLib", scrapItem.modName));
     }
 }

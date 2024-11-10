@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using BepInEx.Bootstrap;
@@ -20,7 +21,7 @@ public static class LethalLevelLoaderProxy
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static void GetModdedItems([NotNull] in Dictionary<Item, string> items)
+    public static void GetModdedItems([NotNull] in Dictionary<Item, Tuple<string,string>> items)
     {
         
         MattyFixes.Log.LogWarning("LethalLevelLoader found, reading PatchedContent.ExtendedItems");
@@ -29,7 +30,7 @@ public static class LethalLevelLoaderProxy
             if (extendedItem.ContentType == ContentType.Vanilla)
                 continue;
 
-            items.TryAdd(extendedItem.Item, $"LethalLevelLoader|{extendedItem.ModName}");
+            items.TryAdd(extendedItem.Item, new Tuple<string,string>("LethalLevelLoader", extendedItem.ModName));
         }
     }
 }

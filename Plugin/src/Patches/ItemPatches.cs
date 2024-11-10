@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text.RegularExpressions;
+using System.IO;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.Pool;
 using UnityEngine.Rendering;
 using VertexLibrary;
-using Object = UnityEngine.Object;
 
 namespace MattyFixes.Patches;
 
@@ -26,30 +24,35 @@ internal static class ItemPatches
     private static Vector3 _staticElectricityParticleOffset;
 
 
-    private static void UpdateItemRotation(string modName, Item item)
+    private static void UpdateItemRotation(Item item, string itemPath = null)
     {
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
+            itemPath ??= CategorizeItemPatch.GetPathForItem(item);
+            
+            var itemSection = Path.GetDirectoryName(itemPath) ?? "";
+            var itemName = CategorizeItemPatch.SanitizeForConfig(Path.GetFileName(itemPath) ?? item.itemName);
+
+            itemSection = itemSection.Replace(Path.DirectorySeparatorChar, '|');
+            itemSection = CategorizeItemPatch.SanitizeForConfig(itemSection);
+            
             var ogRotation = item.restingRotation;
             ogRotation.y = item.floorYOffset;
 
             var vanillaDefault =
                 $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
 
-            var filteredModName = Regex.Replace(modName, @"[\n\t\\\'\[\]]", "").Trim();
-            var filteredItemName = Regex.Replace(item.itemName, @"[\n\t\\\'\[\]]", "").Trim();
-
             rotationConfig = new MattyFixes.ItemRotationConfig(
                 ogRotation,
                 MattyFixes.Instance.Config.Bind(
-                    $"ItemClipping.Rotations|{filteredModName}",
-                    filteredItemName,
+                    itemSection,
+                    itemName,
                     "default",
                     $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
             );
 
             MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
-            rotationConfig.Config.SettingChanged += (sender, args) => { UpdateItemRotation(modName, item); };
+            rotationConfig.Config.SettingChanged += (sender, args) => { UpdateItemRotation(item, itemPath); };
             if (LethalConfigProxy.Enabled)
                 LethalConfigProxy.AddConfig(rotationConfig.Config);
         }
@@ -70,50 +73,45 @@ internal static class ItemPatches
     }
 
 
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Awake))]
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
     [HarmonyPriority(0)]
     private static void RegisterItems(StartOfRound __instance, bool __runOriginal)
     {
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
             return;
 
-        using (DictionaryPool<Item, string>.Get(out var itemDict))
+        foreach (var item in __instance.allItemsList.itemsList)
         {
-            if (LethalLibProxy.Enabled)
-                LethalLibProxy.GetModdedItems(in itemDict);
+            var modTag = CategorizeItemPatch.GetTagForItem(item);
+            var key = CategorizeItemPatch.GetPathForTag(modTag, item);
+            key = key.Replace(Path.DirectorySeparatorChar, '/');
 
-            if (LethalLevelLoaderProxy.Enabled)
-                LethalLevelLoaderProxy.GetModdedItems(in itemDict);
+            try
+            {
+                if (item.spawnPrefab == null)
+                    continue;
 
-            foreach (var itemType in __instance.allItemsList.itemsList)
-                itemDict.TryAdd(itemType, "Vanilla");
-
-            foreach (var (item, mod) in itemDict)
-                try
+                item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
                 {
-                    if (item.spawnPrefab == null)
-                        continue;
+                    CullingMask = MattyFixes.VisibleLayerMask,
+                    LogHandler = MattyFixes.VerboseMeshLog,
+                    VertexCache = VertexesExtensions.GlobalPartialCache
+                });
 
-                    item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
-                    {
-                        CullingMask = MattyFixes.VisibleLayerMask,
-                        LogHandler = MattyFixes.VerboseMeshLog,
-                        VertexCache = VertexesExtensions.GlobalPartialCache
-                    });
-
-                    if (mod == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
-                    {
-                        item.restingRotation.Set(value[0], value[1], value[2]);
-                        item.floorYOffset = (int)Math.Round(value[1]);
-                    }
-
-                    UpdateItemRotation(mod, item);
-                }
-                catch (Exception ex)
+                if (modTag.Item1 == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
                 {
-                    MattyFixes.Log.LogError($"{mod}{(mod != null ? "." : "")}{item.itemName} crashed badly ! {ex}");
+                    item.restingRotation.Set(value[0], value[1], value[2]);
+                    item.floorYOffset = (int)Math.Round(value[1]);
                 }
+
+                UpdateItemRotation(item, CategorizeItemPatch.GetPathForTag(modTag, item));
+            }
+            catch (Exception ex)
+            {
+                MattyFixes.Log.LogError(
+                    $"{key} crashed badly ! {ex}");
+            }
         }
     }
 
@@ -131,6 +129,9 @@ internal static class ItemPatches
 
             if (!ComputedItems.Add(itemType))
                 return;
+            
+            var key = CategorizeItemPatch.GetPathForItem(itemType);
+            key = key.Replace(Path.DirectorySeparatorChar, '/');
 
             if (itemType.isConductiveMetal &&
                 MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
@@ -145,9 +146,9 @@ internal static class ItemPatches
                 }
                 catch (Exception ex)
                 {
-                    MattyFixes.Log.LogError($"{itemType.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                    MattyFixes.Log.LogError($"{key} Failed to mark prefab Mesh Readable! {ex}");
                     BrokenMeshItems.Add(itemType);
-                    MattyFixes.Log.LogWarning($"{itemType.itemName} Added to the ignored Meshes!");
+                    MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
                 }
         }
 
@@ -164,6 +165,7 @@ internal static class ItemPatches
 
             if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch._isInitializingGame)
                 return;
+
 
             try
             {
@@ -189,8 +191,10 @@ internal static class ItemPatches
                     grabbable.itemProperties.restingRotation.z);
             }
             catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"Exception while setting rotation :{ex}");
+            {            
+                var key = CategorizeItemPatch.GetPathForItem(grabbable.itemProperties);
+                key = key.Replace(Path.DirectorySeparatorChar, '/');
+                MattyFixes.Log.LogError($"Exception while setting rotation of {key} :{ex}");
             }
         }
     }
@@ -203,7 +207,7 @@ internal static class ItemPatches
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
             return;
 
-        foreach (var placeableObject in Object.FindObjectsOfType<AutoParentToShip>()) placeableObject.MoveToOffset();
+        foreach (var placeableObject in UnityEngine.Object.FindObjectsOfType<AutoParentToShip>()) placeableObject.MoveToOffset();
 
         Physics.SyncTransforms();
     }
@@ -340,11 +344,13 @@ internal static class ItemPatches
                         }
                         catch (Exception ex)
                         {
+                            var key = CategorizeItemPatch.GetPathForItem(grabbable.itemProperties);
+                            key = key.Replace(Path.DirectorySeparatorChar, '/');
                             MattyFixes.Log.LogError(
-                                $"{grabbable.itemProperties.itemName} Failed to mark prefab Mesh Readable! {ex}");
+                                $"{key} Failed to mark prefab Mesh Readable! {ex}");
                             BrokenMeshItems.Add(grabbable.itemProperties);
                             MattyFixes.Log.LogWarning(
-                                $"{grabbable.itemProperties.itemName} Added to the ignored Meshes!");
+                                $"{key} Added to the ignored Meshes!");
                         }
                 }
             }
