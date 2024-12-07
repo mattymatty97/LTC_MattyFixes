@@ -1,3 +1,7 @@
+## v1.1.33
+- improve categorization system
+- improve vertex caching
+
 ## v1.1.32
 - use a better system to track modded items
 - fix instantiation error Diffoz pointed out
