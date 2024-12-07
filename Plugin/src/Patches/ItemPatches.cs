@@ -89,15 +89,6 @@ internal static class ItemPatches
 
             try
             {
-                if (item.spawnPrefab == null)
-                    continue;
-
-                item.spawnPrefab.transform.CacheVertexes(new ExecutionOptions()
-                {
-                    CullingMask = MattyFixes.VisibleLayerMask,
-                    LogHandler = MattyFixes.VerboseMeshLog,
-                    VertexCache = VertexesExtensions.GlobalPartialCache
-                });
 
                 if (modTag.Item1 == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
                 {
