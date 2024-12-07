@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
+using RuntimeIcons.Utils;
 using UnityEngine;
 using UnityEngine.Pool;
 using VertexLibrary;
@@ -30,7 +31,7 @@ internal class GrabbableStartPatch
         if (ComputedOffsets.Contains(itemType))
             return;
         
-        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        var key = ItemCategory.GetPathForItem(itemType);
         key = key.Replace(Path.DirectorySeparatorChar, '/');
 
         MattyFixes.Log.LogDebug(
@@ -66,7 +67,7 @@ internal class GrabbableStartPatch
         if (!ComputedOffsets.Add(itemType))
             yield break;
         
-        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        var key = ItemCategory.GetPathForItem(itemType);
         key = key.Replace(Path.DirectorySeparatorChar, '/');
 
         MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
@@ -110,7 +111,7 @@ internal class GrabbableStartPatch
     {
         var itemType = grabbable.itemProperties;
 
-        var key = CategorizeItemPatch.GetPathForItem(itemType);
+        var key = ItemCategory.GetPathForItem(itemType);
         key = key.Replace(Path.DirectorySeparatorChar, '/');
         
         try
@@ -214,7 +215,7 @@ internal class GrabbableStartPatch
             (grabbableObject is PhysicsProp && grabbableObject.itemProperties.itemName == "Sticky note"))
             return ret;
 
-        if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch._isInitializingGame)
+        if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch.IsInitializingGame)
             return ret;
 
         if (MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)

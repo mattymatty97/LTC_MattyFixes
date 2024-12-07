@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using RuntimeIcons.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -28,13 +29,13 @@ internal static class ItemPatches
     {
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
-            itemPath ??= CategorizeItemPatch.GetPathForItem(item);
+            itemPath ??= ItemCategory.GetPathForItem(item);
             
             var itemSection = Path.GetDirectoryName(itemPath) ?? "";
-            var itemName = CategorizeItemPatch.SanitizeForConfig(Path.GetFileName(itemPath) ?? item.itemName);
+            var itemName = ItemCategory.SanitizeForConfig(Path.GetFileName(itemPath) ?? item.itemName);
 
             itemSection = itemSection.Replace(Path.DirectorySeparatorChar, '|');
-            itemSection = CategorizeItemPatch.SanitizeForConfig(itemSection);
+            itemSection = ItemCategory.SanitizeForConfig(itemSection);
             
             var ogRotation = item.restingRotation;
             ogRotation.y = item.floorYOffset;
@@ -73,9 +74,8 @@ internal static class ItemPatches
     }
 
 
-    [HarmonyPrefix]
+    [HarmonyPostfix]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
-    [HarmonyPriority(0)]
     private static void RegisterItems(StartOfRound __instance, bool __runOriginal)
     {
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
@@ -83,8 +83,8 @@ internal static class ItemPatches
 
         foreach (var item in __instance.allItemsList.itemsList)
         {
-            var modTag = CategorizeItemPatch.GetTagForItem(item);
-            var key = CategorizeItemPatch.GetPathForTag(modTag, item);
+            var modTag = ItemCategory.GetTagForItem(item);
+            var key = ItemCategory.GetPathForTag(modTag, item);
             key = key.Replace(Path.DirectorySeparatorChar, '/');
 
             try
@@ -105,7 +105,7 @@ internal static class ItemPatches
                     item.floorYOffset = (int)Math.Round(value[1]);
                 }
 
-                UpdateItemRotation(item, CategorizeItemPatch.GetPathForTag(modTag, item));
+                UpdateItemRotation(item, ItemCategory.GetPathForTag(modTag, item));
             }
             catch (Exception ex)
             {
@@ -130,8 +130,6 @@ internal static class ItemPatches
             if (!ComputedItems.Add(itemType))
                 return;
             
-            var key = CategorizeItemPatch.GetPathForItem(itemType);
-            key = key.Replace(Path.DirectorySeparatorChar, '/');
 
             if (itemType.isConductiveMetal &&
                 MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
@@ -146,6 +144,8 @@ internal static class ItemPatches
                 }
                 catch (Exception ex)
                 {
+                    var key = ItemCategory.GetPathForItem(itemType);
+                    key = key.Replace(Path.DirectorySeparatorChar, '/');
                     MattyFixes.Log.LogError($"{key} Failed to mark prefab Mesh Readable! {ex}");
                     BrokenMeshItems.Add(itemType);
                     MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
@@ -163,7 +163,7 @@ internal static class ItemPatches
                 (grabbable is PhysicsProp && grabbable.itemProperties.itemName == "Sticky note"))
                 return;
 
-            if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch._isInitializingGame)
+            if (StartOfRound.Instance.localPlayerController && !StartOfRoundPatch.IsInitializingGame)
                 return;
 
 
@@ -192,7 +192,7 @@ internal static class ItemPatches
             }
             catch (Exception ex)
             {            
-                var key = CategorizeItemPatch.GetPathForItem(grabbable.itemProperties);
+                var key = ItemCategory.GetPathForItem(grabbable.itemProperties);
                 key = key.Replace(Path.DirectorySeparatorChar, '/');
                 MattyFixes.Log.LogError($"Exception while setting rotation of {key} :{ex}");
             }
@@ -344,7 +344,7 @@ internal static class ItemPatches
                         }
                         catch (Exception ex)
                         {
-                            var key = CategorizeItemPatch.GetPathForItem(grabbable.itemProperties);
+                            var key = ItemCategory.GetPathForItem(grabbable.itemProperties);
                             key = key.Replace(Path.DirectorySeparatorChar, '/');
                             MattyFixes.Log.LogError(
                                 $"{key} Failed to mark prefab Mesh Readable! {ex}");
