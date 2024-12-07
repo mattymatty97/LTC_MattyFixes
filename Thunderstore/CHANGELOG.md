@@ -1,6 +1,10 @@
+## v1.1.32
+- use a better system to track modded items
+- fix instantiation error Diffoz pointed out
+
 ## v1.1.31
 - use a better cullingMask for computing vertexes
-- 
+
 ## v1.1.30
 - only apply ViViKo rotations to Vanilla items
 

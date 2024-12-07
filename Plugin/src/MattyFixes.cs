@@ -22,7 +22,7 @@ internal partial class MattyFixes : BaseUnityPlugin
 {
     public const string GUID = "mattymatty.MattyFixes";
     public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.31";
+    public const string VERSION = "1.1.32";
     internal static ManualLogSource Log;
 
     internal static Harmony Harmony { get; private set; }
@@ -61,7 +61,7 @@ internal partial class MattyFixes : BaseUnityPlugin
             PluginConfig.Init();
 
             Log.LogInfo("Patching Methods");
-            CategorizeItemPatch.Init();
+            StartOfRoundPatch.Init();
             Harmony = new Harmony(GUID);
             Harmony.PatchAll(Assembly.GetExecutingAssembly());
 
