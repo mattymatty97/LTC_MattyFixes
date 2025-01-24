@@ -69,6 +69,11 @@ internal class OutOfBoundsItemsFix
     private static IEnumerable<CodeInstruction> SaveItemsCorrectly(IEnumerable<CodeInstruction> instructions,
         ILGenerator ilGenerator)
     {
+        /* Don't patch if this is disabled to avoid conflict with ShaosilGaming's GeneralImprovements mod which
+         * also patches SaveItemsInShip to save the items rotation in the save data (FixItemsLoadingSameRotation). */
+        if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+            return instructions;
+
         var codes = instructions.ToList();
         var newOffsetMethod = AccessTools.Method(typeof(OutOfBoundsItemsFix), nameof(ApplyVerticalOffset));
         var getTransformMethod = AccessTools.Property(typeof(Component), nameof(Component.transform)).GetMethod;
@@ -103,9 +108,6 @@ internal class OutOfBoundsItemsFix
 
     private static Vector3 ApplyVerticalOffset(GrabbableObject grabbable, Vector3 position)
     {
-        if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
-            return position;
-        
         if (grabbable.isHeld || grabbable.isHeldByEnemy || !grabbable.hasHitGround)
             return position;
 
