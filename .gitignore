@@ -1,5 +1,6 @@
 .idea
 *.user
+.vs
 packages
 Releases
 **/bin
