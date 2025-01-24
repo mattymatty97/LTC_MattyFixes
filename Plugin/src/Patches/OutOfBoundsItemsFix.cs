@@ -69,6 +69,20 @@ internal class OutOfBoundsItemsFix
     private static IEnumerable<CodeInstruction> SaveItemsCorrectly(IEnumerable<CodeInstruction> instructions,
         ILGenerator ilGenerator)
     {
+        /* Don't patch when this is disabled to avoid conflict with ShaosilGaming's GeneralImprovements mod which
+         * also patches SaveItemsInShip to save the items rotation in the save data (FixItemsLoadingSameRotation). */
+        if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
+        {
+            MattyFixes.Log.LogDebug("GameNetworkManager.SaveItemsInShip NOT patched (enabled = false)");
+            return instructions;
+        }
+
+        if (!MattyFixes.PluginConfig.OutOfBounds.SaveItemsInShip.Value)
+        {
+            MattyFixes.Log.LogDebug("GameNetworkManager.SaveItemsInShip NOT patched (save_items_in_ship = false)");
+            return instructions;
+        }
+
         var codes = instructions.ToList();
         var newOffsetMethod = AccessTools.Method(typeof(OutOfBoundsItemsFix), nameof(ApplyVerticalOffset));
         var getTransformMethod = AccessTools.Property(typeof(Component), nameof(Component.transform)).GetMethod;
@@ -87,7 +101,7 @@ internal class OutOfBoundsItemsFix
 
         if (matcher.IsInvalid)
         {
-            MattyFixes.Log.LogError("Cannot patch SaveItemsInShip");
+            MattyFixes.Log.LogError("Cannot patch SaveItemsInShip (IL not found)");
             MattyFixes.Log.LogDebug(string.Join("\n", codes));
             return codes;
         }
@@ -97,7 +111,7 @@ internal class OutOfBoundsItemsFix
         matcher.Advance(3);
         matcher.Insert(new CodeInstruction(OpCodes.Call, newOffsetMethod));
 
-        MattyFixes.Log.LogDebug("SaveItemsInShip Patched");
+        MattyFixes.Log.LogDebug("GameNetworkManager.SaveItemsInShip patched");
         return matcher.Instructions();
     }
 
@@ -105,7 +119,10 @@ internal class OutOfBoundsItemsFix
     {
         if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             return position;
-        
+
+        if (!MattyFixes.PluginConfig.OutOfBounds.SaveItemsInShip.Value)
+            return position;
+
         if (grabbable.isHeld || grabbable.isHeldByEnemy || !grabbable.hasHitGround)
             return position;
 
