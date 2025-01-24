@@ -52,9 +52,12 @@ internal partial class MattyFixes
                 , "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'\neg: `Vanilla/Ammo:0.0`");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true
-                , "prevent items from falling below the ship");
+                , "Whether to allow the fixes below, or disable them all at once");
+            OutOfBounds.SaveItemsInShip = config.Bind("OutOfBounds", "save_items_in_ship", true
+                , "Prevent items from falling below the ship's floor by correctly saving them. " +
+                  "Disable this when FixItemsLoadingSameRotation is true in ShaosilGaming's GeneralImprovements mod.");
             OutOfBounds.VerticalOffset = config.Bind("OutOfBounds", "vertical_offset", 0.01f
-                , new ConfigDescription("vertical offset to apply to objects on load to prevent them from clipping into the floor", new AcceptableValueRange<float>(0.001f,1f)));
+                , new ConfigDescription("Vertical offset to apply to objects on load to prevent them from clipping into the ship's floor", new AcceptableValueRange<float>(0.001f,1f)));
             OutOfBounds.SpawnInFurniture = config.Bind("OutOfBounds", "spawn_in_furniture", true
                 , "Fix items generating inside furniture ( eg: lamps inside the kitchen counter )");
             //AlternateLightningParticles
@@ -102,6 +105,7 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(ItemClipping.VerticalOffset);
                 LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.Enabled, true);
+                LethalConfigProxy.AddConfig(OutOfBounds.SaveItemsInShip, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.VerticalOffset);
                 LethalConfigProxy.AddConfig(OutOfBounds.SpawnInFurniture, true);
                 LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
@@ -162,6 +166,7 @@ internal partial class MattyFixes
         internal static class OutOfBounds
         {
             internal static ConfigEntry<bool> Enabled;
+            internal static ConfigEntry<bool> SaveItemsInShip;
             internal static ConfigEntry<float> VerticalOffset;
             internal static ConfigEntry<bool> SpawnInFurniture;
         }
