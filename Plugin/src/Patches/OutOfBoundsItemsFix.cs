@@ -28,13 +28,8 @@ internal class OutOfBoundsItemsFix
         var grabbableObjects = shipTransform.GetComponentsInChildren<GrabbableObject>();
 
         var shipCollider = StartOfRound.Instance.shipInnerRoomBounds;
-        var vehicleCollider = Object.FindObjectOfType<VehicleController>()?.boundsCollider;
-        
-        MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"Cruiser? {vehicleCollider != null}");
 
-        var miny = vehicleCollider == null
-            ? shipCollider.bounds.min.y
-            : Math.Min(shipCollider.bounds.min.y, vehicleCollider.bounds.min.y);
+        var miny = shipCollider.bounds.min.y;
         
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () => $"Bottom Ship is at y? {miny}");
         
