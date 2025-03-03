@@ -60,6 +60,7 @@ internal class OutOfBoundsItemsFix
     }
 
     [HarmonyTranspiler]
+    [HarmonyAfter("ShaosilGaming.GeneralImprovements")]
     [HarmonyPatch(typeof(GameNetworkManager), nameof(GameNetworkManager.SaveItemsInShip))]
     private static IEnumerable<CodeInstruction> SaveItemsCorrectly(IEnumerable<CodeInstruction> instructions,
         ILGenerator ilGenerator)
@@ -160,7 +161,6 @@ internal class OutOfBoundsItemsFix
         matcher.Advance(1).RemoveInstructions(10);
         
         MattyFixes.Log.LogDebug("RoundManager.SpawnScrapInLevel patched");
-        //MattyFixes.Log.LogError(string.Join("\n", matcher.Instructions()));
 
         return matcher.Instructions();
     }
