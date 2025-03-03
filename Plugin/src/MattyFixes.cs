@@ -20,9 +20,9 @@ namespace MattyFixes;
 [BepInDependency("evaisa.lethallib", BepInDependency.DependencyFlags.SoftDependency)]
 internal partial class MattyFixes : BaseUnityPlugin
 {
-    public const string GUID = "mattymatty.MattyFixes";
-    public const string NAME = "Matty's Fixes";
-    public const string VERSION = "1.1.32";
+    public const string GUID = MyPluginInfo.PLUGIN_GUID;
+    public const string NAME = MyPluginInfo.PLUGIN_NAME;
+    public const string VERSION = MyPluginInfo.PLUGIN_VERSION;
     internal static ManualLogSource Log;
 
     internal static Harmony Harmony { get; private set; }

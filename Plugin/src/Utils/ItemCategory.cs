@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace RuntimeIcons.Utils;
+namespace MattyFixes.Utils;
 
 public class ItemCategory
 {

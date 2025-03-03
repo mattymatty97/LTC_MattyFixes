@@ -4,5 +4,4 @@ packages
 Releases
 **/bin
 **/obj
-**/GameDirectory.targets
-**/*.dll
+Output/

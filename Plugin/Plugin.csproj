@@ -1,59 +1,53 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
     <PropertyGroup>
-        <RootNamespace>MattyFixes</RootNamespace>
-        <AssemblyName>$(RootNamespace)</AssemblyName>
-        <Product>Matty's Fixes</Product>
-        <Version>1.1.33</Version>
-        <PackageLicenseExpression>GPL-3.0</PackageLicenseExpression>
-        <TargetFramework>netstandard2.1</TargetFramework>
-        <LangVersion>Latest</LangVersion>
-        <PackageId>MattyFixes</PackageId>
+        <RootNamespace>$(ModNameSpace)</RootNamespace>
+        <AssemblyName>$(ModName)</AssemblyName>
+        <AssemblyTitle>$(ModName) - Plugin</AssemblyTitle>
+        <Product>$(ModName)</Product>
     </PropertyGroup>
+	
     <ItemGroup>
-        <PackageReference Include="BepInEx.Core" Version="5.4.21"/>
-        <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.0.1"/>
-    </ItemGroup>
-    <!-- Defining the reference files that have to be publicized. -->
-    <ItemGroup>
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all"/>
+        <PackageReference Include="Evaisa-LethalLib" Version="0.16.1" Private="False"/>
+        <PackageReference Include="IAmBatby-LethalLevelLoader" Version="1.3.10" Private="False"/>
+        <PackageReference Include="TeamBMX.LobbyCompatibility" Version="1.0.1" Private="False"/>
+        <PackageReference Include="AinaVT-LethalConfig" Version="1.4.3" Private="False"/>
+        <PackageReference Include="LethalCompanyModding-VertexLibrary" Version="1.1.0" Private="False"/>
 
-        <!-- Publicize directly when referencing -->
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Assembly-CSharp.dll" Publicize="true"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Assembly-CSharp-firstpass.dll" Publicize="true"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Runtime.dll" Publicize="true"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Netcode.Components.dll" Publicize="true"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.RenderPipelines.HighDefinition.Runtime.dll" Publicize="true"/>
-        <!--<Reference Include="$(SolutionDir)\Dependencies\Assembly-CSharp.pdll" Publicize="true"/>-->
-
-        <!-- clean referencing -->
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.TextMeshPro.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Unity.Collections.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.UI.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.CoreModule.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.PhysicsModule.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.ParticleSystemModule.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AudioModule.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\UnityEngine.AnimationModule.dll" Publicize="false"/>
-        <Reference Include="$(GameDirectory)\Lethal Company_Data\Managed\Facepunch.Steamworks.Win64.dll" Publicize="false"/>
-        <Reference Include="$(SolutionDir)\Dependencies\AsyncLoggers.dll" Publicize="false"/>
-        <Reference Include="$(SolutionDir)\Dependencies\VertexLibrary.dll" Publicize="false"/>
-        <Reference Include="$(SolutionDir)\Dependencies\LethalConfig.dll" Publicize="false"/>
-        <Reference Include="$(SolutionDir)\Dependencies\LethalLevelLoader.dll" Publicize="false"/>
-        <Reference Include="$(SolutionDir)\Dependencies\LethalLib.dll" Publicize="false"/>
+        <PackageReference Include="BepInEx.Core" Version="5.4.21" Private="False"/>
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        
+        <PackageReference
+            Include="LethalCompany.GameLibs.Steam"
+            Version="64.0.0-ngd.0"
+            Private="False"
+            Publicize="True"
+        />
     </ItemGroup>
-    <Import Project="PostBuildEvents.targets"/>
-    <!-- Embedded Debug -->
-    <PropertyGroup>
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>embedded</DebugType>
-        <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=./</PathMap>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <NoWarn>1701;1702;CS0436</NoWarn>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <NoWarn>1701;1702;CS0436</NoWarn>
-    </PropertyGroup>
+	
+	<!--    <Target Name="NetcodePatch" AfterTargets="PostBuildEvent">
+        <Exec Command="netcode-patch -nv 1.5.2 &quot;$(TargetPath)&quot; @(ReferencePathWithRefAssemblies->'&quot;%(Identity)&quot;', ' ')"/>
+    </Target>-->
+	
+	<Target Name="CopyForUpload" AfterTargets="Build">
+        <PropertyGroup>
+            <DistributionDir>$(SolutionDir)\Output\dist</DistributionDir>
+        </PropertyGroup>
+		
+        <PropertyGroup>
+            <PluginOutDir>$(SolutionDir)\Plugin\$(OutDir)</PluginOutDir>
+            <PluginsDistributionDir>$(DistributionDir)\BepInEx\plugins</PluginsDistributionDir>
+        </PropertyGroup>
+
+        <Message Importance="High" Text="Copyng Plugin to DistributionDir" />
+
+        <MakeDir Directories="$(PluginsDistributionDir)"/>
+        <ItemGroup>
+            <PluginOutputFiles Include="$(PluginOutDir)\**" Exclude="$(PluginOutDir)\**\*.deps.json" />
+        </ItemGroup>
+        <Copy
+            SourceFiles="@(PluginOutputFiles)"
+            DestinationFolder="$(PluginsDistributionDir)"
+        />
+    </Target>
 </Project>

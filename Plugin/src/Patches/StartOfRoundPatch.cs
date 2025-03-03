@@ -2,8 +2,8 @@
 using System.Collections;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Utils;
 using MonoMod.RuntimeDetour;
-using RuntimeIcons.Utils;
 using UnityEngine;
 
 namespace MattyFixes.Patches;

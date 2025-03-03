@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using RuntimeIcons.Utils;
+using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering;

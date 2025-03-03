@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
-using RuntimeIcons.Utils;
+using MattyFixes.Utils;
 using UnityEngine;
 using UnityEngine.Pool;
 using VertexLibrary;
