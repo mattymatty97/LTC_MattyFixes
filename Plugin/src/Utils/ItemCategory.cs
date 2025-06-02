@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 
 namespace MattyFixes.Utils;
 
@@ -25,6 +26,13 @@ public class ItemCategory
             ItemModMap[item] = modTag;
         }
         return modTag;
+    }
+
+    public static string GetNullablePathForTag((string api, string modname)? modTag, Item item)
+    {
+        if (modTag is null || !item)
+            return null;
+        return GetPathForTag(modTag.Value, item);
     }
 
     public static string GetPathForTag((string api, string modname) modTag, Item item)

@@ -2,7 +2,7 @@
     
     <PropertyGroup>
         <!-- Common Versioning and Module Information -->
-        <Version>1.1.33</Version>
+        <Version>1.1.34</Version>
         <ModName>Matty's Fixes</ModName>
         <ModGUID>mattymatty.MattyFixes</ModGUID>
         <ModNameSpace>MattyFixes</ModNameSpace>
@@ -49,5 +49,38 @@
         <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
+    <Target Name="CleanForUpload" BeforeTargets="Build">
+        <PropertyGroup>
+            <DistributionDir>$(SolutionDir)\Output\dist</DistributionDir>
+        </PropertyGroup>
 
+        <Message Importance="High" Text="Emptying DistributionDir"/>
+        <RemoveDir Directories="$(DistributionDir)"/>
+        <MakeDir Directories="$(DistributionDir)"/>
+    </Target>
+
+
+    <Target Name="Upload" AfterTargets="CopyForUpload">
+        <PropertyGroup>
+            <DistributionDir>$(SolutionDir)\Output\dist</DistributionDir>
+            <DistributionArchive>$(SolutionDir)\Output\$(ModName)-v$(Version).zip</DistributionArchive>
+        </PropertyGroup>
+
+        <Message Importance="High" Text="Completing Publish Files"/>
+        <ItemGroup>
+            <PackageFiles Include="$(SolutionDir)\README.md"/>
+            <PackageFiles Include="$(SolutionDir)\CHANGELOG.md"/>
+            <PackageFiles Include="$(SolutionDir)\LICENSE"/>
+            <PackageFiles Include="$(SolutionDir)\manifest.json"/>
+            <PackageFiles Include="$(SolutionDir)\icon.png"/>
+        </ItemGroup>
+        <Copy
+                DestinationFolder="$(DistributionDir)"
+                SourceFiles="@(PackageFiles)"
+        />
+
+        <Delete Files="$(DistributionArchive)"/>
+        <ZipDirectory DestinationFile="$(DistributionArchive)" SourceDirectory="$(DistributionDir)"/>
+        <RemoveDir Directories="$(DistributionDir)"/>
+    </Target>
 </Project>

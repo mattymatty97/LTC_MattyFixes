@@ -25,11 +25,13 @@ internal static class ItemPatches
     private static Vector3 _staticElectricityParticleOffset;
 
 
-    private static void UpdateItemRotation(Item item, string itemPath = null)
+    private static void UpdateItemRotation(Item item, (string api, string modname)? itemTag = null)
     {
+
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
-            itemPath ??= ItemCategory.GetPathForItem(item);
+            var itemTag2 = itemTag ?? ItemCategory.GetTagForItem(item);
+            var itemPath = ItemCategory.GetPathForTag(itemTag2, item);
             
             var itemSection = Path.GetDirectoryName(itemPath) ?? "";
             var itemName = ItemCategory.SanitizeForConfig(Path.GetFileName(itemPath) ?? item.itemName);
@@ -43,17 +45,24 @@ internal static class ItemPatches
             var vanillaDefault =
                 $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
 
+            var defValue = "default";
+
+            if (itemTag2.api == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
+            {
+                defValue = $"{value[0]},{value[1]},{value[2]}";
+            }
+
             rotationConfig = new MattyFixes.ItemRotationConfig(
                 ogRotation,
                 MattyFixes.Instance.Config.Bind(
                     itemSection,
                     itemName,
-                    "default",
+                    defValue,
                     $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
             );
 
             MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
-            rotationConfig.Config.SettingChanged += (sender, args) => { UpdateItemRotation(item, itemPath); };
+            rotationConfig.Config.SettingChanged += (_, _) => { UpdateItemRotation(item); };
             if (LethalConfigProxy.Enabled)
                 LethalConfigProxy.AddConfig(rotationConfig.Config);
         }
@@ -89,14 +98,7 @@ internal static class ItemPatches
 
             try
             {
-
-                if (modTag.Item1 == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
-                {
-                    item.restingRotation.Set(value[0], value[1], value[2]);
-                    item.floorYOffset = (int)Math.Round(value[1]);
-                }
-
-                UpdateItemRotation(item, ItemCategory.GetPathForTag(modTag, item));
+                UpdateItemRotation(item, modTag);
             }
             catch (Exception ex)
             {
