@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.Utils;
-using MonoMod.RuntimeDetour;
 using UnityEngine;
-
 namespace MattyFixes.Patches;
 
 [HarmonyPatch]
@@ -28,38 +24,19 @@ internal class StartOfRoundPatch
         yield return new WaitForEndOfFrame();
         IsInitializingGame = false;
     }
-    
-    internal static void Init()
-    {
-        MattyFixes.Hooks.Add(new Hook(AccessTools.Method(typeof(StartOfRound), nameof(StartOfRound.Awake)),
-            PrepareItemCache));
-    }
-
-    private static void PrepareItemCache(Action<StartOfRound> orig, StartOfRound __instance)
-    {
-        ItemCategory.ItemModMap.Clear();
-
-        ItemCategory.VanillaItems ??= __instance.allItemsList.itemsList.ToArray();
-
-        foreach (var itemType in ItemCategory.VanillaItems) ItemCategory.ItemModMap.TryAdd(itemType, ("Vanilla", ""));
-
-        orig(__instance);
-    }
 
     [HarmonyPrefix]
-    [HarmonyAfter("imabatby.lethallevelloader")]
+    [HarmonyAfter("evaisa.lethallib", "imabatby.lethallevelloader", "com.github.teamxiaolan.dawnlib")]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
     private static void PopulateModdedCache(StartOfRound __instance)
     {
         if (LethalLibProxy.Enabled)
-            LethalLibProxy.GetModdedItems(in ItemCategory.ItemModMap);
+            LethalLibProxy.PopulateModdedItems();
 
         if (LethalLevelLoaderProxy.Enabled)
-            LethalLevelLoaderProxy.GetModdedItems(in ItemCategory.ItemModMap);
-
-        foreach (var itemType in __instance.allItemsList.itemsList)
-        {
-            ItemCategory.ItemModMap.TryAdd(itemType, ("Unknown", ""));
-        }
+            LethalLevelLoaderProxy.PopulateModdedItems();
+        
+        if (DawnLibProxy.Enabled)
+            DawnLibProxy.PopulateModdedItems();
     }
 }

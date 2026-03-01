@@ -1,10 +1,11 @@
 {
   "name": "Matty_Fixes_Experimental",
-  "version_number": "1.1.33",
+  "version_number": "1.1.36",
   "website_url": "https://github.com/mattymatty97/LTC_MattyFixes",
   "description": "A collection of Fixes for the vanilla game, with focus on vanilla compatibility.",
   "dependencies": [
     "BepInEx-BepInExPack-5.4.2100",
-    "LethalCompanyModding-VertexLibrary-1.0.0"
+    "LethalCompanyModding-VertexLibrary-1.0.0",
+    "mattymatty-MonkeyInjectionLibrary-1.0.2"
   ]
 }

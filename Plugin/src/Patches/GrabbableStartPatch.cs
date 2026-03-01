@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
+using MattyFixes.Interfaces;
 using MattyFixes.Utils;
+using MattyFixes.Utils.IL;
 using UnityEngine;
-using UnityEngine.Pool;
 using VertexLibrary;
 using LogLevel = BepInEx.Logging.LogLevel;
 
@@ -16,9 +16,6 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal class GrabbableStartPatch
 {
-    private static readonly HashSet<Item> ComputedOffsets = [];
-    private static readonly Dictionary<Item, List<GrabbableObject>> PendingObjects = [];
-
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
     internal static void OnObjectSpawn(GrabbableObject __instance)
@@ -27,36 +24,27 @@ internal class GrabbableStartPatch
             return;
 
         var itemType = __instance.itemProperties;
-
-        if (ComputedOffsets.Contains(itemType))
+        
+        if (((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
             return;
         
-        var key = ItemCategory.GetPathForItem(itemType);
-        key = key.Replace(Path.DirectorySeparatorChar, '/');
+        var key = itemType.GetPath();
 
-        MattyFixes.Log.LogDebug(
-            $"{key}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
+        MattyFixes.Log.LogDebug($"{key}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
+        
+        var shouldUpdatePosition = ShouldSpawnOnGround(__instance) || __instance.transform.parent == CupBoardFix.Closet.gameObject.transform;
 
-        __instance.StartCoroutine(ProcessGrabbable(__instance));
-
-        if (!ShouldSpawnOnGround(__instance) && __instance.transform.parent != CupBoardFix.Closet.gameObject.transform)
-            return;
-
-        if (!PendingObjects.TryGetValue(itemType, out var list))
-        {
-            list = ListPool<GrabbableObject>.Get();
-            PendingObjects[itemType] = list;
-        }
-
-        list.Add(__instance);
-
-        MattyFixes.Log.LogDebug(
-            $"{key}({__instance.NetworkObjectId}) will need to update the position - enqueued");
+        __instance.StartCoroutine(ProcessGrabbable(__instance, shouldUpdatePosition));
     }
 
-    private static IEnumerator ProcessGrabbable(GrabbableObject grabbable)
+    // ReSharper disable function SuspiciousTypeConversion.Global
+    // ReSharper disable function Unity.PerformanceCriticalCodeInvocation
+    private static IEnumerator ProcessGrabbable(GrabbableObject grabbable, bool updatePosition = true)
     {
         var itemType = grabbable.itemProperties;
+        var key = itemType.GetPath();
+        
+        var oldOffset = itemType.verticalOffset;
         var animators = grabbable.GetComponentsInChildren<Animator>();
 
         //wait till animators stop
@@ -64,46 +52,31 @@ internal class GrabbableStartPatch
             a => !a || Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
 
         //only run the code on the first coroutine that completes
-        if (!ComputedOffsets.Add(itemType))
-            yield break;
-        
-        var key = ItemCategory.GetPathForItem(itemType);
-        key = key.Replace(Path.DirectorySeparatorChar, '/');
-
-        MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
-
-        var oldOffset = itemType.verticalOffset;
-        itemType.verticalOffset = ComputeVerticalOffset(grabbable);
-
-        var isOriginal = Mathf.Approximately(oldOffset, itemType.verticalOffset);
-
-        MattyFixes.Log.LogDebug(
-            $"{key} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
-
-        if (isOriginal)
-            yield break;
-
-        if (!PendingObjects.TryGetValue(itemType, out var list))
-            yield break;
-
-        foreach (var gObject in list)
+        if (((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
         {
-            if (!gObject)
-                continue;
+            ((IInjectedItem)itemType).MattyFixes_HasComputedOffset = true;
+            
+            MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
 
-            var oldPosition = gObject.targetFloorPosition;
-            gObject.targetFloorPosition -= Vector3.up * oldOffset;
-            gObject.targetFloorPosition += Vector3.up * itemType.verticalOffset;
+            itemType.verticalOffset = ComputeVerticalOffset(grabbable);
 
-            MattyFixes.Log.LogDebug(
-                $"{key}({gObject.NetworkObjectId}) position updated [{oldPosition}] -> [{gObject.targetFloorPosition}]");
+            var isOriginal = Mathf.Approximately(oldOffset, itemType.verticalOffset);
+
+            MattyFixes.Log.LogDebug($"{key} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
+
+            if (isOriginal)
+                yield break;
         }
 
-        list.Clear();
+        if (!updatePosition)
+            yield break;
 
-        ListPool<GrabbableObject>.Release(list);
+        var oldPosition = grabbable.targetFloorPosition;
+        grabbable.targetFloorPosition -= Vector3.up * oldOffset;
+        grabbable.targetFloorPosition += Vector3.up * itemType.verticalOffset;
 
-        PendingObjects.Remove(itemType);
+        MattyFixes.Log.LogDebug(
+            $"{key}({grabbable.NetworkObjectId}) position updated [{oldPosition}] -> [{grabbable.targetFloorPosition}]");
     }
 
 
@@ -111,8 +84,7 @@ internal class GrabbableStartPatch
     {
         var itemType = grabbable.itemProperties;
 
-        var key = ItemCategory.GetPathForItem(itemType);
-        key = key.Replace(Path.DirectorySeparatorChar, '/');
+        var key = itemType.GetPath();
         
         try
         {
@@ -153,39 +125,44 @@ internal class GrabbableStartPatch
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.Start))]
-    private static IEnumerable<CodeInstruction> RedirectSpawnOnGroundCheck(IEnumerable<CodeInstruction> instructions)
+    private static IEnumerable<CodeInstruction> RedirectSpawnOnGroundCheck(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var codes = instructions.ToList();
 
-        var itemPropertiesFld = AccessTools.Field(typeof(GrabbableObject), nameof(GrabbableObject.itemProperties));
-        var spawnsOnGroundFld = AccessTools.Field(typeof(Item), nameof(Item.itemSpawnsOnGround));
+        var itemPropertiesFld = typeof(GrabbableObject).GetField(nameof(GrabbableObject.itemProperties), AccessTools.all);
+        var spawnsOnGroundFld = typeof(Item).GetField(nameof(Item.itemSpawnsOnGround), AccessTools.all);
 
-        var replacementMethod = AccessTools.Method(typeof(GrabbableStartPatch), nameof(NewSpawnOnGroundCheck));
+        var replacementMethod = typeof(GrabbableStartPatch).GetMethod(nameof(NewSpawnOnGroundCheck), AccessTools.all);
 
-        var matcher = new CodeMatcher(codes);
+        // = this.originalScale = this.transform.localScale;
+        // - if (this.itemProperties.itemSpawnsOnGround)
+        // + if (GrabbableStartPatch.NewSpawnOnGroundCheck(this))
+        // = {
+        var injector = new ILInjector(codes, ilGenerator)
+            .Find(
+                ILMatcher.Ldarg(),
+                ILMatcher.Ldfld(itemPropertiesFld),
+                ILMatcher.Ldfld(spawnsOnGroundFld),
+                ILMatcher.Branch().CaptureAs(out var branch)
+                );
 
-
-        matcher.MatchForward(false,
-            new CodeMatch(OpCodes.Ldarg_0),
-            new CodeMatch(OpCodes.Ldfld, itemPropertiesFld),
-            new CodeMatch(OpCodes.Ldfld, spawnsOnGroundFld),
-            new CodeMatch(OpCodes.Brfalse)
-        );
-
-        if (matcher.IsInvalid)
+        if (!injector.IsValid)
         {
+            // print error
+            MattyFixes.Log.LogWarning("GrabbableObject.Start patch failed!!");
+            MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
             return codes;
         }
 
-        matcher.Advance(1);
-
-        matcher.RemoveInstructions(2);
-
-        matcher.Insert(new CodeInstruction(OpCodes.Call, replacementMethod));
-
+        injector.ReplaceLastMatch(
+            InstructionUtilities.MakeLdarg(0),
+            new CodeInstruction(OpCodes.Call, replacementMethod),
+            branch
+        );
+        
         MattyFixes.Log.LogDebug("GrabbableObject.Start patched!");
-
-        return matcher.Instructions();
+        
+        return injector.ReleaseInstructions();
     }
 
     private static bool NewSpawnOnGroundCheck(GrabbableObject grabbableObject)

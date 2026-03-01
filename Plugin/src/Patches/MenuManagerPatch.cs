@@ -2,22 +2,29 @@ using System;
 using HarmonyLib;
 using UnityEngine;
 using VertexLibrary;
-
 namespace MattyFixes.Patches;
 
 [HarmonyPatch(typeof(MenuManager))]
 internal static class MenuManagerPatch
 {
+    internal static bool GameHasLoaded;
+    
+    private static bool _isFirstLoad = true;
 
-    private static bool _runOnce;
-
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(MenuManager.Awake))]
+    private static void OnAwake(MenuManager __instance)
+    {
+        GameHasLoaded = true;
+    }
+    
     [HarmonyFinalizer]
     [HarmonyPatch(nameof(MenuManager.Start))]
     private static void OnStart(MenuManager __instance)
     {
-        if (_runOnce)
+        if (!_isFirstLoad)
             return;
-        _runOnce = true;
+        _isFirstLoad = false;
 
         try
         {

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HarmonyLib;
+using MattyFixes.Utils;
 using Unity.Netcode;
 using UnityEngine;
 using LogLevel = BepInEx.Logging.LogLevel;
@@ -35,11 +36,7 @@ internal class CupBoardFix
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.SyncShipUnlockablesClientRpc))]
     private static void AfterCupboardSync(StartOfRound __instance)
     {
-        var networkManager = __instance.NetworkManager;
-        if (networkManager == null || !networkManager.IsListening)
-            return;
-        if (__instance.__rpc_exec_stage != NetworkBehaviour.__RpcExecStage.Client ||
-            (!networkManager.IsClient && !networkManager.IsHost))
+        if(!__instance.IsRPCClientStage())
             return;
 
         if (__instance.IsServer)

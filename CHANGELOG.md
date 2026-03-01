@@ -1,3 +1,12 @@
+## v1.1.36
+- Add DawnLib support!
+- Fix some leftover Netcode bugs from V70 update
+- Improve Lightning Particle Fix
+
+## v1.1.34
+- update to v70
+- `default` in config will now use vanilla values instead of ItemClippingFix ones
+
 ## v1.1.33
 - improve categorization system
 - improve vertex caching

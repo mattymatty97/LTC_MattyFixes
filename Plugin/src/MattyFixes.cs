@@ -5,7 +5,6 @@ using BepInEx;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
-using MattyFixes.Patches;
 using MonoMod.RuntimeDetour;
 using UnityEngine;
 using LogType = VertexLibrary.LogType;
@@ -61,7 +60,6 @@ internal partial class MattyFixes : BaseUnityPlugin
             PluginConfig.Init();
 
             Log.LogInfo("Patching Methods");
-            StartOfRoundPatch.Init();
             Harmony = new Harmony(GUID);
             Harmony.PatchAll(Assembly.GetExecutingAssembly());
 
@@ -75,7 +73,7 @@ internal partial class MattyFixes : BaseUnityPlugin
     }
 
 
-    internal static void VerboseMeshLog(VertexLibrary.LogType logLevel, Func<string> message)
+    internal static void VerboseMeshLog(LogType logLevel, Func<string> message)
     {
         var level = logLevel switch
         {

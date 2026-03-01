@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Utils.IL;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -66,39 +67,46 @@ internal class OutOfBoundsItemsFix
         ILGenerator ilGenerator)
     {
         var codes = instructions.ToList();
-        var newOffsetMethod = AccessTools.Method(typeof(OutOfBoundsItemsFix), nameof(ApplyVerticalOffset));
-        var getTransformMethod = AccessTools.Property(typeof(Component), nameof(Component.transform)).GetMethod;
-        var getPositionMethod = AccessTools.Property(typeof(Transform), nameof(Transform.position)).GetMethod;
+        var newOffsetMethod = typeof(OutOfBoundsItemsFix).GetMethod(nameof(GetAdjustedPosition), AccessTools.all);
+        var getTransformMethod = typeof(Component).GetProperty(nameof(Component.transform), AccessTools.all)?.GetMethod;
+        var getPositionMethod = typeof(Transform).GetProperty(nameof(Transform.position), AccessTools.all)?.GetMethod;
 
-        var matcher = new CodeMatcher(codes, ilGenerator);
-
-        matcher.MatchForward(false,
-            new CodeMatch(OpCodes.Ldloc_2),
-            new CodeMatch(OpCodes.Ldloc_0),
-            new CodeMatch(OpCodes.Ldloc_S),
-            new CodeMatch(OpCodes.Ldelem_Ref),
-            new CodeMatch(OpCodes.Callvirt, getTransformMethod),
-            new CodeMatch(OpCodes.Callvirt, getPositionMethod)
-        );
-
-        if (matcher.IsInvalid)
+        // = intList1.Add(index2);
+        // - vector3List.Add(objectsByType[index1].transform.position);
+        // + vector3List.Add(OutOfBoundsItemsFix.GetAdjustedPosition(objectsByType[index1]));
+        // = break;
+        var injector = new ILInjector(codes, ilGenerator)
+            .Find(
+                ILMatcher.Ldloc(),
+                ILMatcher.Ldloc(),
+                ILMatcher.Ldloc(),
+                ILMatcher.Predicate(i => i.opcode == OpCodes.Ldelem_Ref),
+                ILMatcher.Callvirt(getTransformMethod),
+                ILMatcher.Callvirt(getPositionMethod)
+                );
+        
+        if (!injector.IsValid)
         {
-            MattyFixes.Log.LogError("Cannot patch SaveItemsInShip");
-            MattyFixes.Log.LogDebug(string.Join("\n", codes));
+            // print error
+            MattyFixes.Log.LogWarning("GameNetworkManager.SaveItemsInShip patch failed!!");
+            MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
             return codes;
         }
 
-        matcher.Advance(4);
-        matcher.Insert(new CodeInstruction(OpCodes.Dup));
-        matcher.Advance(3);
-        matcher.Insert(new CodeInstruction(OpCodes.Call, newOffsetMethod));
-
+        injector
+            .GoToMatchEnd()
+            .Back(2)
+            .Remove(2)
+            .Insert(new CodeInstruction(OpCodes.Call, newOffsetMethod));
+        
         MattyFixes.Log.LogDebug("SaveItemsInShip Patched");
-        return matcher.Instructions();
+        return injector.ReleaseInstructions();
     }
 
-    private static Vector3 ApplyVerticalOffset(GrabbableObject grabbable, Vector3 position)
+    private static Vector3 GetAdjustedPosition(GrabbableObject grabbable)
     {
+        var position = grabbable.transform.position;
+        
         if (!MattyFixes.PluginConfig.OutOfBounds.Enabled.Value)
             return position;
         
@@ -118,8 +126,7 @@ internal class OutOfBoundsItemsFix
 
     [HarmonyTranspiler]
     [HarmonyPatch(typeof(RoundManager), nameof(RoundManager.SpawnScrapInLevel))]
-    private static IEnumerable<CodeInstruction> FixSpawns(IEnumerable<CodeInstruction> instructions,
-        ILGenerator ilGenerator)
+    private static IEnumerable<CodeInstruction> FixSpawns(IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
     {
         var codes = instructions.ToList();
         
@@ -129,39 +136,48 @@ internal class OutOfBoundsItemsFix
         if (!MattyFixes.PluginConfig.OutOfBounds.SpawnInFurniture.Value)
             return codes;
         
-        var getUpMethod = AccessTools.Property(typeof(Vector3), nameof(Vector3.up)).GetMethod;
-        var navmeshPosMethod = AccessTools.Method(typeof(RoundManager), "GetRandomNavMeshPositionInBoxPredictable");
-        var verticalOffset = AccessTools.Field(typeof(Item), nameof(Item.verticalOffset));
-        var multiplyMethod = AccessTools.Method(typeof(Vector3), "op_Multiply", new []{typeof(Vector3), typeof(float)});
-        var addMethod = AccessTools.Method(typeof(Vector3), "op_Addition", new []{typeof(Vector3), typeof(Vector3)});
+        var navmeshPosMethod = typeof(RoundManager).GetMethod(nameof(RoundManager.GetRandomNavMeshPositionInBoxPredictable), AccessTools.all);
+        var verticalOffset = typeof(Item).GetField(nameof(Item.verticalOffset), AccessTools.all);
+        var multiplyMethod = typeof(Vector3).GetMethod("op_Multiply", [typeof(Vector3), typeof(float)]);
+        var addMethod = typeof(Vector3).GetMethod( "op_Addition", [typeof(Vector3), typeof(Vector3)]);
+
+        //  - position = this.GetRandomNavMeshPositionInBoxPredictable(randomScrapSpawn.transform.position, randomScrapSpawn.itemSpawnRange, this.navHit, this.AnomalyRandom) + Vector3.up * ScrapToSpawn[i].verticalOffset;
+        //  + position = this.GetRandomNavMeshPositionInBoxPredictable(randomScrapSpawn.transform.position, randomScrapSpawn.itemSpawnRange, this.navHit, this.AnomalyRandom);
         
-        var matcher = new CodeMatcher(codes, ilGenerator);
-
-        matcher.MatchForward(false, 
-            new CodeMatch(OpCodes.Call, navmeshPosMethod),
-            new CodeMatch(OpCodes.Call, getUpMethod),
-            new CodeMatch(OpCodes.Ldloc_S),
-            new CodeMatch(OpCodes.Ldfld),
-            new CodeMatch(OpCodes.Ldfld),
-            new CodeMatch(OpCodes.Ldloc_S),
-            new CodeMatch(OpCodes.Ldfld),
-            new CodeMatch(OpCodes.Callvirt),
-            new CodeMatch(OpCodes.Ldfld, verticalOffset),
-            new CodeMatch(OpCodes.Call, multiplyMethod),
-            new CodeMatch(OpCodes.Call, addMethod),
-            new CodeMatch(OpCodes.Stloc_S)
-            );
-
-        if (matcher.IsInvalid)
+        var injector = new ILInjector(codes, ilGenerator)
+            .Find(ILMatcher.Call(navmeshPosMethod));
+        
+        if (!injector.IsValid)
         {
-            MattyFixes.Log.LogError("RoundManager.SpawnScrapInLevel IL Not Found!");
+            // print error
+            MattyFixes.Log.LogWarning("RoundManager.SpawnScrapInLevel patch failed 1!!");
+            MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
             return codes;
         }
-
-        matcher.Advance(1).RemoveInstructions(10);
+        
+        injector.Find(
+            ILMatcher.Ldfld(verticalOffset),
+            ILMatcher.Call(multiplyMethod),
+            ILMatcher.Call(addMethod),
+            ILMatcher.Stloc()
+            );
+        
+        if (!injector.IsValid)
+        {
+            // print error
+            MattyFixes.Log.LogWarning("RoundManager.SpawnScrapInLevel patch failed 2!!");
+            MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
+            return codes;
+        }
+        
+        injector
+            .GoToMatchEnd()
+            .Back(1)
+            .GoToPush(0)
+            .RemoveLastMatch();
         
         MattyFixes.Log.LogDebug("RoundManager.SpawnScrapInLevel patched");
 
-        return matcher.Instructions();
+        return injector.ReleaseInstructions();
     }
 }

@@ -1,54 +1,57 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
+using MattyFixes.Dependency;
+using MattyFixes.Interfaces;
 
 namespace MattyFixes.Utils;
 
-public class ItemCategory
+public static class ItemCategory
 {
-    internal static Item[] VanillaItems;
-    internal static readonly Dictionary<Item, (string api, string modname)> ItemModMap = [];
-
-    public static string GetPathForItem(Item item)
+    public enum ItemType
     {
-        var modTag = GetTagForItem(item);
-
-        return GetPathForTag(modTag, item);
+        Unknown,
+        Vanilla,
+        Modded
     }
-
-    public static (string api, string modname) GetTagForItem(Item item)
+    
+    // ReSharper disable function SuspiciousTypeConversion.Global
+    [NotNull] 
+    public static string GetPath(this Item item)
     {
-        if (!ItemModMap.TryGetValue(item, out var modTag))
+        var path = ((IInjectedItem)item).MattyFixes_Path;
+        if (path != null)
+            return path;
+        
+        var type = ItemType.Unknown;
+        path = item.ComputePath("Unknown");
+            
+        if (DawnLibProxy.Enabled)
         {
-            modTag = ("Unknown", "");
-            ItemModMap[item] = modTag;
+            var dawnType = DawnLibProxy.DefineItem(item, out var dawnPath);
+            if (type <= dawnType)
+            {
+                type = dawnType;
+                path = dawnPath;
+            }
         }
-        return modTag;
-    }
 
-    public static string GetNullablePathForTag((string api, string modname)? modTag, Item item)
-    {
-        if (modTag is null || !item)
-            return null;
-        return GetPathForTag(modTag.Value, item);
-    }
-
-    public static string GetPathForTag((string api, string modname) modTag, Item item)
-    {
-        var cleanName = string.Join("_",
-                item.itemName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries))
-            .TrimEnd('.');
-
-        var cleanMod = string.Join("_",
-                modTag.modname.Split(Path.GetInvalidPathChars(), StringSplitOptions.RemoveEmptyEntries))
-            .TrimEnd('.');
-
-        var path = Path.Combine(modTag.api, cleanMod, cleanName);
-
+        ((IInjectedItem)item).MattyFixes_ItemType = type;
+        ((IInjectedItem)item).MattyFixes_Path     = path;
         return path;
     }
+    
+    
+    public static string ComputePath(this Item item, string library, params string[] path)
+    {
+        return Path.Combine(((List<string>)[library, ..path, item.itemName]).Select(p => string.Join("_",
+                p.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries))
+            .TrimEnd('.')).ToArray()).Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    }
+    
 
     private static readonly Regex ConfigFilterRegex = new Regex(@"[\n\t\\\'\[\]]");
 

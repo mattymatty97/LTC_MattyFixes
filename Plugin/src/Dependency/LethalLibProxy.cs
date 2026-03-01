@@ -1,9 +1,8 @@
-using System;
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using BepInEx.Bootstrap;
-using JetBrains.Annotations;
 using LethalLib.Modules;
+using MattyFixes.Interfaces;
+using MattyFixes.Utils;
 
 namespace MattyFixes.Dependency;
 
@@ -20,12 +19,24 @@ public static class LethalLibProxy
         }
     }
 
+    // ReSharper disable function SuspiciousTypeConversion.Global
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public static void GetModdedItems([NotNull] in Dictionary<Item, (string api, string modname)> items)
+    public static void PopulateModdedItems()
     {
         MattyFixes.Log.LogWarning("LethalLib found, reading Items.scrapItems");
-        foreach (var scrapItem in Items.scrapItems) items.TryAdd(scrapItem.item, ("LethalLib", scrapItem.modName));
-        foreach (var scrapItem in Items.plainItems) items.TryAdd(scrapItem.item, ("LethalLib", scrapItem.modName));
-        foreach (var scrapItem in Items.shopItems)  items.TryAdd(scrapItem.item, ("LethalLib", scrapItem.modName));
+        foreach (var scrapItem in Items.scrapItems) RegisterItem(scrapItem.item, scrapItem.modName);
+        foreach (var scrapItem in Items.plainItems) RegisterItem(scrapItem.item, scrapItem.modName);
+        foreach (var scrapItem in Items.shopItems)  RegisterItem(scrapItem.item, scrapItem.modName);
+        return;
+
+        void RegisterItem(Item item, string modName)
+        {
+            if (((IInjectedItem)item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
+                return;
+            
+            ((IInjectedItem)item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
+            ((IInjectedItem)item).MattyFixes_Path     = item.ComputePath("LethalLib", modName);
+        }
     }
+
 }

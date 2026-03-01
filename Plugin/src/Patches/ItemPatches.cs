@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Reflection.Emit;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Interfaces;
 using MattyFixes.Utils;
+using MattyFixes.Utils.IL;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -20,23 +24,23 @@ internal static class ItemPatches
     private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new();
 
     private static readonly HashSet<Item> BrokenMeshItems = [];
-
-    private static readonly Dictionary<MeshFilter, Mesh> ReverseMeshMap = new();
-    private static Vector3 _staticElectricityParticleOffset;
-
-
-    private static void UpdateItemRotation(Item item, (string api, string modname)? itemTag = null)
+    
+    // ReSharper disable function SuspiciousTypeConversion.Global
+    private static bool TryUpdateItemRotation(Item item)
     {
-
+        if (((IInjectedItem)item).MattyFixes_IsRegistered)
+            return false;
+        
+        ((IInjectedItem)item).MattyFixes_IsRegistered = true;
+        
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
-            var itemTag2 = itemTag ?? ItemCategory.GetTagForItem(item);
-            var itemPath = ItemCategory.GetPathForTag(itemTag2, item);
+            var itemPath = item.GetPath();
             
-            var itemSection = Path.GetDirectoryName(itemPath) ?? "";
-            var itemName = ItemCategory.SanitizeForConfig(Path.GetFileName(itemPath) ?? item.itemName);
+            var itemSection = Path.GetDirectoryName(itemPath) ?? "Unknown";
+            var itemName = ItemCategory.SanitizeForConfig(Path.GetFileName(itemPath));
 
-            itemSection = itemSection.Replace(Path.DirectorySeparatorChar, '|');
+            itemSection = itemSection.Replace(Path.AltDirectorySeparatorChar, '|');
             itemSection = ItemCategory.SanitizeForConfig(itemSection);
             
             var ogRotation = item.restingRotation;
@@ -47,7 +51,7 @@ internal static class ItemPatches
 
             var defValue = "default";
 
-            if (itemTag2.api == "Vanilla" && ItemRotations.TryGetValue(item.itemName, out var value))
+            if (ItemRotations.TryGetValue(itemPath, out var value))
             {
                 defValue = $"{value[0]},{value[1]},{value[2]}";
             }
@@ -62,7 +66,7 @@ internal static class ItemPatches
             );
 
             MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
-            rotationConfig.Config.SettingChanged += (_, _) => { UpdateItemRotation(item); };
+            rotationConfig.Config.SettingChanged += (_, _) => { TryUpdateItemRotation(item); };
             if (LethalConfigProxy.Enabled)
                 LethalConfigProxy.AddConfig(rotationConfig.Config);
         }
@@ -80,8 +84,21 @@ internal static class ItemPatches
         item.restingRotation = parsedRotation;
 
         item.floorYOffset = (int)Math.Round(parsedRotation.y);
+
+        return true;
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Item), "Awake")]
+    private static void OnNewItem(Item __instance)
+    {
+        if (!MenuManagerPatch.GameHasLoaded)
+        {
+            ((IInjectedItem)__instance).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
+            ((IInjectedItem)__instance).MattyFixes_Path = __instance.ComputePath("Vanilla");
+        }
+        TryUpdateItemRotation(__instance);
+    }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
@@ -92,18 +109,13 @@ internal static class ItemPatches
 
         foreach (var item in __instance.allItemsList.itemsList)
         {
-            var modTag = ItemCategory.GetTagForItem(item);
-            var key = ItemCategory.GetPathForTag(modTag, item);
-            key = key.Replace(Path.DirectorySeparatorChar, '/');
-
             try
             {
-                UpdateItemRotation(item, modTag);
+                TryUpdateItemRotation(item);
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError(
-                    $"{key} crashed badly ! {ex}");
+                MattyFixes.Log.LogError($"{item.GetPath()} crashed badly ! {ex}");
             }
         }
     }
@@ -119,6 +131,8 @@ internal static class ItemPatches
                 return;
 
             var itemType = grabbable.itemProperties;
+            
+            TryUpdateItemRotation(itemType);
 
             if (!ComputedItems.Add(itemType))
                 return;
@@ -132,13 +146,12 @@ internal static class ItemPatches
                 {
                     if (itemType.spawnPrefab != null)
                     {
-                        MakeMeshReadable(itemType.spawnPrefab);
+                        CacheReadableMeshes(itemType.spawnPrefab);
                     }
                 }
                 catch (Exception ex)
                 {
-                    var key = ItemCategory.GetPathForItem(itemType);
-                    key = key.Replace(Path.DirectorySeparatorChar, '/');
+                    var key = itemType.GetPath();
                     MattyFixes.Log.LogError($"{key} Failed to mark prefab Mesh Readable! {ex}");
                     BrokenMeshItems.Add(itemType);
                     MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
@@ -184,10 +197,8 @@ internal static class ItemPatches
                     grabbable.itemProperties.restingRotation.z);
             }
             catch (Exception ex)
-            {            
-                var key = ItemCategory.GetPathForItem(grabbable.itemProperties);
-                key = key.Replace(Path.DirectorySeparatorChar, '/');
-                MattyFixes.Log.LogError($"Exception while setting rotation of {key} :{ex}");
+            {
+                MattyFixes.Log.LogError($"Exception while setting rotation of {grabbable.itemProperties.GetPath()} :{ex}");
             }
         }
     }
@@ -206,8 +217,25 @@ internal static class ItemPatches
     }
 
 
-    private static void MakeMeshReadable(GameObject go, bool updateOriginal = false,
-        Dictionary<MeshFilter, Mesh> reverseMap = null)
+    private static Mesh GetReadableMesh(Mesh original, out bool wasReadable)
+    {
+        wasReadable = true;
+        
+        if (original.isReadable)
+            return original;
+        
+        wasReadable = false;
+
+        if (ReadableMeshMap.TryGetValue(original, out var readableMesh)) 
+            return readableMesh;
+        
+        readableMesh = MakeReadableMeshCopy(original);
+        ReadableMeshMap[original] = readableMesh;
+
+        return readableMesh;
+    }
+    
+    private static void CacheReadableMeshes(GameObject go)
     {
         var renderer = go.GetComponent<MeshFilter>();
         var filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
@@ -216,33 +244,16 @@ internal static class ItemPatches
         {
             var mesh = meshFilter.sharedMesh;
 
-            if (mesh.isReadable)
-                continue;
-
-            if (!ReadableMeshMap.TryGetValue(mesh, out var readableMesh))
-                readableMesh = MakeReadableMeshCopy(mesh);
-            ReadableMeshMap[mesh] = readableMesh;
-            if (updateOriginal)
-                meshFilter.sharedMesh = readableMesh;
-            if (reverseMap != null)
-                reverseMap[meshFilter] = mesh;
+            GetReadableMesh(mesh, out _);
         }
-    }
-
-    private static void ApplyMeshMap(GameObject go, Dictionary<MeshFilter, Mesh> meshMap)
-    {
-        var renderer = go.GetComponent<MeshFilter>();
-        var filters = renderer is not null ? [renderer] : go.GetComponentsInChildren<MeshFilter>();
-
-        foreach (var meshFilter in filters)
-            if (meshMap.TryGetValue(meshFilter, out var newmesh))
-                meshFilter.sharedMesh = newmesh;
     }
 
     private static Mesh MakeReadableMeshCopy(Mesh nonReadableMesh)
     {
-        var meshCopy = new Mesh();
-        meshCopy.indexFormat = nonReadableMesh.indexFormat;
+        var meshCopy = new Mesh
+        {
+            indexFormat = nonReadableMesh.indexFormat
+        };
 
         // Handle vertices
         nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
@@ -289,8 +300,55 @@ internal static class ItemPatches
     [HarmonyPatch]
     internal class StormyWeatherPatch
     {
-        [HarmonyPostfix]
+        private static (Vector3 position, Vector3 rotation, Vector3 scale)? OriginalOffsets = null;
+        
+        [HarmonyTranspiler]
         [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
+        private static IEnumerable<CodeInstruction> SetStaticElectricityWarning(IEnumerable<CodeInstruction> instructions,
+            ILGenerator ilGenerator)
+        {
+            var codes = instructions.ToList();
+            
+            var staticElectricityParticleField = typeof(StormyWeather).GetField(nameof(StormyWeather.staticElectricityParticle), AccessTools.all);
+            var setTimeMethod = typeof(ParticleSystem).GetProperty(nameof(ParticleSystem.time), AccessTools.all)?.GetSetMethod();
+            var playMethod = typeof(ParticleSystem).GetMethod(nameof(ParticleSystem.Play), 0, []);
+
+            var changeMethod = typeof(StormyWeatherPatch).GetMethod(nameof(ChangeParticleShape), AccessTools.all);
+            
+            // = shape.meshRenderer = setStaticToObject.GetComponentInChildren<UnityEngine.MeshRenderer>();
+            // + StormyWeatherPatch.ChangeParticleShape(this, warningObject);
+            // = staticElectricityParticle.time = particleTime;
+            // = staticElectricityParticle.Play();
+            // = staticElectricityParticle.time = particleTime;
+            var injector = new ILInjector(codes, ilGenerator)
+                .Find(
+                    ILMatcher.Ldarg(),
+                    ILMatcher.Ldfld(staticElectricityParticleField),
+                    ILMatcher.Ldarg(),
+                    ILMatcher.Callvirt(setTimeMethod),
+                    ILMatcher.Ldarg(),
+                    ILMatcher.Ldfld(staticElectricityParticleField),
+                    ILMatcher.Callvirt(playMethod));
+            
+            if (!injector.IsValid)
+            {
+                // print error
+                MattyFixes.Log.LogWarning("StormyWeather.SetStaticElectricityWarning patch failed!!");
+                MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
+                return codes;
+            }
+
+            injector.Insert(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldarg_1),
+                new CodeInstruction(OpCodes.Call, changeMethod));
+            
+            MattyFixes.Log.LogDebug("StormyWeather.SetStaticElectricityWarning patched!");
+            
+            return injector.ReleaseInstructions();
+        }
+        
+        
         private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
         {
             try
@@ -298,7 +356,9 @@ internal static class ItemPatches
                 var matrix = Matrix4x4.TRS(Vector3.zero, warningObject.transform.rotation,
                     warningObject.transform.lossyScale);
 
-                var shapeModule = __instance.staticElectricityParticle.shape;
+                var particleSystem = __instance.staticElectricityParticle;
+                var shapeModule = particleSystem.shape;
+                OriginalOffsets = (shapeModule.position, shapeModule.rotation, shapeModule.scale);
                 if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
                 {
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
@@ -316,35 +376,55 @@ internal static class ItemPatches
 
                     var bounds = vertexes.GetBounds();
 
-                    if (bounds.HasValue)
-                    {
-                        var (_, radius) = vertexes.GetFarthestPoint(bounds.Value.center);
+                    if (!bounds.HasValue) 
+                        return;
+                    
+                    var (_, radius) = vertexes.GetFarthestPoint(bounds.Value.center);
 
-                        shapeModule.radius = radius;
+                    shapeModule.radius = radius;
 
-                        _staticElectricityParticleOffset = bounds.Value.center + Vector3.up * 0.5f;
-                    }
+                    shapeModule.position = bounds.Value.center + Vector3.up * 0.5f;
                 }
                 else
                 {
                     var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
-                    if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
-                        MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value &&
-                        !BrokenMeshItems.Contains(grabbable.itemProperties))
-                        try
-                        {
-                            MakeMeshReadable(warningObject.gameObject, true, ReverseMeshMap);
-                        }
-                        catch (Exception ex)
-                        {
-                            var key = ItemCategory.GetPathForItem(grabbable.itemProperties);
-                            key = key.Replace(Path.DirectorySeparatorChar, '/');
-                            MattyFixes.Log.LogError(
-                                $"{key} Failed to mark prefab Mesh Readable! {ex}");
-                            BrokenMeshItems.Add(grabbable.itemProperties);
-                            MattyFixes.Log.LogWarning(
-                                $"{key} Added to the ignored Meshes!");
-                        }
+                    if (!MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value ||
+                        !MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value ||
+                        BrokenMeshItems.Contains(grabbable.itemProperties)) 
+                        return;
+                    
+                    try
+                    {
+                        var rendererGo = shapeModule.meshRenderer.gameObject;
+                        if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
+                            return;
+                                    
+                        var readableMesh = GetReadableMesh(meshFilter.sharedMesh, out var wasReadable);
+                        if (wasReadable)
+                            return;
+                        
+                        shapeModule.shapeType     = ParticleSystemShapeType.Mesh;
+                        shapeModule.mesh          = readableMesh;
+                        shapeModule.meshRenderer  = null;
+                        shapeModule.position      = warningObject.transform.InverseTransformPoint(rendererGo.transform.position);
+                        shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation) 
+                                                     * rendererGo.transform.rotation).eulerAngles;
+                        var meshWorldScale = rendererGo.transform.lossyScale;
+                        var psWorldScale = particleSystem.transform.lossyScale;
+
+                        shapeModule.scale = new Vector3(
+                            meshWorldScale.x / psWorldScale.x,
+                            meshWorldScale.y / psWorldScale.y,
+                            meshWorldScale.z / psWorldScale.z);
+                    }
+                    catch (Exception ex)
+                    {
+                        var item = grabbable.itemProperties;
+                        var key = item.GetPath();
+                        MattyFixes.Log.LogError($"{key} Failed to make prefab Mesh Readable! {ex}");
+                        BrokenMeshItems.Add(item);
+                        MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
+                    }
                 }
             }
             catch (Exception ex)
@@ -360,236 +440,231 @@ internal static class ItemPatches
             if (__instance.setStaticToObject == null || !useTargetedObject)
                 return;
 
-            if (MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
-                ApplyMeshMap(__instance.setStaticToObject, ReverseMeshMap);
-
-            ReverseMeshMap.Clear();
-        }
-
-        [HarmonyPostfix]
-        [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.Update))]
-        private static void SetCorrectParticlePosition(StormyWeather __instance)
-        {
-            if (__instance.setStaticToObject == null)
+            var shapeModule = __instance.staticElectricityParticle.shape;
+            shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
+            
+            if (!OriginalOffsets.HasValue)
                 return;
 
-            if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
-                __instance.staticElectricityParticle.transform.position += _staticElectricityParticleOffset;
+            shapeModule.position = OriginalOffsets.Value.position;
+            shapeModule.rotation = OriginalOffsets.Value.rotation;
+            shapeModule.scale    = OriginalOffsets.Value.scale;
+            OriginalOffsets      = null;
         }
     }
 
     private static readonly Dictionary<string, List<float>> ItemRotations = new()
     {
         {
-            "Flashlight",
+            "Vanilla/Flashlight",
             [90f, 0f, 90f]
         },
         {
-            "Jetpack",
+            "Vanilla/Jetpack",
             [45f, 0f, 0f]
         },
         {
-            "Key",
+            "Vanilla/Key",
             [180f, 0f, 90f]
         },
         {
-            "Apparatus",
+            "Vanilla/Apparatus",
             [0f, 0f, 135f]
         },
         {
-            "Pro-flashlight",
+            "Vanilla/Pro-flashlight",
             [90f, 0f, 90f]
         },
         {
-            "Shovel",
+            "Vanilla/Shovel",
             [0f, 0f, -90f]
         },
         {
-            "Stun grenade",
+            "Vanilla/Stun grenade",
             [0f, 0f, 90f]
         },
         {
-            "Extension ladder",
+            "Vanilla/Extension ladder",
             [0f, 90f, 0f]
         },
         {
-            "TZP-Inhalant",
+            "Vanilla/TZP-Inhalant",
             [0f, 0f, -90f]
         },
         {
-            "Zap gun",
+            "Vanilla/Zap gun",
             [95f, 0f, 90f]
         },
         {
-            "Magic 7 ball",
+            "Vanilla/Magic 7 ball",
             [0f, 0f, 0f]
         },
         {
-            "Airhorn",
+            "Vanilla/Airhorn",
             [0f, -90f, 270f]
         },
         {
-            "Big bolt",
+            "Vanilla/Big bolt",
             [-21f, 0f, 0f]
         },
         {
-            "Bottles",
+            "Vanilla/Bottles",
             [-90f, 0f, 0f]
         },
         {
-            "Brush",
+            "Vanilla/Brush",
             [90f, 180f, 0f]
         },
         {
-            "Candy",
+            "Vanilla/Candy",
             [90f, -135f, 0f]
         },
         {
-            "Cash register",
+            "Vanilla/Cash register",
             [-90f, -90f, 40f]
         },
         {
-            "Chemical jug",
+            "Vanilla/Chemical jug",
             [-90f, 0f, 0f]
         },
         {
-            "Clown horn",
+            "Vanilla/Clown horn",
             [-90f, -30f, 0f]
         },
         {
-            "Large axle",
+            "Vanilla/Large axle",
             [7f, 180f, 0f]
         },
         {
-            "Teeth",
+            "Vanilla/Teeth",
             [-90f, 0f, 0f]
         },
         {
-            "Dust pan",
+            "Vanilla/Dust pan",
             [-90f, 180f, 0f]
         },
         {
-            "Egg beater",
+            "Vanilla/Egg beater",
             [90f, 180f, 0f]
         },
         {
-            "V-type engine",
+            "Vanilla/V-type engine",
             [-90f, 0f, 0f]
         },
         {
-            "Plastic fish",
+            "Vanilla/Plastic fish",
             [-45f, 0f, 90f]
         },
         {
-            "Laser pointer",
+            "Vanilla/Laser pointer",
             [0f, 0f, 0f]
         },
         {
-            "Gold bar",
+            "Vanilla/Gold bar",
             [-90f, 0f, -90f]
         },
         {
-            "Hairdryer",
+            "Vanilla/Hairdryer",
             [0f, -90f, -90f]
         },
         {
-            "Magnifying glass",
+            "Vanilla/Magnifying glass",
             [0f, -45f, -90f]
         },
         {
-            "Cookie mold pan",
+            "Vanilla/Cookie mold pan",
             [-90f, 0f, 90f]
         },
         {
-            "Mug",
+            "Vanilla/Mug",
             [-90f, 0f, 0f]
         },
         {
-            "Perfume bottle",
+            "Vanilla/Perfume bottle",
             [-90f, 0f, 0f]
         },
         {
-            "Old phone",
+            "Vanilla/Old phone",
             [-90f, 180f, -90f]
         },
         {
-            "Jar of pickles",
+            "Vanilla/Jar of pickles",
             [-90f, 0f, 0f]
         },
         {
-            "Pill bottle",
+            "Vanilla/Pill bottle",
             [-90f, 0f, 0f]
         },
         {
-            "Remote",
+            "Vanilla/Remote",
             [-90f, 180f, 0f]
         },
         {
-            "Ring",
+            "Vanilla/Ring",
             [0f, -90f, 90f]
         },
         {
-            "Toy robot",
+            "Vanilla/Toy robot",
             [-90f, 0f, 0f]
         },
         {
-            "Rubber Ducky",
+            "Vanilla/Rubber Ducky",
             [-90f, 0f, 90f]
         },
         {
-            "Steering wheel",
+            "Vanilla/Steering wheel",
             [-90f, 0f, 0f]
         },
         {
-            "Toothpaste",
+            "Vanilla/Toothpaste",
             [-90f, 0f, 0f]
         },
         {
-            "Hive",
+            "Vanilla/Hive",
             [7f, 0f, 0f]
         },
         {
-            "Radar-booster",
+            "Vanilla/Radar-booster",
             [0f, 0f, 0f]
         },
         {
-            "Shotgun",
+            "Vanilla/Shotgun",
             [180f, 90f, -5f]
         },
         {
-            "Ammo",
+            "Vanilla/Ammo",
             [0f, 0f, 90f]
         },
         {
-            "Spray paint",
+            "Vanilla/Spray paint",
             [0f, 0f, 195f]
         },
         {
-            "Homemade flashbang",
+            "Vanilla/Homemade flashbang",
             [0f, 0f, 90f]
         },
         {
-            "Gift",
+            "Vanilla/Gift",
             [-90f, 0f, 0f]
         },
         {
-            "Flask",
+            "Vanilla/Flask",
             [25f, 0f, 0f]
         },
         {
-            "Tragedy",
+            "Vanilla/Tragedy",
             [-90f, 90f, 0f]
         },
         {
-            "Comedy",
+            "Vanilla/Comedy",
             [-90f, 90f, 0f]
         },
         {
-            "Whoopie cushion",
+            "Vanilla/Whoopie cushion",
             [-90f, 180f, 0f]
         },
         {
-            "Zed Dog",
+            "Vanilla/Zed Dog",
             [0f, -90f, 0f]
         }
     };
