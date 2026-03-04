@@ -17,18 +17,18 @@ public static class ItemCategory
         Vanilla,
         Modded
     }
-    
+
     // ReSharper disable function SuspiciousTypeConversion.Global
-    [NotNull] 
+    [NotNull]
     public static string GetPath(this Item item)
     {
         var path = ((IInjectedItem)item).MattyFixes_Path;
         if (path != null)
             return path;
-        
+
         var type = ItemType.Unknown;
         path = item.ComputePath("Unknown");
-            
+
         if (DawnLibProxy.Enabled)
         {
             var dawnType = DawnLibProxy.DefineItem(item, out var dawnPath);
@@ -43,15 +43,17 @@ public static class ItemCategory
         ((IInjectedItem)item).MattyFixes_Path     = path;
         return path;
     }
-    
-    
-    public static string ComputePath(this Item item, string library, params string[] path)
+
+
+    public static string ComputePath(this Item item,[NotNull] string library,[NotNull] params string[] path)
     {
-        return Path.Combine(((List<string>)[library, ..path, item.itemName]).Select(p => string.Join("_",
-                p.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries))
-            .TrimEnd('.')).ToArray()).Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var tag = string.Join('/', ((List<string>)[library, ..path, item.itemName ?? item.name])
+                 .Select(p =>
+                     string.Join("_", p.Split(Path.GetInvalidPathChars(), StringSplitOptions.RemoveEmptyEntries) ).TrimEnd('.')
+                        ).ToArray()
+                 ).Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return tag;
     }
-    
 
     private static readonly Regex ConfigFilterRegex = new Regex(@"[\n\t\\\'\[\]]");
 

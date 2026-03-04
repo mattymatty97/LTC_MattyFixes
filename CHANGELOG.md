@@ -1,3 +1,6 @@
+## v1.1.37
+- Fix mistakes in v1.1.36 🙃
+
 ## v1.1.36
 - Add DawnLib support!
 - Fix some leftover Netcode bugs from V70 update

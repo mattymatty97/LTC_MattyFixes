@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
+using BepInEx.Bootstrap;
 using HarmonyLib;
 using MattyFixes.Dependency;
 using MattyFixes.Interfaces;
@@ -19,30 +21,36 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 internal static class ItemPatches
 {
+    private static readonly FieldInfo ChainloaderDoneField = typeof(Chainloader).GetField("_loaded", AccessTools.all);
+
+    private static readonly Func<bool> IsChainloaderDone = (Func<bool>)ChainloaderDoneField.FastGetter();
+
     private static readonly HashSet<Item> ComputedItems = [];
 
     private static readonly Dictionary<Mesh, Mesh> ReadableMeshMap = new();
 
     private static readonly HashSet<Item> BrokenMeshItems = [];
-    
+
     // ReSharper disable function SuspiciousTypeConversion.Global
-    private static bool TryUpdateItemRotation(Item item)
+    internal static bool TryUpdateItemRotation(Item item)
     {
         if (((IInjectedItem)item).MattyFixes_IsRegistered)
             return false;
-        
+
         ((IInjectedItem)item).MattyFixes_IsRegistered = true;
-        
+
         if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
         {
             var itemPath = item.GetPath();
-            
-            var itemSection = Path.GetDirectoryName(itemPath) ?? "Unknown";
-            var itemName = ItemCategory.SanitizeForConfig(Path.GetFileName(itemPath));
 
-            itemSection = itemSection.Replace(Path.AltDirectorySeparatorChar, '|');
+            var lastSeparator = itemPath.LastIndexOf('/');
+
+            var itemSection = lastSeparator > 0 ? itemPath[..lastSeparator] : "Unknown";
+            var itemName = ItemCategory.SanitizeForConfig(itemPath[(lastSeparator + 1)..]);
+
+            itemSection = itemSection.Replace('/', '|');
             itemSection = ItemCategory.SanitizeForConfig(itemSection);
-            
+
             var ogRotation = item.restingRotation;
             ogRotation.y = item.floorYOffset;
 
@@ -92,12 +100,14 @@ internal static class ItemPatches
     [HarmonyPatch(typeof(Item), "Awake")]
     private static void OnNewItem(Item __instance)
     {
+        if (!IsChainloaderDone())
+            return;
+
         if (!MenuManagerPatch.GameHasLoaded)
         {
             ((IInjectedItem)__instance).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
             ((IInjectedItem)__instance).MattyFixes_Path = __instance.ComputePath("Vanilla");
         }
-        TryUpdateItemRotation(__instance);
     }
 
     [HarmonyPostfix]
@@ -131,12 +141,12 @@ internal static class ItemPatches
                 return;
 
             var itemType = grabbable.itemProperties;
-            
+
             TryUpdateItemRotation(itemType);
 
             if (!ComputedItems.Add(itemType))
                 return;
-            
+
 
             if (itemType.isConductiveMetal &&
                 MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
@@ -220,21 +230,21 @@ internal static class ItemPatches
     private static Mesh GetReadableMesh(Mesh original, out bool wasReadable)
     {
         wasReadable = true;
-        
+
         if (original.isReadable)
             return original;
-        
+
         wasReadable = false;
 
-        if (ReadableMeshMap.TryGetValue(original, out var readableMesh)) 
+        if (ReadableMeshMap.TryGetValue(original, out var readableMesh))
             return readableMesh;
-        
+
         readableMesh = MakeReadableMeshCopy(original);
         ReadableMeshMap[original] = readableMesh;
 
         return readableMesh;
     }
-    
+
     private static void CacheReadableMeshes(GameObject go)
     {
         var renderer = go.GetComponent<MeshFilter>();
@@ -301,20 +311,20 @@ internal static class ItemPatches
     internal class StormyWeatherPatch
     {
         private static (Vector3 position, Vector3 rotation, Vector3 scale)? OriginalOffsets = null;
-        
+
         [HarmonyTranspiler]
         [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
         private static IEnumerable<CodeInstruction> SetStaticElectricityWarning(IEnumerable<CodeInstruction> instructions,
             ILGenerator ilGenerator)
         {
             var codes = instructions.ToList();
-            
+
             var staticElectricityParticleField = typeof(StormyWeather).GetField(nameof(StormyWeather.staticElectricityParticle), AccessTools.all);
             var setTimeMethod = typeof(ParticleSystem).GetProperty(nameof(ParticleSystem.time), AccessTools.all)?.GetSetMethod();
             var playMethod = typeof(ParticleSystem).GetMethod(nameof(ParticleSystem.Play), 0, []);
 
             var changeMethod = typeof(StormyWeatherPatch).GetMethod(nameof(ChangeParticleShape), AccessTools.all);
-            
+
             // = shape.meshRenderer = setStaticToObject.GetComponentInChildren<UnityEngine.MeshRenderer>();
             // + StormyWeatherPatch.ChangeParticleShape(this, warningObject);
             // = staticElectricityParticle.time = particleTime;
@@ -329,7 +339,7 @@ internal static class ItemPatches
                     ILMatcher.Ldarg(),
                     ILMatcher.Ldfld(staticElectricityParticleField),
                     ILMatcher.Callvirt(playMethod));
-            
+
             if (!injector.IsValid)
             {
                 // print error
@@ -342,13 +352,13 @@ internal static class ItemPatches
                 new CodeInstruction(OpCodes.Ldarg_0),
                 new CodeInstruction(OpCodes.Ldarg_1),
                 new CodeInstruction(OpCodes.Call, changeMethod));
-            
+
             MattyFixes.Log.LogDebug("StormyWeather.SetStaticElectricityWarning patched!");
-            
+
             return injector.ReleaseInstructions();
         }
-        
-        
+
+
         private static void ChangeParticleShape(StormyWeather __instance, NetworkObject warningObject)
         {
             try
@@ -376,9 +386,9 @@ internal static class ItemPatches
 
                     var bounds = vertexes.GetBounds();
 
-                    if (!bounds.HasValue) 
+                    if (!bounds.HasValue)
                         return;
-                    
+
                     var (_, radius) = vertexes.GetFarthestPoint(bounds.Value.center);
 
                     shapeModule.radius = radius;
@@ -390,24 +400,24 @@ internal static class ItemPatches
                     var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
                     if (!MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value ||
                         !MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value ||
-                        BrokenMeshItems.Contains(grabbable.itemProperties)) 
+                        BrokenMeshItems.Contains(grabbable.itemProperties))
                         return;
-                    
+
                     try
                     {
                         var rendererGo = shapeModule.meshRenderer.gameObject;
                         if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
                             return;
-                                    
+
                         var readableMesh = GetReadableMesh(meshFilter.sharedMesh, out var wasReadable);
                         if (wasReadable)
                             return;
-                        
+
                         shapeModule.shapeType     = ParticleSystemShapeType.Mesh;
                         shapeModule.mesh          = readableMesh;
                         shapeModule.meshRenderer  = null;
                         shapeModule.position      = warningObject.transform.InverseTransformPoint(rendererGo.transform.position);
-                        shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation) 
+                        shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation)
                                                      * rendererGo.transform.rotation).eulerAngles;
                         var meshWorldScale = rendererGo.transform.lossyScale;
                         var psWorldScale = particleSystem.transform.lossyScale;
@@ -442,7 +452,7 @@ internal static class ItemPatches
 
             var shapeModule = __instance.staticElectricityParticle.shape;
             shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
-            
+
             if (!OriginalOffsets.HasValue)
                 return;
 
@@ -450,6 +460,81 @@ internal static class ItemPatches
             shapeModule.rotation = OriginalOffsets.Value.rotation;
             shapeModule.scale    = OriginalOffsets.Value.scale;
             OriginalOffsets      = null;
+        }
+    }
+
+    [HarmonyPatch]
+    internal class RandomFlyParticlePatches
+    {
+        [HarmonyTranspiler]
+        [HarmonyPatch(typeof(RandomFlyParticle), nameof(RandomFlyParticle.InitializeAfterPositioning))]
+        private static IEnumerable<CodeInstruction> InitializeAfterPositioning(
+            IEnumerable<CodeInstruction> instructions, ILGenerator ilGenerator)
+        {
+            var codes = instructions.ToList();
+
+            var setMeshRenderer = typeof(ParticleSystem.ShapeModule).GetProperty(nameof(ParticleSystem.ShapeModule.meshRenderer), AccessTools.all)?.GetSetMethod();
+            var changeShapeMethod =
+                typeof(RandomFlyParticlePatches).GetMethod(nameof(ChangeParticleShape), AccessTools.all);
+
+            // = {
+            // =     gameObject = UnityEngine.Object.Instantiate<GameObject>(this.badFlyPrefab, this.transform.position, Quaternion.identity, this.transform);
+            // -     gameObject.GetComponentsInChildren<ParticleSystem>()[1].shape.meshRenderer = this.gameObject.GetComponent<MeshRenderer>();
+            // +     RandomFlyParticlePatches.ChangeParticleShape(gameObject.GetComponentsInChildren<ParticleSystem>()[1].shape, this.gameObject.GetComponent<MeshRenderer>());
+            // = }
+            var injector = new ILInjector(codes, ilGenerator)
+                .Find(ILMatcher.Call(setMeshRenderer));
+
+            if (!injector.IsValid)
+            {
+                // print error
+                MattyFixes.Log.LogWarning("RandomFlyParticle.InitializeAfterPositioning patch failed!!");
+                MattyFixes.Log.LogDebug(string.Join("\n", injector.ReleaseInstructions()));
+                return codes;
+            }
+
+            injector
+                .ReplaceLastMatch(
+                    new CodeInstruction(OpCodes.Call, changeShapeMethod)
+                );
+
+            MattyFixes.Log.LogDebug("RandomFlyParticle.InitializeAfterPositioning patched!");
+
+            return injector.ReleaseInstructions();
+        }
+
+        private static void ChangeParticleShape(ref ParticleSystem.ShapeModule shapeModule, MeshRenderer meshRenderer)
+        {
+            var particleSystem = shapeModule.m_ParticleSystem;
+
+            if (!MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value || !MattyFixes.PluginConfig.ReadableMeshes.FixFlies.Value)
+            {
+                shapeModule.meshRenderer = meshRenderer;
+                return;
+            }
+
+            var rendererGo = shapeModule.meshRenderer.gameObject;
+            if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
+                return;
+
+            var readableMesh = GetReadableMesh(meshFilter.sharedMesh, out var wasReadable);
+            if (wasReadable)
+                return;
+
+            shapeModule.shapeType     = ParticleSystemShapeType.Mesh;
+            shapeModule.mesh          = readableMesh;
+            shapeModule.meshRenderer  = null;
+            shapeModule.position      = meshRenderer.transform.InverseTransformPoint(rendererGo.transform.position);
+            shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation)
+                                         * rendererGo.transform.rotation).eulerAngles;
+            var meshWorldScale = rendererGo.transform.lossyScale;
+            var psWorldScale   = particleSystem.transform.lossyScale;
+
+            shapeModule.scale = new Vector3(
+                meshWorldScale.x / psWorldScale.x,
+                meshWorldScale.y / psWorldScale.y,
+                meshWorldScale.z / psWorldScale.z);
+
         }
     }
 

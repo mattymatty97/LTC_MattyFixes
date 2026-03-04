@@ -24,6 +24,8 @@ internal partial class MattyFixes
                 , "convert all meshes to readable at runtime");
             ReadableMeshes.FixLightning = config.Bind("ReadableMeshes", "fix_lightning", true
                 , "show lightning particles as dev intended! ( will have no effect if AlternateLightningParticles is active )");
+            ReadableMeshes.FixFlies = config.Bind("ReadableMeshes", "fix_flies", true
+                , "show crawling bugs particles as dev intended! ( affects Ear, Hand and Thigh )");
            //BadgeFixes
             BadgeFixes.Enabled = config.Bind("BadgeFixes", "enabled", true
                 , "show correct level tag");
@@ -90,6 +92,7 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddButton("Cleanup", "Clear old entries", "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)", "Clean&Save", RemoveOrphans);
                 LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                 LethalConfigProxy.AddConfig(ReadableMeshes.FixLightning);
+                LethalConfigProxy.AddConfig(ReadableMeshes.FixFlies);
                 LethalConfigProxy.AddConfig(BadgeFixes.Enabled, true);
                 LethalConfigProxy.AddConfig(CupBoard.Enabled);
                 LethalConfigProxy.AddConfig(CupBoard.Tolerance);
@@ -128,6 +131,7 @@ internal partial class MattyFixes
         {
             internal static ConfigEntry<bool> Enabled;
             internal static ConfigEntry<bool> FixLightning;
+            internal static ConfigEntry<bool> FixFlies;
         }
 
         internal static class BadgeFixes

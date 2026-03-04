@@ -24,14 +24,14 @@ internal class GrabbableStartPatch
             return;
 
         var itemType = __instance.itemProperties;
-        
+
         if (((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
             return;
-        
+
         var key = itemType.GetPath();
 
         MattyFixes.Log.LogDebug($"{key}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
-        
+
         var shouldUpdatePosition = ShouldSpawnOnGround(__instance) || __instance.transform.parent == CupBoardFix.Closet.gameObject.transform;
 
         __instance.StartCoroutine(ProcessGrabbable(__instance, shouldUpdatePosition));
@@ -43,7 +43,7 @@ internal class GrabbableStartPatch
     {
         var itemType = grabbable.itemProperties;
         var key = itemType.GetPath();
-        
+
         var oldOffset = itemType.verticalOffset;
         var animators = grabbable.GetComponentsInChildren<Animator>();
 
@@ -52,10 +52,10 @@ internal class GrabbableStartPatch
             a => !a || Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
 
         //only run the code on the first coroutine that completes
-        if (((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
+        if (!((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
         {
             ((IInjectedItem)itemType).MattyFixes_HasComputedOffset = true;
-            
+
             MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
 
             itemType.verticalOffset = ComputeVerticalOffset(grabbable);
@@ -85,10 +85,10 @@ internal class GrabbableStartPatch
         var itemType = grabbable.itemProperties;
 
         var key = itemType.GetPath();
-        
+
         try
         {
-            
+
             if (MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(key,
                     out var offset))
                 return offset;
@@ -159,9 +159,9 @@ internal class GrabbableStartPatch
             new CodeInstruction(OpCodes.Call, replacementMethod),
             branch
         );
-        
+
         MattyFixes.Log.LogDebug("GrabbableObject.Start patched!");
-        
+
         return injector.ReleaseInstructions();
     }
 
