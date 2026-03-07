@@ -543,28 +543,24 @@ internal static class ItemPatches
                 return;
             }
 
-            var rendererGo = shapeModule.meshRenderer.gameObject;
+            particleSystem.transform.localPosition = -particleSystem.transform.parent.localPosition;
+            particleSystem.transform.localRotation = Quaternion.Inverse(particleSystem.transform.parent.localRotation);
+            var parentScale = particleSystem.transform.parent.localScale;
+            particleSystem.transform.localScale    = new Vector3(1f / parentScale.x, 1f / parentScale.y, 1f / parentScale.z);;
+
+            var rendererGo = meshRenderer.gameObject;
             if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
                 return;
 
-            var readableMesh = GetReadableMesh(meshFilter.sharedMesh, out var wasReadable);
-            if (wasReadable)
-                return;
+            var readableMesh = GetReadableMesh(meshFilter.sharedMesh);
 
             shapeModule.shapeType     = ParticleSystemShapeType.Mesh;
+            shapeModule.meshShapeType = ParticleSystemMeshShapeType.Triangle;
             shapeModule.mesh          = readableMesh;
             shapeModule.meshRenderer  = null;
-            shapeModule.position      = meshRenderer.transform.InverseTransformPoint(rendererGo.transform.position);
-            shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation)
-                                         * rendererGo.transform.rotation).eulerAngles;
-            var meshWorldScale = rendererGo.transform.lossyScale;
-            var psWorldScale   = particleSystem.transform.lossyScale;
-
-            shapeModule.scale = new Vector3(
-                meshWorldScale.x / psWorldScale.x,
-                meshWorldScale.y / psWorldScale.y,
-                meshWorldScale.z / psWorldScale.z);
-
+            shapeModule.position      = Vector3.zero;
+            shapeModule.rotation      = Vector3.zero;
+            shapeModule.scale         = Vector3.one;
         }
     }
 
