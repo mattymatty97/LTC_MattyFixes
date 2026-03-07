@@ -60,7 +60,7 @@ internal partial class MattyFixes
             OutOfBounds.SpawnInFurniture = config.Bind("OutOfBounds", "spawn_in_furniture", true
                 , "Fix items generating inside furniture ( eg: lamps inside the kitchen counter )");
             //AlternateLightningParticles
-            LightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
+            AlternateLightingParticle.Enabled = config.Bind("AlternateLightningParticles", "enabled", true
                 , "use sphere shape for lightning particles ");
             //VerboseDebug
             Debug.VerboseMeshes = config.Bind("Debug", "Mesh Verbosity Level", LogLevel.None,
@@ -107,7 +107,7 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(OutOfBounds.Enabled, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.VerticalOffset);
                 LethalConfigProxy.AddConfig(OutOfBounds.SpawnInFurniture, true);
-                LethalConfigProxy.AddConfig(LightingParticle.Enabled, true);
+                LethalConfigProxy.AddConfig(AlternateLightingParticle.Enabled, true);
                 LethalConfigProxy.AddConfig(Debug.VerboseMeshes);
                 LethalConfigProxy.AddConfig(Debug.VerboseCupboard);
                 LethalConfigProxy.AddConfig(Debug.VerboseItems);
@@ -170,7 +170,7 @@ internal partial class MattyFixes
             internal static ConfigEntry<bool> SpawnInFurniture;
         }
 
-        internal static class LightingParticle
+        internal static class AlternateLightingParticle
         {
             internal static ConfigEntry<bool> Enabled;
         }

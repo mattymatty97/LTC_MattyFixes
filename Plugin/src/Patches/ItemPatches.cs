@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -13,6 +12,7 @@ using MattyFixes.Utils;
 using MattyFixes.Utils.IL;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Animations;
 using UnityEngine.Rendering;
 using VertexLibrary;
 
@@ -151,7 +151,7 @@ internal static class ItemPatches
             if (itemType.isConductiveMetal &&
                 MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value &&
                 MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value &&
-                !MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
+                !MattyFixes.PluginConfig.AlternateLightingParticle.Enabled.Value)
                 try
                 {
                     if (itemType.spawnPrefab != null)
@@ -227,14 +227,10 @@ internal static class ItemPatches
     }
 
 
-    private static Mesh GetReadableMesh(Mesh original, out bool wasReadable)
+    private static Mesh GetReadableMesh(Mesh original)
     {
-        wasReadable = true;
-
         if (original.isReadable)
             return original;
-
-        wasReadable = false;
 
         if (ReadableMeshMap.TryGetValue(original, out var readableMesh))
             return readableMesh;
@@ -254,7 +250,7 @@ internal static class ItemPatches
         {
             var mesh = meshFilter.sharedMesh;
 
-            GetReadableMesh(mesh, out _);
+            GetReadableMesh(mesh);
         }
     }
 
@@ -310,7 +306,28 @@ internal static class ItemPatches
     [HarmonyPatch]
     internal class StormyWeatherPatch
     {
-        private static (Vector3 position, Vector3 rotation, Vector3 scale)? OriginalOffsets = null;
+        private static (ParentConstraint parent, ScaleConstraint scale) _staticElectricityConstraints;
+        private static (Vector3 position, Vector3 rotation, Vector3 scale) _originalOffsets;
+
+        [HarmonyPrefix]
+        [HarmonyPatch(typeof(StormyWeather), "Start")]
+        private static void Setup(StormyWeather __instance)
+        {
+            if ((!MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value || !MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value) &&
+                !MattyFixes.PluginConfig.AlternateLightingParticle.Enabled.Value)
+                return;
+
+            var particleSystem = __instance.staticElectricityParticle;
+            var shapeModule = particleSystem.shape;
+            _originalOffsets = (shapeModule.position, shapeModule.rotation, shapeModule.scale);
+
+            var parentConstraint = particleSystem.gameObject.AddComponent<ParentConstraint>();
+            var scaleConstraint = parentConstraint.gameObject.AddComponent<ScaleConstraint>();
+            parentConstraint.weight = 1.0f;
+            scaleConstraint.weight = 1.0f;
+
+            _staticElectricityConstraints = (parentConstraint, scaleConstraint);
+        }
 
         [HarmonyTranspiler]
         [HarmonyPatch(typeof(StormyWeather), nameof(StormyWeather.SetStaticElectricityWarning))]
@@ -363,14 +380,25 @@ internal static class ItemPatches
         {
             try
             {
-                var matrix = Matrix4x4.TRS(Vector3.zero, warningObject.transform.rotation,
-                    warningObject.transform.lossyScale);
+                var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
 
                 var particleSystem = __instance.staticElectricityParticle;
                 var shapeModule = particleSystem.shape;
-                OriginalOffsets = (shapeModule.position, shapeModule.rotation, shapeModule.scale);
-                if (MattyFixes.PluginConfig.LightingParticle.Enabled.Value)
+
+                if (MattyFixes.PluginConfig.AlternateLightingParticle.Enabled.Value)
                 {
+                    var constraintSource = new ConstraintSource()
+                    {
+                        sourceTransform = warningObject.transform,
+                        weight = 1.0f
+                    };
+
+                    _staticElectricityConstraints.parent.AddSource(constraintSource);
+                    _staticElectricityConstraints.scale.AddSource(constraintSource);
+
+                    _staticElectricityConstraints.parent.constraintActive = true;
+                    _staticElectricityConstraints.scale.constraintActive = true;
+
                     shapeModule.shapeType = ParticleSystemShapeType.Sphere;
                     shapeModule.radiusThickness = 0.01f;
 
@@ -379,7 +407,6 @@ internal static class ItemPatches
                         VertexCache = VertexesExtensions.GlobalPartialCache,
                         CullingMask = MattyFixes.VisibleLayerMask,
                         LogHandler = MattyFixes.VerboseMeshLog,
-                        OverrideMatrix = matrix
                     };
 
                     var vertexes = warningObject.transform.GetVertexes(executionOptions);
@@ -393,11 +420,10 @@ internal static class ItemPatches
 
                     shapeModule.radius = radius;
 
-                    shapeModule.position = bounds.Value.center + Vector3.up * 0.5f;
+                    shapeModule.position = bounds.Value.center;
                 }
                 else
                 {
-                    var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
                     if (!MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value ||
                         !MattyFixes.PluginConfig.ReadableMeshes.FixLightning.Value ||
                         BrokenMeshItems.Contains(grabbable.itemProperties))
@@ -409,23 +435,26 @@ internal static class ItemPatches
                         if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
                             return;
 
-                        var readableMesh = GetReadableMesh(meshFilter.sharedMesh, out var wasReadable);
-                        if (wasReadable)
-                            return;
+                        var constraintSource = new ConstraintSource()
+                        {
+                            sourceTransform = rendererGo.transform,
+                            weight = 1.0f
+                        };
+
+                        _staticElectricityConstraints.parent.AddSource(constraintSource);
+                        _staticElectricityConstraints.scale.AddSource(constraintSource);
+
+                        _staticElectricityConstraints.parent.constraintActive = true;
+                        _staticElectricityConstraints.scale.constraintActive = true;
+
+                        var readableMesh = GetReadableMesh(meshFilter.sharedMesh);
 
                         shapeModule.shapeType     = ParticleSystemShapeType.Mesh;
                         shapeModule.mesh          = readableMesh;
                         shapeModule.meshRenderer  = null;
-                        shapeModule.position      = warningObject.transform.InverseTransformPoint(rendererGo.transform.position);
-                        shapeModule.rotation      = (Quaternion.Inverse(particleSystem.transform.rotation)
-                                                     * rendererGo.transform.rotation).eulerAngles;
-                        var meshWorldScale = rendererGo.transform.lossyScale;
-                        var psWorldScale = particleSystem.transform.lossyScale;
-
-                        shapeModule.scale = new Vector3(
-                            meshWorldScale.x / psWorldScale.x,
-                            meshWorldScale.y / psWorldScale.y,
-                            meshWorldScale.z / psWorldScale.z);
+                        shapeModule.position      = Vector3.zero;
+                        shapeModule.rotation      = Vector3.zero;
+                        shapeModule.scale         = Vector3.one;
                     }
                     catch (Exception ex)
                     {
@@ -450,16 +479,17 @@ internal static class ItemPatches
             if (__instance.setStaticToObject == null || !useTargetedObject)
                 return;
 
+            _staticElectricityConstraints.parent.constraintActive = false;
+            _staticElectricityConstraints.scale.constraintActive = false;
+            _staticElectricityConstraints.parent.SetSources([]);
+            _staticElectricityConstraints.scale.SetSources([]);
+
             var shapeModule = __instance.staticElectricityParticle.shape;
             shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
 
-            if (!OriginalOffsets.HasValue)
-                return;
-
-            shapeModule.position = OriginalOffsets.Value.position;
-            shapeModule.rotation = OriginalOffsets.Value.rotation;
-            shapeModule.scale    = OriginalOffsets.Value.scale;
-            OriginalOffsets      = null;
+            shapeModule.position = _originalOffsets.position;
+            shapeModule.rotation = _originalOffsets.rotation;
+            shapeModule.scale    = _originalOffsets.scale;
         }
     }
 
