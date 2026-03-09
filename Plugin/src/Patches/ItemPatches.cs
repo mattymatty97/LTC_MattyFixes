@@ -545,8 +545,6 @@ internal static class ItemPatches
 
             particleSystem.transform.localPosition = -particleSystem.transform.parent.localPosition;
             particleSystem.transform.localRotation = Quaternion.Inverse(particleSystem.transform.parent.localRotation);
-            var parentScale = particleSystem.transform.parent.localScale;
-            particleSystem.transform.localScale    = new Vector3(1f / parentScale.x, 1f / parentScale.y, 1f / parentScale.z);;
 
             var rendererGo = meshRenderer.gameObject;
             if (!rendererGo.TryGetComponent<MeshFilter>(out var meshFilter))
@@ -560,7 +558,7 @@ internal static class ItemPatches
             shapeModule.meshRenderer  = null;
             shapeModule.position      = Vector3.zero;
             shapeModule.rotation      = Vector3.zero;
-            shapeModule.scale         = Vector3.one;
+            shapeModule.scale         = meshRenderer.transform.lossyScale;
         }
     }
 
