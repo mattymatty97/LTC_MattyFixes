@@ -1,3 +1,6 @@
+## v1.1.38
+- Correctly scale WorseFlyParticle
+
 ## v1.1.37
 - Fix mistakes in v1.1.36 🙃
 
@@ -16,7 +19,7 @@
 
 ## v1.1.32
 - use a better system to track modded items
-- fix instantiation error Diffoz pointed out
+- fix an instantiation error Diffoz pointed out
 
 ## v1.1.31
 - use a better cullingMask for computing vertexes
