@@ -1,3 +1,6 @@
+## v1.1.39
+- Improve scaling of both particle fixes
+
 ## v1.1.38
 - Correctly scale WorseFlyParticle
 
