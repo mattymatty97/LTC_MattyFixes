@@ -23,14 +23,14 @@ internal partial class MattyFixes
             ReadableMeshes.Enabled = config.Bind("ReadableMeshes", "enabled", true,
                 "convert all meshes to readable at runtime");
             //Particles
-            Particles.Lightning = config.Bind("Particles", "fix_lightning", Particles.LightningType.Fixed,
+            Particles.Lightning = config.Bind("Particles", "lightning", Particles.LightningType.Shape,
                 """
                 change rendering of the Lightning particles:
-                - Vanilla: no changes!
-                - Fixed: show lightning particles as dev intended! 
-                - Alternate: particles will show in a sphere around the item
+                - Vanilla   : no changes!
+                - Shape     : show lightning particles as dev intended! (in the shape of the object) 
+                - Alternate : particles will show in a sphere around the item
                 """);
-            Particles.FixFlies = config.Bind("Particles", "fix_flies", true,
+            Particles.Flies = config.Bind("Particles", "flies", true,
                 "show crawling bugs particles as dev intended! ( affects Ear, Hand and Thigh )");
            //BadgeFixes
             BadgeFixes.Enabled = config.Bind("BadgeFixes", "enabled", true,
@@ -95,7 +95,7 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddButton("Cleanup", "Clear old entries", "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)", "Clean&Save", RemoveOrphans);
                 LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                 LethalConfigProxy.AddConfig(Particles.Lightning, true);
-                LethalConfigProxy.AddConfig(Particles.FixFlies, true);
+                LethalConfigProxy.AddConfig(Particles.Flies, true);
                 LethalConfigProxy.AddConfig(BadgeFixes.Enabled, true);
                 LethalConfigProxy.AddConfig(CupBoard.Enabled);
                 LethalConfigProxy.AddConfig(CupBoard.Tolerance);
@@ -137,12 +137,12 @@ internal partial class MattyFixes
         internal static class Particles
         {
             internal static ConfigEntry<LightningType> Lightning;
-            internal static ConfigEntry<bool> FixFlies;
+            internal static ConfigEntry<bool> Flies;
 
             internal enum LightningType
             {
                 Vanilla,
-                Fixed,
+                Shape,
                 Alternate
             }
         }

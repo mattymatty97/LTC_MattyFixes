@@ -1,3 +1,6 @@
+## v1.1.40
+- HotFix to make it run on v80. **Testing to be done**
+
 ## v1.1.39
 - Improve scaling of both particle fixes
 
