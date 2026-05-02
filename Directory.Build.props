@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <!-- Common Versioning and Module Information -->
-        <Version>1.1.40</Version>
+        <Version>1.1.41</Version>
         <ModName>Matty's Fixes</ModName>
         <ModGUID>mattymatty.MattyFixes</ModGUID>
         <ModNameSpace>MattyFixes</ModNameSpace>

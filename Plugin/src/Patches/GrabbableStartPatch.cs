@@ -48,8 +48,9 @@ internal class GrabbableStartPatch
         var animators = grabbable.GetComponentsInChildren<Animator>();
 
         //wait till animators stop
-        yield return new WaitUntil(() => animators.All(
-            a => !a || Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
+        yield return new WaitUntil(() => animators.All( a =>
+            !a || !a.isActiveAndEnabled ||
+            Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
 
         //only run the code on the first coroutine that completes
         if (!((IInjectedItem)itemType).MattyFixes_HasComputedOffset)

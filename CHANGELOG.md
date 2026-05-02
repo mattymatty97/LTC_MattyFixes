@@ -1,3 +1,6 @@
+## v1.1.41
+- Fix for disabled animators on Animated Grabbable Objects
+
 ## v1.1.40
 - HotFix to make it run on v80. **Testing to be done**
 

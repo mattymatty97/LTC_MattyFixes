@@ -16,17 +16,27 @@
 
         <PackageReference Include="Evaisa-LethalLib" Version="*" Private="False"/>
         <PackageReference Include="IAmBatby-LethalLevelLoader" Version="*" Private="False"/>
-        <PackageReference Include="TeamXiaolan-DawnLib" Version="0.8.16" Private="False"/>
+        <PackageReference Include="TeamXiaolan-DawnLib" Version="0.9.12" Private="False"/>
 
         <PackageReference Include="BepInEx.Core" Version="5.4.21" Private="False"/>
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
 
         <PackageReference
-            Include="LethalCompany.GameLibs.Steam"
-            Version="73.0.0-*"
-            Private="False"
-            Publicize="True"
+                Include="LethalCompany.GameLibs.Steam"
+                Version="81.0.5-*"
+                Private="False"
+                Publicize="True"
+                Condition="'$(GameLibsPath)'==''"
         />
+    </ItemGroup>
+
+    <!-- Fallback: reference DLLs directly from the game folder -->
+    <ItemGroup Condition="'$(GameLibsPath)'!=''">
+        <Reference Include="$(GameLibsPath)\Assembly-CSharp.dll" Private="False" Publicize="True"/>
+        <Reference Include="$(GameLibsPath)\Unity*.dll" Private="False" Publicize="True"/>
+    </ItemGroup>
+    <ItemGroup>
+      <ReferencePathWithRefAssemblies Update="D:\Programming\RiderProjects\Lethal_Company\MattyFixes\Plugin\obj\Release\publicized\UnityEngine.dll" />
     </ItemGroup>
 
 	<Target Name="CopyForUpload" AfterTargets="Build">
