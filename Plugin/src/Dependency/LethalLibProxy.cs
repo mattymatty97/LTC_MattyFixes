@@ -33,9 +33,9 @@ public static class LethalLibProxy
         {
             if (((IInjectedItem)item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
                 return;
-            
+
             ((IInjectedItem)item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
-            ((IInjectedItem)item).MattyFixes_Path     = item.ComputePath("LethalLib", modName);
+            ((IInjectedItem)item).MattyFixes_Path     = ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLib, modName, item.itemName ?? item.name);
         }
     }
 

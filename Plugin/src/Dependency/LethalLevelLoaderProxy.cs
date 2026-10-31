@@ -18,28 +18,29 @@ public static class LethalLevelLoaderProxy
             return _enabled.Value;
         }
     }
-    
+
     // ReSharper disable function SuspiciousTypeConversion.Global
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static void PopulateModdedItems()
     {
-        
+
         MattyFixes.Log.LogWarning("LethalLevelLoader found, reading PatchedContent.ExtendedItems");
         foreach (var extendedItem in PatchedContent.ExtendedItems)
         {
             if (((IInjectedItem)extendedItem.Item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
                 continue;
 
-            if (extendedItem.ContentType == ContentType.Vanilla)
+            // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+            switch (extendedItem.ContentType)
             {
-                ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
-                ((IInjectedItem)extendedItem.Item).MattyFixes_Path = extendedItem.Item.ComputePath("Vanilla");
-            }
-            else
-            {
-                ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
-                ((IInjectedItem)extendedItem.Item).MattyFixes_Path =
-                    extendedItem.Item.ComputePath("LethalLevelLoader", extendedItem.ModName);
+                case ContentType.Vanilla:
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, extendedItem.Item.itemName ?? extendedItem.Item.name);
+                    break;
+                case ContentType.Custom:
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLevelLoader, extendedItem.ModName, extendedItem.Item.itemName ?? extendedItem.Item.name);
+                    break;
             }
         }
     }

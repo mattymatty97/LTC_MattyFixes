@@ -16,10 +16,10 @@
 
         <PackageReference Include="Evaisa-LethalLib" Version="*" Private="False"/>
         <PackageReference Include="IAmBatby-LethalLevelLoader" Version="*" Private="False"/>
-        <PackageReference Include="TeamXiaolan-DawnLib" Version="0.9.12" Private="False"/>
+        <PackageReference Include="TeamXiaolan-DawnLib" Version="*" Private="False"/>
 
         <PackageReference Include="BepInEx.Core" Version="5.4.21" Private="False"/>
-        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
 
         <PackageReference
                 Include="LethalCompany.GameLibs.Steam"

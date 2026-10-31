@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using HarmonyLib;
-using MattyFixes.Interfaces;
+using MattyFixes.Config;
 using MattyFixes.Utils;
 using MattyFixes.Utils.IL;
 using UnityEngine;
@@ -23,28 +23,26 @@ internal class GrabbableStartPatch
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
             return;
 
-        var itemType = __instance.itemProperties;
+        var variant = __instance.GetVariant();
+        var key = variant.Identifier;
 
-        if (((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
+        if (MattyFixes.PluginConfig.ItemClipping.ItemOffsets.ContainsKey(key))
             return;
 
-        var key = itemType.GetPath();
-
-        MattyFixes.Log.LogDebug($"{key}({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
+        MattyFixes.Log.LogDebug($"{key} ({__instance.NetworkObjectId}) needs to compute vertical offset - scheduled");
 
         var shouldUpdatePosition = ShouldSpawnOnGround(__instance) || __instance.transform.parent == CupBoardFix.Closet.gameObject.transform;
 
         __instance.StartCoroutine(ProcessGrabbable(__instance, shouldUpdatePosition));
     }
 
-    // ReSharper disable function SuspiciousTypeConversion.Global
     // ReSharper disable function Unity.PerformanceCriticalCodeInvocation
     private static IEnumerator ProcessGrabbable(GrabbableObject grabbable, bool updatePosition = true)
     {
-        var itemType = grabbable.itemProperties;
-        var key = itemType.GetPath();
+        var variant = grabbable.GetVariant();
+        var key = variant.Identifier;
 
-        var oldOffset = itemType.verticalOffset;
+        var oldOffset = variant.VerticalOffset;
         var animators = grabbable.GetComponentsInChildren<Animator>();
 
         //wait till animators stop
@@ -53,17 +51,17 @@ internal class GrabbableStartPatch
             Mathf.Approximately(a.speed, 0f) || a.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1));
 
         //only run the code on the first coroutine that completes
-        if (!((IInjectedItem)itemType).MattyFixes_HasComputedOffset)
+        if (!MattyFixes.PluginConfig.ItemClipping.ItemOffsets.ContainsKey(key))
         {
-            ((IInjectedItem)itemType).MattyFixes_HasComputedOffset = true;
+            MattyFixes.Log.LogDebug($"{key} ({grabbable.NetworkObjectId}) is computing vertical offset");
 
-            MattyFixes.Log.LogDebug($"{key}({grabbable.NetworkObjectId}) is computing vertical offset");
+            var offset = ComputeVerticalOffset(grabbable);
 
-            itemType.verticalOffset = ComputeVerticalOffset(grabbable);
+            variant.VerticalOffset = offset;
 
-            var isOriginal = Mathf.Approximately(oldOffset, itemType.verticalOffset);
+            var isOriginal = Mathf.Approximately(oldOffset, offset);
 
-            MattyFixes.Log.LogDebug($"{key} {(isOriginal ? "original" : "new")} offset is {itemType.verticalOffset}");
+            MattyFixes.Log.LogDebug($"{key} {(isOriginal ? "original" : "new")} offset is {offset}");
 
             if (isOriginal)
                 yield break;
@@ -74,7 +72,7 @@ internal class GrabbableStartPatch
 
         var oldPosition = grabbable.targetFloorPosition;
         grabbable.targetFloorPosition -= Vector3.up * oldOffset;
-        grabbable.targetFloorPosition += Vector3.up * itemType.verticalOffset;
+        grabbable.targetFloorPosition += Vector3.up * variant.VerticalOffset;
 
         MattyFixes.Log.LogDebug(
             $"{key}({grabbable.NetworkObjectId}) position updated [{oldPosition}] -> [{grabbable.targetFloorPosition}]");
@@ -83,16 +81,62 @@ internal class GrabbableStartPatch
 
     private static float ComputeVerticalOffset(GrabbableObject grabbable)
     {
-        var itemType = grabbable.itemProperties;
-
-        var key = itemType.GetPath();
+        var variant = grabbable.GetVariant();
+        var itemPath = variant.Identifier;
 
         try
         {
+            if (!MattyFixes.PluginConfig.ItemClipping.ItemConfigs.TryGetValue(itemPath, out var configHolder))
+            {
+                MattyFixes.PluginConfig.ItemClipping.ItemConfigs[itemPath] = configHolder = new ConfigHolder();
+            }
 
-            if (MattyFixes.PluginConfig.ItemClipping.ManualOffsetMap.TryGetValue(key,
-                    out var offset))
-                return offset;
+            if (!MattyFixes.PluginConfig.ItemClipping.ItemOffsets.TryGetValue(itemPath, out var offsetConfig))
+            {
+                var lastSeparator = itemPath.LastIndexOf('/');
+
+                var itemSection = lastSeparator > 0 ? itemPath[..lastSeparator] : "Unknown";
+                var itemName = ItemCategory.SanitizeForConfig(itemPath[(lastSeparator + 1)..]);
+
+                itemSection = itemSection.Replace('/', '|');
+                itemSection = ItemCategory.SanitizeForConfig(itemSection);
+
+                var ogOffset = variant.VerticalOffset;
+
+                var defValue = "auto";
+                if (MattyFixes.ConfigOverrides.TryGetValue(itemPath, out var overrideValue) && overrideValue.VerticalOffset != null)
+                {
+                    defValue = "override";
+                }
+
+                configHolder.VerticalOffset = MattyFixes.Instance.OffsetConfig.Bind(
+                    itemSection,
+                    itemName,
+                    defValue,
+                    $"vertical offset for the item\nuse `auto` to let MattyFixes compute the offset\nuse `default` for the default offset\nuse `override` for the offset specified in the override files\ndefault = '{ogOffset}'");
+
+                offsetConfig = new ItemOffsetConfig(
+                    ogOffset,
+                    defValue == "override" ? overrideValue!.VerticalOffset : null
+                );
+
+                MattyFixes.PluginConfig.ItemClipping.ItemOffsets[itemPath] = offsetConfig;
+            }
+
+            switch (configHolder.VerticalOffset.Value)
+            {
+                case "override" when offsetConfig.OverrideValue.HasValue:
+                    return offsetConfig.OverrideValue.Value;
+                case "default":
+                    return offsetConfig.Original;
+            }
+
+            if (offsetConfig.ComputedValue.HasValue)
+            {
+                return offsetConfig.ComputedValue.Value;
+            }
+
+            var restingRotation = variant.RestingRotation;
 
             var executionOptions = new ExecutionOptions()
             {
@@ -100,11 +144,11 @@ internal class GrabbableStartPatch
                 CullingMask = MattyFixes.VisibleLayerMask,
                 LogHandler = MattyFixes.VerboseMeshLog,
                 OverrideMatrix = Matrix4x4.TRS(Vector3.zero,
-                    Quaternion.Euler(
-                        grabbable.itemProperties.restingRotation.x, grabbable.itemProperties.floorYOffset + 90f,
-                        grabbable.itemProperties.restingRotation.z)
-                    , grabbable.transform.lossyScale)
+                    Quaternion.Euler(restingRotation.x, restingRotation.y + 90f, restingRotation.z)
+                    ,grabbable.transform.lossyScale)
             };
+
+            float offset;
 
             if (grabbable.transform.TryGetBounds(out var bounds, executionOptions))
             {
@@ -112,16 +156,17 @@ internal class GrabbableStartPatch
                 offset += MattyFixes.PluginConfig.ItemClipping.VerticalOffset.Value;
             }
             else
-                offset = itemType.verticalOffset;
+                offset = variant.VerticalOffset;
 
+            offsetConfig.ComputedValue = offset;
             return offset;
         }
         catch (Exception ex)
         {
-            MattyFixes.Log.LogError($"{key} Failed to compute vertical offset! {ex}");
+            MattyFixes.Log.LogError($"{itemPath} Failed to compute vertical offset! {ex}");
         }
 
-        return itemType.verticalOffset;
+        return variant.VerticalOffset;
     }
 
     [HarmonyTranspiler]

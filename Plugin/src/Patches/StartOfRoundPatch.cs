@@ -40,20 +40,5 @@ internal class StartOfRoundPatch
 
         if (DawnLibProxy.Enabled)
             DawnLibProxy.PopulateModdedItems();
-
-        if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
-            return;
-
-        foreach (var item in __instance.allItemsList.itemsList)
-        {
-            try
-            {
-                ItemPatches.TryUpdateItemRotation(item);
-            }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"{item.GetPath()} crashed badly ! {ex}");
-            }
-        }
     }
 }

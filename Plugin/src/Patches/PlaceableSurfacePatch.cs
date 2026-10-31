@@ -1,5 +1,6 @@
 ﻿using System;
 using HarmonyLib;
+using MattyFixes.Utils;
 using UnityEngine;
 
 namespace MattyFixes.Patches;
@@ -7,7 +8,7 @@ namespace MattyFixes.Patches;
 [HarmonyPatch]
 public static class PlaceableSurfacePatch
 {
-    
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PlaceableObjectsSurface), nameof(PlaceableObjectsSurface.itemPlacementPosition))]
     private static bool ItemPlacementPositionPatch(PlaceableObjectsSurface __instance, ref Vector3 __result,
@@ -22,7 +23,7 @@ public static class PlaceableSurfacePatch
                     1073744640, QueryTriggerInteraction.Ignore))
             {
                 var hitPoint = val.collider.ClosestPointOnBounds(val.point);
-                __result = hitPoint + Vector3.up * heldObject.itemProperties.verticalOffset;
+                __result = hitPoint + Vector3.up * heldObject.VerticalOffset;
                 return false;
             }
 

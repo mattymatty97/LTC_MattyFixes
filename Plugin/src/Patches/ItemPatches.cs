@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using BepInEx.Bootstrap;
 using HarmonyLib;
-using MattyFixes.Dependency;
 using MattyFixes.Interfaces;
 using MattyFixes.Utils;
 using MattyFixes.Utils.IL;
@@ -31,71 +29,6 @@ internal static class ItemPatches
 
     private static readonly HashSet<Item> BrokenMeshItems = [];
 
-    // ReSharper disable function SuspiciousTypeConversion.Global
-    internal static bool TryUpdateItemRotation(Item item)
-    {
-        if (((IInjectedItem)item).MattyFixes_IsRegistered)
-            return false;
-
-        ((IInjectedItem)item).MattyFixes_IsRegistered = true;
-
-        if (!MattyFixes.PluginConfig.ItemClipping.ItemRotations.TryGetValue(item, out var rotationConfig))
-        {
-            var itemPath = item.GetPath();
-
-            var lastSeparator = itemPath.LastIndexOf('/');
-
-            var itemSection = lastSeparator > 0 ? itemPath[..lastSeparator] : "Unknown";
-            var itemName = ItemCategory.SanitizeForConfig(itemPath[(lastSeparator + 1)..]);
-
-            itemSection = itemSection.Replace('/', '|');
-            itemSection = ItemCategory.SanitizeForConfig(itemSection);
-
-            var ogRotation = item.restingRotation;
-            ogRotation.y = item.floorYOffset;
-
-            var vanillaDefault =
-                $"{ogRotation.x.ToString(CultureInfo.InvariantCulture)},{ogRotation.y.ToString(CultureInfo.InvariantCulture)},{ogRotation.z.ToString(CultureInfo.InvariantCulture)}";
-
-            var defValue = "default";
-
-            if (PluginResources.ItemClippingFixRotations.TryGetValue(itemPath, out var value))
-            {
-                defValue = $"{value[0]},{value[1]},{value[2]}";
-            }
-
-            rotationConfig = new MattyFixes.ItemRotationConfig(
-                ogRotation,
-                MattyFixes.Instance.Config.Bind(
-                    itemSection,
-                    itemName,
-                    defValue,
-                    $"Comma separated Vector3 rotation\nvanilla default = '{vanillaDefault}'")
-            );
-
-            MattyFixes.PluginConfig.ItemClipping.ItemRotations[item] = rotationConfig;
-            rotationConfig.Config.SettingChanged += (_, _) => { TryUpdateItemRotation(item); };
-            if (LethalConfigProxy.Enabled)
-                LethalConfigProxy.AddConfig(rotationConfig.Config);
-        }
-
-        var parsedRotation = rotationConfig.Original;
-
-        var rotation = rotationConfig.Config.Value.Split(",");
-
-        if (rotation.Length == 3)
-            if (float.TryParse(rotation[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x))
-                if (float.TryParse(rotation[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y))
-                    if (float.TryParse(rotation[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z))
-                        parsedRotation = new Vector3(x, y, z);
-
-        item.restingRotation = parsedRotation;
-
-        item.floorYOffset = (int)Math.Round(parsedRotation.y);
-
-        return true;
-    }
-
     [HarmonyPostfix]
     [HarmonyPatch(typeof(Item), "Awake")]
     private static void OnNewItem(Item __instance)
@@ -106,27 +39,7 @@ internal static class ItemPatches
         if (!MenuManagerPatch.GameHasLoaded)
         {
             ((IInjectedItem)__instance).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
-            ((IInjectedItem)__instance).MattyFixes_Path = __instance.ComputePath("Vanilla");
-        }
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(StartOfRound), nameof(StartOfRound.Start))]
-    private static void RegisterItems(StartOfRound __instance, bool __runOriginal)
-    {
-        if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value || !__runOriginal)
-            return;
-
-        foreach (var item in __instance.allItemsList.itemsList)
-        {
-            try
-            {
-                TryUpdateItemRotation(item);
-            }
-            catch (Exception ex)
-            {
-                MattyFixes.Log.LogError($"{item.GetPath()} crashed badly ! {ex}");
-            }
+            ((IInjectedItem)__instance).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, __instance.itemName ?? __instance.name);
         }
     }
 
@@ -142,9 +55,7 @@ internal static class ItemPatches
 
             var itemType = grabbable.itemProperties;
 
-            ItemPatches.TryUpdateItemRotation(itemType);
-
-            if (!ItemPatches.ComputedItems.Add(itemType))
+            if (!ComputedItems.Add(itemType))
                 return;
 
             if (!itemType.isConductiveMetal || !MattyFixes.PluginConfig.ReadableMeshes.Enabled.Value)
@@ -154,14 +65,14 @@ internal static class ItemPatches
             {
                 if (itemType.spawnPrefab != null)
                 {
-                    ItemPatches.CacheReadableMeshes(itemType.spawnPrefab);
+                    CacheReadableMeshes(itemType.spawnPrefab);
                 }
             }
             catch (Exception ex)
             {
-                var key = itemType.GetPath();
+                var key = itemType.GetIdentifier();
                 MattyFixes.Log.LogError($"{key} Failed to mark prefab Mesh Readable! {ex}");
-                ItemPatches.BrokenMeshItems.Add(itemType);
+                BrokenMeshItems.Add(itemType);
                 MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
             }
         }
@@ -196,17 +107,16 @@ internal static class ItemPatches
                 if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                     return;
 
-                grabbable.floorYRot =
-                    (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - grabbable.itemProperties.floorYOffset);
+                var restingRotation = grabbable.RestingRotation;
+                var floorYOffset = grabbable.FloorYOffset;
 
-                grabbable.transform.rotation = Quaternion.Euler(
-                    grabbable.itemProperties.restingRotation.x,
-                    grabbable.transform.eulerAngles.y,
-                    grabbable.itemProperties.restingRotation.z);
+                grabbable.floorYRot = (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - floorYOffset);
+
+                grabbable.transform.rotation = Quaternion.Euler(restingRotation.x, grabbable.transform.eulerAngles.y, restingRotation.z);
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError($"Exception while setting rotation of {grabbable.itemProperties.GetPath()} :{ex}");
+                MattyFixes.Log.LogError($"Exception while setting rotation of {grabbable.itemProperties.GetIdentifier()} :{ex}");
             }
         }
     }
@@ -308,7 +218,7 @@ internal static class ItemPatches
         private static (Vector3 position, Vector3 rotation, Vector3 scale) _originalOffsets;
 
         [HarmonyPrefix]
-        [HarmonyPatch(typeof(StormyWeather), "Start")]
+        [HarmonyPatch(typeof(StormyWeather), nameof(IInjectedStormyWeather.Start))]
         private static void Setup(StormyWeather __instance)
         {
             if (MattyFixes.PluginConfig.Particles.Lightning.Value == MattyFixes.PluginConfig.Particles.LightningType.Vanilla)
@@ -383,9 +293,9 @@ internal static class ItemPatches
             {
                 var grabbable = warningObject.gameObject.GetComponent<GrabbableObject>();
 
-                var particleSystem = __instance.staticElectricityParticle;
-                var shapeModule = particleSystem.shape;
-                var mainModule  = particleSystem.main;
+                var particleSystem  = __instance.staticElectricityParticle;
+                var shapeModule     = particleSystem.shape;
+                var mainModule      = particleSystem.main;
 
                 switch (MattyFixes.PluginConfig.Particles.Lightning.Value)
                 {
@@ -467,7 +377,7 @@ internal static class ItemPatches
                         catch (Exception ex)
                         {
                             var item = grabbable.itemProperties;
-                            var key = item.GetPath();
+                            var key = item.GetIdentifier();
                             MattyFixes.Log.LogError($"{key} Failed to make prefab Mesh Readable! {ex}");
                             ItemPatches.BrokenMeshItems.Add(item);
                             MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");

@@ -1,3 +1,9 @@
+## v1.1.42
+- Allow editing rotations at runtime
+- Fix LethalLevelLoader marking all custom items as his
+- Add File Override logic similar to RuntimeIcons
+- Add support for DawnLib ReplacementDefinitions (Item variants)
+
 ## v1.1.41
 - Fix for disabled animators on Animated Grabbable Objects
 

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Reflection;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using MattyFixes.Config;
 using MattyFixes.Dependency;
-using UnityEngine;
 
 namespace MattyFixes;
 
@@ -17,6 +15,8 @@ internal partial class MattyFixes
         internal static void Init()
         {
             var config = Instance.Config;
+
+            config.SaveOnConfigSet = true;
 
             //Initialize Configs
             //ReadableMeshes
@@ -56,8 +56,6 @@ internal partial class MattyFixes
                 "fix rotation of newly spawned items");
             ItemClipping.VerticalOffset = config.Bind("ItemClipping", "vertical_offset", 0f ,
                 new ConfigDescription("additional y offset for items on the ground", new AcceptableValueRange<float>(-0.5f,0.5f)));
-            ItemClipping.ManualOffsets = config.Bind("ItemClipping", "manual_offsets", "" ,
-                "y offset for items on the ground\nDictionary Format: '[key]:[value],[key2]:[value2]'\neg: `Vanilla/Ammo:0.0`");
             //OutOfBounds
             OutOfBounds.Enabled = config.Bind("OutOfBounds", "enabled", true ,
                 "prevent items from falling below the ship");
@@ -73,26 +71,16 @@ internal partial class MattyFixes
             Debug.VerboseItems = config.Bind("Debug", "Item Verbosity Level", LogLevel.None,
                 "Print A LOT more logs about Cupboard detection");
 
-
-            var offsetString = ItemClipping.ManualOffsets.Value;
-            foreach (var entry in offsetString.Split(','))
-            {
-                var parts = entry.Split(':');
-                if (parts.Length <= 1)
-                    continue;
-
-                var name = parts[0].Trim();
-                if (float.TryParse(parts[1],
-                        NumberStyles.Float | NumberStyles.AllowThousands,
-                        NumberFormatInfo.InvariantInfo,
-                        out var value))
-                    ItemClipping.ManualOffsetMap.Add(name, value);
-            }
-
+            RemoveOrphans(config);
 
             if (LethalConfigProxy.Enabled)
             {
-                LethalConfigProxy.AddButton("Cleanup", "Clear old entries", "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)", "Clean&Save", RemoveOrphans);
+                LethalConfigProxy.AddButton("Maintenance", "Clear old entries",
+                    "remove unused entries in the config file\n(IF RUN FROM MENU WILL DELETE ALL ITEM OFFSETS!!)",
+                    "Clean&Save", () => RemoveOrphans(Instance.RotationsConfig));
+                LethalConfigProxy.AddButton("Maintenance", "Apply Overrides",
+                    "apply overrides for the items that have one",
+                    "Apply", ApplyOverrides);
                 LethalConfigProxy.AddConfig(ReadableMeshes.Enabled, true);
                 LethalConfigProxy.AddConfig(Particles.Lightning, true);
                 LethalConfigProxy.AddConfig(Particles.Flies, true);
@@ -106,7 +94,6 @@ internal partial class MattyFixes
                 LethalConfigProxy.AddConfig(ItemClipping.Enabled);
                 LethalConfigProxy.AddConfig(ItemClipping.RotateOnSpawn);
                 LethalConfigProxy.AddConfig(ItemClipping.VerticalOffset);
-                LethalConfigProxy.AddConfig(ItemClipping.ManualOffsets, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.Enabled, true);
                 LethalConfigProxy.AddConfig(OutOfBounds.VerticalOffset);
                 LethalConfigProxy.AddConfig(OutOfBounds.SpawnInFurniture, true);
@@ -116,9 +103,8 @@ internal partial class MattyFixes
             }
         }
 
-        internal static void RemoveOrphans()
+        private static void RemoveOrphans(ConfigFile config)
         {
-            var config = Instance.Config;
             //remove unused options
             var orphanedEntriesProp = config.GetType()
                 .GetProperty("OrphanedEntries", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -127,6 +113,21 @@ internal partial class MattyFixes
 
             orphanedEntries.Clear();
             config.Save(); // Save the config file
+        }
+
+        private static void ApplyOverrides()
+        {
+            foreach (var (key, holder) in ItemClipping.ItemConfigs)
+            {
+                if (!ConfigOverrides.TryGetValue(key, out var @override))
+                    continue;
+
+                if (@override.RestingRotation.HasValue)
+                    holder.RestingRotation.Value = "override";
+
+                if (@override.VerticalOffset.HasValue)
+                    holder.VerticalOffset.Value = "override";
+            }
         }
 
         internal static class ReadableMeshes
@@ -171,9 +172,9 @@ internal partial class MattyFixes
             internal static ConfigEntry<bool> Enabled;
             internal static ConfigEntry<bool> RotateOnSpawn;
             internal static ConfigEntry<float> VerticalOffset;
-            internal static ConfigEntry<string> ManualOffsets;
-            internal static readonly Dictionary<string, float> ManualOffsetMap = new(StringComparer.InvariantCultureIgnoreCase);
-            internal static readonly Dictionary<Item, ItemRotationConfig> ItemRotations = new();
+            internal static readonly Dictionary<string, ItemRotationConfig> ItemRotations = new();
+            internal static readonly Dictionary<string, ItemOffsetConfig> ItemOffsets = new();
+            internal static readonly Dictionary<string, ConfigHolder> ItemConfigs = new();
         }
 
         internal static class OutOfBounds
@@ -193,11 +194,5 @@ internal partial class MattyFixes
             internal static ConfigEntry<LogLevel> VerboseCupboard;
             internal static ConfigEntry<LogLevel> VerboseItems;
         }
-    }
-
-    internal readonly struct ItemRotationConfig(Vector3 original, ConfigEntry<string> config)
-    {
-        public Vector3 Original { get; } = original;
-        public ConfigEntry<string> Config { get; } = config;
     }
 }

@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using BepInEx.Logging;
 using HarmonyLib;
 using MattyFixes.Dependency;
+using MattyFixes.Utils;
 using MattyFixes.Utils.IL;
 using UnityEngine;
 using UnityEngine.AI;
@@ -115,7 +116,7 @@ internal class OutOfBoundsItemsFix
             return position;
 
         var newPos = position;
-        newPos += Vector3.down * grabbable.itemProperties.verticalOffset;
+        newPos += Vector3.down * grabbable.VerticalOffset;
         newPos += Vector3.up   * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
 
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>

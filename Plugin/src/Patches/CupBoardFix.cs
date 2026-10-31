@@ -43,7 +43,7 @@ internal class CupBoardFix
             return;
 
         var closet = Closet;
-        
+
         if (closet.IsInitialized)
         {
             MattyFixes.VerboseCupboardLog(LogLevel.Warning, () => "SyncShipUnlockablesClientRpc Cupboard Triggered but was already Initialized!");
@@ -64,7 +64,7 @@ internal class CupBoardFix
         {
             var offset = 0f;
             if (grabbable.hasHitGround)
-                offset = grabbable.itemProperties.verticalOffset;
+                offset = grabbable.VerticalOffset;
             ShelfCheck(grabbable, offset);
         }
     }
@@ -75,7 +75,7 @@ internal class CupBoardFix
     private static void OnServerSpawn(GrabbableObject __instance)
     {
         var closet = Closet;
-        
+
         if (closet.IsInitialized)
         {
             MattyFixes.VerboseCupboardLog(LogLevel.Warning, () => "LoadShipGrabbableItems Cupboard Triggered but was already Initialized!");
@@ -100,7 +100,7 @@ internal class CupBoardFix
 
     private static void ShelfCheck(GrabbableObject grabbable, float offset = 0f)
     {
-        
+
         MattyFixes.VerboseCupboardLog(LogLevel.Info, () =>
             $"{grabbable.itemProperties.itemName}({grabbable.NetworkObjectId}) - Cupboard Triggered!");
 
@@ -155,7 +155,7 @@ internal class CupBoardFix
             var transform = grabbable.transform;
             if (found != null)
             {
-                Vector3 newPos = closest.Value + Vector3.up * grabbable.itemProperties.verticalOffset; //ItemPatches.FixPlacement(closest.Value, found.transform, grabbable);
+                Vector3 newPos = closest.Value + Vector3.up * grabbable.VerticalOffset;
                 transform.parent = closet.gameObject.transform;
                 transform.position = newPos;
                 grabbable.targetFloorPosition = transform.localPosition;
