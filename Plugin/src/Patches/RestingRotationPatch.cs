@@ -97,14 +97,14 @@ internal static class RestingRotationPatch
         {
             try
             {
-                foreach (var variant in item.GetSupportedVariants())
+                foreach (var variant in item.MattyFixes_Variants)
                 {
                     TryUpdateItemRotation(variant);
                 }
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError($"{item.GetIdentifier()} crashed badly ! {ex}");
+                MattyFixes.Log.LogError($"{item.MattyFixes_Identifier} crashed badly ! {ex}");
             }
         }
     }
@@ -117,7 +117,7 @@ internal static class RestingRotationPatch
         if (__instance is not GrabbableObject grabbable)
             return;
 
-        var itemVariant = grabbable.GetVariant();
+        var itemVariant = grabbable.MattyFixes_Variant;
 
         TryUpdateItemRotation(itemVariant);
     }

@@ -7,6 +7,7 @@ using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
+using JetBrains.Annotations;
 using MattyFixes.Config;
 using MattyFixes.Dependency;
 using MonoMod.RuntimeDetour;
@@ -31,6 +32,7 @@ internal partial class MattyFixes : BaseUnityPlugin
     internal static ManualLogSource Log;
 
     internal static Harmony Harmony { get; private set; }
+    [UsedImplicitly]
     internal static HashSet<Hook> Hooks { get; } = [];
 
     internal static MattyFixes Instance { get; private set; }

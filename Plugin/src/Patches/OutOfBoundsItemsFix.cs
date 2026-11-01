@@ -116,7 +116,7 @@ internal class OutOfBoundsItemsFix
             return position;
 
         var newPos = position;
-        newPos += Vector3.down * grabbable.VerticalOffset;
+        newPos += Vector3.down * grabbable.MattyFixes_VerticalOffset;
         newPos += Vector3.up   * MattyFixes.PluginConfig.OutOfBounds.VerticalOffset.Value;
 
         MattyFixes.VerboseItemsLog(LogLevel.Debug, () =>

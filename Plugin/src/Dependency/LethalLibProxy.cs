@@ -31,11 +31,16 @@ public static class LethalLibProxy
 
         void RegisterItem(Item item, string modName)
         {
-            if (((IInjectedItem)item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
+            var category = ((IInjectedItem)item).MattyFixes_ItemCategory;
+            if (category is { Type: >= ItemCategory.ItemType.Modded})
                 return;
 
-            ((IInjectedItem)item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
-            ((IInjectedItem)item).MattyFixes_Path     = ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLib, modName, item.itemName ?? item.name);
+            ((IInjectedItem)item).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                item,
+                ItemCategory.ItemType.Modded,
+                ItemCategory.ItemLibrary.LethalLib,
+                ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLib, modName, item.itemName ?? item.name)
+            );
         }
     }
 

@@ -32,80 +32,74 @@ public static class ItemCategory
     extension(Item item)
     {
         // ReSharper disable function SuspiciousTypeConversion.Global
-        [NotNull]
-        public string GetIdentifier()
+        public ItemCategoryHolder MattyFixes_Category
         {
-            var path = ((IInjectedItem)item).MattyFixes_Path;
-            if (path != null)
-                return path;
-
-            var type = ItemType.Unknown;
-            var library = ItemLibrary.Unknown;
-            path = ComputePath(library, item.itemName ?? item.name);
-
-            if (DawnLibProxy.Enabled)
+            get
             {
-                var dawnType = DawnLibProxy.DefineItem(item, out var dawnPath);
-                if (type <= dawnType)
-                {
-                    type = dawnType;
-                    path = dawnPath;
-                    library = ItemLibrary.DawnLib;
-                }
-            }
+                var category = ((IInjectedItem)item).MattyFixes_ItemCategory;
+                if (category.HasValue)
+                    return category.Value;
 
-            ((IInjectedItem)item).MattyFixes_ItemType = type;
-            ((IInjectedItem)item).MattyFixes_Library  = library;
-            ((IInjectedItem)item).MattyFixes_Path     = path;
-            return path;
+                var type = ItemType.Unknown;
+                var library = ItemLibrary.Unknown;
+                var identifier = ComputePath(library, item.itemName ?? item.name);
+
+                if (DawnLibProxy.Enabled)
+                {
+                    var dawnType = DawnLibProxy.DefineItem(item, out var dawnIdentifier);
+                    if (type <= dawnType)
+                    {
+                        type = dawnType;
+                        identifier = dawnIdentifier;
+                        library = ItemLibrary.DawnLib;
+                    }
+                }
+
+                var holder = new ItemCategoryHolder(item, type, library, identifier);
+
+                ((IInjectedItem)item).MattyFixes_ItemCategory = holder;
+
+                return holder;
+            }
         }
 
+        [NotNull] public string MattyFixes_Identifier => item.MattyFixes_Category.Identifier;
 
-
-        public IItemVariant[] GetSupportedVariants()
+        [NotNull]
+        public IItemVariant[] MattyFixes_Variants
         {
-
-            ((IInjectedItem)item).MattyFixes_ItemVariant ??= ((IInjectedItem)item).MattyFixes_ItemType switch
+            get
             {
-                ItemType.Vanilla => new VanillaItem(item),
-                ItemType.Unknown => new UnknownItem(item),
-                ItemType.Modded => new ModdedItem(item, ((IInjectedItem)item).MattyFixes_Library),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+                {
 
-            if (DawnLibProxy.Enabled)
-                return DawnLibProxy.GetItemVariants(item);
+                    if (DawnLibProxy.Enabled)
+                        return DawnLibProxy.GetItemVariants(item);
 
-            return [((IInjectedItem)item).MattyFixes_ItemVariant];
+                    return [item.MattyFixes_Category.BaseVariant];
+                }
+            }
         }
     }
 
     extension(GrabbableObject item)
     {
         [NotNull]
-        public IItemVariant GetVariant()
+        public IItemVariant MattyFixes_Variant
         {
-            var itemType = item.itemProperties;
-
-            ((IInjectedItem)itemType).MattyFixes_ItemVariant ??= ((IInjectedItem)item).MattyFixes_ItemType switch
+            get
             {
-                ItemType.Vanilla => new VanillaItem(itemType),
-                ItemType.Unknown => new UnknownItem(itemType),
-                ItemType.Modded => new ModdedItem(itemType, ((IInjectedItem)itemType).MattyFixes_Library),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+                if (DawnLibProxy.Enabled)
+                    return DawnLibProxy.GetItemVariant(item);
 
-            if (DawnLibProxy.Enabled)
-                return DawnLibProxy.GetItemVariant(item);
-
-            return ((IInjectedItem)item).MattyFixes_ItemVariant;
+                return item.itemProperties.MattyFixes_Category.BaseVariant;
+            }
         }
 
-        public Vector3 RestingRotation => item.GetVariant().RestingRotation;
+        public Vector3 MattyFixes_RestingRotation => item.MattyFixes_Variant.RestingRotation;
 
-        public float FloorYOffset => item.GetVariant().FloorYOffset;
+        public float MattyFixes_FloorYOffset => item.MattyFixes_Variant.FloorYOffset;
 
-        public float VerticalOffset => item.GetVariant().VerticalOffset;
+        public float MattyFixes_VerticalOffset => item.MattyFixes_Variant.VerticalOffset;
     }
 
     public static string ComputePath(ItemLibrary library, [NotNull] params string[] path)
@@ -125,5 +119,22 @@ public static class ItemCategory
     public static string SanitizeForConfig(string input)
     {
         return ConfigFilterRegex.Replace(input, "").Trim();
+    }
+
+    public readonly struct ItemCategoryHolder(Item itemProperties, ItemType type, ItemLibrary library, string identifier)
+    {
+        public Item ItemProperties => itemProperties;
+        public ItemType Type => type;
+        public ItemLibrary Library => library;
+
+        public string Identifier => identifier;
+
+        public IItemVariant BaseVariant { get; } = type switch
+        {
+            ItemType.Vanilla => new VanillaItem(itemProperties, identifier),
+            ItemType.Unknown => new UnknownItem(itemProperties, identifier),
+            ItemType.Modded => new ModdedItem(itemProperties, library, identifier),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 }

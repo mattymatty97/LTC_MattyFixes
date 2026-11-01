@@ -4,14 +4,14 @@ using UnityEngine;
 
 namespace MattyFixes.ItemVariants;
 
-public abstract class SimpleItem(Item itemProperties) : IItemVariant
+public abstract class SimpleItem(Item itemProperties, string identifier) : IItemVariant
 {
     public Item ItemProperties { get; } = itemProperties;
 
     public abstract ItemCategory.ItemType Type { get; }
 
     public abstract ItemCategory.ItemLibrary Library { get; }
-    public string Identifier => ItemProperties.GetIdentifier();
+    public string Identifier => identifier;
 
     public Vector3 RestingRotation
     {

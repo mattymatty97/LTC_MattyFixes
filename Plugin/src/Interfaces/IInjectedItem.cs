@@ -14,8 +14,5 @@ public interface IInjectedItem
     [HandleErrors(ErrorHandlingStrategy.Ignore)]
     public void Awake();
 
-    public ItemCategory.ItemType MattyFixes_ItemType { get; set; }
-    public ItemCategory.ItemLibrary MattyFixes_Library { get; set; }
-    public IItemVariant MattyFixes_ItemVariant { get; set; }
-    public string MattyFixes_Path { get; set; }
+    public ItemCategory.ItemCategoryHolder? MattyFixes_ItemCategory { get; internal set; }
 }

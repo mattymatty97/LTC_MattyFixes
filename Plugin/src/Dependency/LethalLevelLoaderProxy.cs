@@ -27,19 +27,28 @@ public static class LethalLevelLoaderProxy
         MattyFixes.Log.LogWarning("LethalLevelLoader found, reading PatchedContent.ExtendedItems");
         foreach (var extendedItem in PatchedContent.ExtendedItems)
         {
-            if (((IInjectedItem)extendedItem.Item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
+            var category = ((IInjectedItem)extendedItem.Item).MattyFixes_ItemCategory;
+            if (category is { Type: >= ItemCategory.ItemType.Modded})
                 continue;
 
             // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
             switch (extendedItem.ContentType)
             {
                 case ContentType.Vanilla:
-                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
-                    ((IInjectedItem)extendedItem.Item).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, extendedItem.Item.itemName ?? extendedItem.Item.name);
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                        extendedItem.Item,
+                        ItemCategory.ItemType.Vanilla,
+                        ItemCategory.ItemLibrary.Vanilla,
+                        ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, extendedItem.Item.itemName ?? extendedItem.Item.name)
+                    );
                     break;
                 case ContentType.Custom:
-                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemType = ItemCategory.ItemType.Modded;
-                    ((IInjectedItem)extendedItem.Item).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLevelLoader, extendedItem.ModName, extendedItem.Item.itemName ?? extendedItem.Item.name);
+                    ((IInjectedItem)extendedItem.Item).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                        extendedItem.Item,
+                        ItemCategory.ItemType.Modded,
+                        ItemCategory.ItemLibrary.LethalLevelLoader,
+                        ItemCategory.ComputePath(ItemCategory.ItemLibrary.LethalLevelLoader, extendedItem.ModName, extendedItem.Item.itemName ?? extendedItem.Item.name)
+                    );
                     break;
             }
         }

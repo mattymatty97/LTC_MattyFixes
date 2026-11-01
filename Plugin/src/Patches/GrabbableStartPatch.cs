@@ -23,7 +23,7 @@ internal class GrabbableStartPatch
         if (!MattyFixes.PluginConfig.ItemClipping.Enabled.Value)
             return;
 
-        var variant = __instance.GetVariant();
+        var variant = __instance.MattyFixes_Variant;
         var key = variant.Identifier;
 
         if (MattyFixes.PluginConfig.ItemClipping.ItemOffsets.ContainsKey(key))
@@ -39,7 +39,7 @@ internal class GrabbableStartPatch
     // ReSharper disable function Unity.PerformanceCriticalCodeInvocation
     private static IEnumerator ProcessGrabbable(GrabbableObject grabbable, bool updatePosition = true)
     {
-        var variant = grabbable.GetVariant();
+        var variant = grabbable.MattyFixes_Variant;
         var key = variant.Identifier;
 
         var oldOffset = variant.VerticalOffset;
@@ -81,7 +81,7 @@ internal class GrabbableStartPatch
 
     private static float ComputeVerticalOffset(GrabbableObject grabbable)
     {
-        var variant = grabbable.GetVariant();
+        var variant = grabbable.MattyFixes_Variant;
         var itemPath = variant.Identifier;
 
         try

@@ -2,7 +2,7 @@
 
 namespace MattyFixes.ItemVariants;
 
-public sealed class ModdedItem(Item itemProperties, ItemCategory.ItemLibrary library) : SimpleItem(itemProperties)
+public sealed class ModdedItem(Item itemProperties, ItemCategory.ItemLibrary library, string identifier) : SimpleItem(itemProperties, identifier)
 {
     public override ItemCategory.ItemType Type => ItemCategory.ItemType.Modded;
     public override ItemCategory.ItemLibrary Library => library;

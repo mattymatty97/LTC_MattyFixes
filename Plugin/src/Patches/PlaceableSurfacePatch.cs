@@ -23,7 +23,7 @@ public static class PlaceableSurfacePatch
                     1073744640, QueryTriggerInteraction.Ignore))
             {
                 var hitPoint = val.collider.ClosestPointOnBounds(val.point);
-                __result = hitPoint + Vector3.up * heldObject.VerticalOffset;
+                __result = hitPoint + Vector3.up * heldObject.MattyFixes_VerticalOffset;
                 return false;
             }
 

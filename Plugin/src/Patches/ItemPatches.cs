@@ -38,8 +38,12 @@ internal static class ItemPatches
 
         if (!MenuManagerPatch.GameHasLoaded)
         {
-            ((IInjectedItem)__instance).MattyFixes_ItemType = ItemCategory.ItemType.Vanilla;
-            ((IInjectedItem)__instance).MattyFixes_Path = ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, __instance.itemName ?? __instance.name);
+            ((IInjectedItem)__instance).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                __instance,
+                ItemCategory.ItemType.Vanilla,
+                ItemCategory.ItemLibrary.Vanilla,
+                ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, __instance.itemName ?? __instance.name)
+            );
         }
     }
 
@@ -70,7 +74,7 @@ internal static class ItemPatches
             }
             catch (Exception ex)
             {
-                var key = itemType.GetIdentifier();
+                var key = itemType.MattyFixes_Identifier;
                 MattyFixes.Log.LogError($"{key} Failed to mark prefab Mesh Readable! {ex}");
                 BrokenMeshItems.Add(itemType);
                 MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");
@@ -107,8 +111,8 @@ internal static class ItemPatches
                 if (!MattyFixes.PluginConfig.ItemClipping.RotateOnSpawn.Value)
                     return;
 
-                var restingRotation = grabbable.RestingRotation;
-                var floorYOffset = grabbable.FloorYOffset;
+                var restingRotation = grabbable.MattyFixes_RestingRotation;
+                var floorYOffset = grabbable.MattyFixes_FloorYOffset;
 
                 grabbable.floorYRot = (int)Math.Floor(grabbable.transform.eulerAngles.y - 90f - floorYOffset);
 
@@ -116,7 +120,7 @@ internal static class ItemPatches
             }
             catch (Exception ex)
             {
-                MattyFixes.Log.LogError($"Exception while setting rotation of {grabbable.itemProperties.GetIdentifier()} :{ex}");
+                MattyFixes.Log.LogError($"Exception while setting rotation of {grabbable.itemProperties.MattyFixes_Identifier} :{ex}");
             }
         }
     }
@@ -377,7 +381,7 @@ internal static class ItemPatches
                         catch (Exception ex)
                         {
                             var item = grabbable.itemProperties;
-                            var key = item.GetIdentifier();
+                            var key = item.MattyFixes_Identifier;
                             MattyFixes.Log.LogError($"{key} Failed to make prefab Mesh Readable! {ex}");
                             ItemPatches.BrokenMeshItems.Add(item);
                             MattyFixes.Log.LogWarning($"{key} Added to the ignored Meshes!");

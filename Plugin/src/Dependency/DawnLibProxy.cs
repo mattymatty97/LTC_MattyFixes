@@ -44,20 +44,28 @@ public static class DawnLibProxy
         MattyFixes.Log.LogWarning("DawnLib found, reading LethalContent.Items for modded items");
         foreach (var (key, dawnItemInfo) in LethalContent.Items)
         {
-            if (((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemType >= ItemCategory.ItemType.Modded)
+            var category = ((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemCategory;
+            if (category is { Type: >= ItemCategory.ItemType.Modded })
                 continue;
 
             if (key.IsVanilla())
             {
-                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemType  = ItemCategory.ItemType.Vanilla;
-                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_Path      = ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, dawnItemInfo.Item.itemName ?? dawnItemInfo.Item.name);
+                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                    dawnItemInfo.Item,
+                    ItemCategory.ItemType.Vanilla,
+                    ItemCategory.ItemLibrary.Vanilla,
+                    ItemCategory.ComputePath(ItemCategory.ItemLibrary.Vanilla, dawnItemInfo.Item.itemName ?? dawnItemInfo.Item.name)
+                    );
             }
             else if (!dawnItemInfo.HasTag(DawnLibTags.IsExternal))
             {
-                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemType  = ItemCategory.ItemType.Modded;
-                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_Path      = ItemCategory.ComputePath(ItemCategory.ItemLibrary.DawnLib, key.Namespace, key.Key);
+                ((IInjectedItem)dawnItemInfo.Item).MattyFixes_ItemCategory = new ItemCategory.ItemCategoryHolder(
+                    dawnItemInfo.Item,
+                    ItemCategory.ItemType.Modded,
+                    ItemCategory.ItemLibrary.DawnLib,
+                    ItemCategory.ComputePath(ItemCategory.ItemLibrary.DawnLib, key.Namespace, key.Key)
+                    );
             }
-
         }
     }
 
@@ -86,7 +94,7 @@ public static class DawnLibProxy
 
     public static bool IsDawnLibItem(Item item)
     {
-        return ((IInjectedItem)item).MattyFixes_Library == ItemCategory.ItemLibrary.DawnLib;
+        return item.MattyFixes_Category.Library == ItemCategory.ItemLibrary.DawnLib;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
@@ -97,13 +105,13 @@ public static class DawnLibProxy
         {
             return [.. replacementList.Select(replacement => new DawnItemVariant(item, replacement))];
         }
-        return [((IInjectedItem)item).MattyFixes_ItemVariant];
+        return [item.MattyFixes_Category.BaseVariant];
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public static IItemVariant GetItemVariant(GrabbableObject item)
     {
-        return item.TryGetGrabbableObjectReplacement(out var variant) ? new DawnItemVariant(item.itemProperties, variant) : ((IInjectedItem)item).MattyFixes_ItemVariant;
+        return item.TryGetGrabbableObjectReplacement(out var variant) ? new DawnItemVariant(item.itemProperties, variant) : item.itemProperties.MattyFixes_Category.BaseVariant;
     }
 
     public sealed class DawnItemVariant(Item itemProperties, DuskItemReplacementDefinition replacementDefinition) : IItemVariant

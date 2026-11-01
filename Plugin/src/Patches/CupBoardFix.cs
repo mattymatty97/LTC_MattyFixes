@@ -64,7 +64,7 @@ internal class CupBoardFix
         {
             var offset = 0f;
             if (grabbable.hasHitGround)
-                offset = grabbable.VerticalOffset;
+                offset = grabbable.MattyFixes_VerticalOffset;
             ShelfCheck(grabbable, offset);
         }
     }
@@ -155,7 +155,7 @@ internal class CupBoardFix
             var transform = grabbable.transform;
             if (found != null)
             {
-                Vector3 newPos = closest.Value + Vector3.up * grabbable.VerticalOffset;
+                Vector3 newPos = closest.Value + Vector3.up * grabbable.MattyFixes_VerticalOffset;
                 transform.parent = closet.gameObject.transform;
                 transform.position = newPos;
                 grabbable.targetFloorPosition = transform.localPosition;

@@ -38,6 +38,9 @@
     <ItemGroup>
       <ReferencePathWithRefAssemblies Update="D:\Programming\RiderProjects\Lethal_Company\MattyFixes\Plugin\obj\Release\publicized\UnityEngine.dll" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="src\Test\" />
+    </ItemGroup>
 
 	<Target Name="CopyForUpload" AfterTargets="Build">
         <PropertyGroup>
